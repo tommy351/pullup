@@ -5,6 +5,7 @@ import (
 
 	"github.com/tommy351/pullup/pkg/api"
 	"github.com/tommy351/pullup/pkg/config"
+	"github.com/tommy351/pullup/pkg/kubernetes"
 )
 
 func main() {
@@ -14,8 +15,15 @@ func main() {
 		panic(err)
 	}
 
+	kubeClient, err := kubernetes.NewClient(&conf.Kubernetes)
+
+	if err != nil {
+		panic(err)
+	}
+
 	s := &api.Server{
-		Config: conf,
+		Config:           conf,
+		KubernetesClient: kubeClient,
 	}
 
 	if err := s.Serve(context.Background()); err != nil {
