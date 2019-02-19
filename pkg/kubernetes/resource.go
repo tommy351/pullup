@@ -14,5 +14,5 @@ type Resource struct {
 }
 
 func (r *Resource) ModifiedName() string {
-	return fmt.Sprintf("%s-pr%d", r.Name, r.PullRequestNumber)
+	return fmt.Sprintf("%s-pullup-%d", r.Name, r.PullRequestNumber)
 }

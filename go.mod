@@ -4,7 +4,7 @@ require (
 	cloud.google.com/go v0.36.0 // indirect
 	contrib.go.opencensus.io/exporter/ocagent v0.4.4 // indirect
 	github.com/Azure/go-autorest v11.4.0+incompatible // indirect
-	github.com/davecgh/go-spew v1.1.1
+	github.com/evanphx/json-patch v4.1.0+incompatible
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/google/go-github/v24 v24.0.0
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect

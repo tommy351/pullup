@@ -120,7 +120,33 @@ func (c *Client) Apply(ctx context.Context, resource *Resource) error {
 		return err
 	}
 
-	return nil
+	// Modify the resource
+	modified, err := PatchResource(result, resource)
+
+	if err != nil {
+		return err
+	}
+
+	// Apply the modified resource
+	result = c.newRequest(ctx, client, "PUT").
+		Resource(kind).
+		Name(resource.ModifiedName()).
+		Body(modified).
+		Do()
+
+	if err := result.Error(); err == nil {
+		return nil
+	} else if !errors.IsNotFound(err) {
+		return err
+	}
+
+	// Create the resource if apply failed
+	result = c.newRequest(ctx, client, "POST").
+		Resource(kind).
+		Body(modified).
+		Do()
+
+	return result.Error()
 }
 
 func (c *Client) Delete(ctx context.Context, resource *Resource) error {

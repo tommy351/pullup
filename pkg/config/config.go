@@ -23,7 +23,20 @@ type RepoConfig struct {
 type ResourceConfig struct {
 	ResourceReference `mapstructure:",squash"`
 
-	Merge interface{} `mapstructure:"merge"`
+	Patch []ResourcePatch `mapstructure:"patch"`
+}
+
+type ResourcePatch struct {
+	Path  string      `mapstructure:"path"`
+	Value interface{} `mapstructure:"value"`
+
+	// Ops
+	Add     string `mapstructure:"add"`
+	Remove  string `mapstructure:"remove"`
+	Replace string `mapstructure:"replace"`
+	Copy    string `mapstructure:"copy"`
+	Move    string `mapstructure:"move"`
+	Test    string `mapstructure:"test"`
 }
 
 type ResourceReference struct {
