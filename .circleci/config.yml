@@ -1,0 +1,48 @@
+version: 2.1
+
+commands:
+  go_get:
+    steps:
+      - restore_cache:
+          key: go-pkg
+      - run: go get ./...
+      - save_cache:
+          paths:
+            - /go/pkg
+          key: go-pkg
+
+jobs:
+  lint:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - go_get
+      - run:
+          name: Install golangci-lint
+          command: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.15.0
+      - run: ./bin/golangci-lint run
+  test_go:
+    docker:
+      - image: circleci/golang:1.11
+    environment:
+      TEST_RESULTS: /tmp/test-results
+    steps:
+      - checkout
+      - go_get
+      - run: mkdir -p $TEST_RESULTS
+      - run: go get github.com/jstemmer/go-junit-report
+      - run:
+          name: Run tests
+          command: |
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+            go test -v ./... | tee ${TEST_RESULTS}/go-test.out
+      - store_test_results:
+          path: /tmp/test-results
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - lint
+      - test_go
