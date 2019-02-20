@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/ansel1/merry"
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/tommy351/pullup/pkg/config"
 )
 

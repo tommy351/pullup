@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"github.com/ansel1/merry"
 	"github.com/tommy351/pullup/pkg/config"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/rest"
 )
@@ -25,7 +25,7 @@ var typedReducers = map[string]Reducer{
 			{Remove: "/spec/clusterIP"},
 		})),
 		ReducerFunc(func(data []byte, resource *Resource) ([]byte, error) {
-			var service v1.Service
+			var service corev1.Service
 
 			if err := json.Unmarshal(data, &service); err != nil {
 				return nil, merry.Wrap(err)
