@@ -2,23 +2,15 @@ package kubernetes
 
 import (
 	"context"
-	"path/filepath"
-	"strings"
 
 	"github.com/jinzhu/inflection"
-	"github.com/mitchellh/go-homedir"
 	"github.com/tommy351/pullup/pkg/config"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 )
-
-type configGetter func() (*rest.Config, error)
 
 type Client struct {
 	config    *rest.Config
@@ -26,23 +18,7 @@ type Client struct {
 }
 
 func NewClient(conf *config.KubernetesConfig) (*Client, error) {
-	var (
-		restConf *rest.Config
-		err      error
-	)
-
-	getters := []configGetter{
-		rest.InClusterConfig,
-		readConfigFromHomeDir,
-	}
-
-	for _, getter := range getters {
-		restConf, err = getter()
-
-		if err == nil {
-			break
-		}
-	}
+	restConf, err := LoadConfig()
 
 	if err != nil {
 		return nil, err
@@ -57,44 +33,8 @@ func NewClient(conf *config.KubernetesConfig) (*Client, error) {
 	}, nil
 }
 
-func readConfigFromPath(path string) configGetter {
-	return func() (*rest.Config, error) {
-		return clientcmd.BuildConfigFromFlags("", path)
-	}
-}
-
-func readConfigFromHomeDir() (*rest.Config, error) {
-	dir, err := homedir.Dir()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path := filepath.Join(dir, ".kube", "config")
-	return readConfigFromPath(path)()
-}
-
 func (c *Client) newRESTClient(apiVersion string) (rest.Interface, error) {
-	var gv schema.GroupVersion
-	config := *c.config
-	parts := strings.SplitN(apiVersion, "/", 2)
-
-	if len(parts) == 2 {
-		gv.Group = parts[0]
-		gv.Version = parts[1]
-	} else {
-		gv.Version = parts[0]
-	}
-
-	config.GroupVersion = &gv
-
-	if gv.Group == "" {
-		config.APIPath = "/api"
-	} else {
-		config.APIPath = "/apis"
-	}
-
-	return rest.RESTClientFor(&config)
+	return rest.RESTClientFor(GetVersionedConfig(c.config, apiVersion))
 }
 
 func (c *Client) newRequest(ctx context.Context, client rest.Interface, verb string) *rest.Request {
