@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"github.com/ansel1/merry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 )
@@ -14,7 +15,7 @@ func DecodeObject(data []byte) (*Object, error) {
 	var obj Object
 
 	if err := json.Unmarshal(data, &obj); err != nil {
-		return nil, err
+		return nil, merry.Wrap(err)
 	}
 
 	return &obj, nil

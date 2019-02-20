@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/ansel1/merry"
 	"github.com/spf13/viper"
 )
 
@@ -9,6 +10,7 @@ type Config struct {
 	Repositories []RepoConfig     `mapstructure:"repositories"`
 	GitHub       GitHubConfig     `mapstructure:"github"`
 	Kubernetes   KubernetesConfig `mapstructure:"kubernetes"`
+	Log          LogConfig        `mapstructure:"log"`
 }
 
 type ServerConfig struct {
@@ -53,6 +55,11 @@ type KubernetesConfig struct {
 	Namespace string `mapstructure:"namespace"`
 }
 
+type LogConfig struct {
+	Level  string `mapstructure:"level"`
+	Format string `mapstructure:"format"`
+}
+
 func ReadConfig() (*Config, error) {
 	var config Config
 	v := viper.New()
@@ -70,14 +77,25 @@ func ReadConfig() (*Config, error) {
 	// Default values
 	v.SetDefault("server.addr", ":4000")
 	v.SetDefault("kubernetes.namespace", "default")
+	v.SetDefault("log.level", "info")
 
 	if err := v.ReadInConfig(); err != nil {
-		return nil, err
+		return nil, merry.Wrap(err)
 	}
 
 	if err := v.Unmarshal(&config); err != nil {
-		return nil, err
+		return nil, merry.Wrap(err)
 	}
 
 	return &config, nil
+}
+
+func MustReadConfig() *Config {
+	conf, err := ReadConfig()
+
+	if err != nil {
+		panic(err)
+	}
+
+	return conf
 }

@@ -1,44 +1,50 @@
-package api
+package server
 
 import (
 	"context"
 	"io/ioutil"
 	"net/http"
 
+	"github.com/ansel1/merry"
 	"github.com/google/go-github/v24/github"
-	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"github.com/tommy351/pullup/pkg/config"
 	"github.com/tommy351/pullup/pkg/kubernetes"
 )
 
-func (s *Server) GitHubWebhook(ctx echo.Context) error {
-	req := ctx.Request()
-	payload, err := s.validatePayload(req)
+func (s *Server) GitHubWebhook(w http.ResponseWriter, r *http.Request) error {
+	logger := hlog.FromRequest(r)
+	payload, err := s.validatePayload(r)
 
 	if err != nil {
-		return err
+		logger.Warn().Err(err).Msg("Failed to validate payload")
+		return ErrInvalidPayload
 	}
 
-	event, err := github.ParseWebHook(github.WebHookType(req), payload)
+	event, err := github.ParseWebHook(github.WebHookType(r), payload)
 
 	if err != nil {
-		return err
+		logger.Warn().Err(err).Msg("Failed to parse webhook")
+		return ErrInvalidPayload
 	}
+
+	logger.Debug().Interface("payload", event).Msg("Received GitHub webhook")
 
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
 		repo := s.findRepoConfig("github.com/" + *event.Repo.FullName)
 
 		if repo == nil {
-			return ctx.String(http.StatusNotFound, "Repository is not set in the config")
+			return ErrRepositoryNotFound
 		}
 
-		if err := s.handlePullRequestEvent(event, repo); err != nil {
-			return err
+		if err := s.handlePullRequestEvent(r.Context(), event, repo); err != nil {
+			return merry.Wrap(err)
 		}
 	}
 
-	return ctx.String(http.StatusOK, "ok")
+	return String(w, http.StatusOK, "ok")
 }
 
 func (s *Server) validatePayload(req *http.Request) ([]byte, error) {
@@ -61,8 +67,9 @@ func (s *Server) findRepoConfig(name string) *config.RepoConfig {
 	return nil
 }
 
-func (s *Server) handlePullRequestEvent(event *github.PullRequestEvent, repo *config.RepoConfig) error {
-	ctx := context.TODO()
+func (s *Server) handlePullRequestEvent(ctx context.Context, event *github.PullRequestEvent, repo *config.RepoConfig) error {
+	logger := zerolog.Ctx(ctx).With().Str("repository", repo.Name).Logger()
+	ctx = logger.WithContext(ctx)
 
 	switch event.GetAction() {
 	case "opened", "reopened", "synchronize":
@@ -85,7 +92,7 @@ func (s *Server) buildResource(event *github.PullRequestEvent, res *config.Resou
 func (s *Server) applyResources(ctx context.Context, event *github.PullRequestEvent, repo *config.RepoConfig) error {
 	for _, res := range repo.Resources {
 		if err := s.KubernetesClient.Apply(ctx, s.buildResource(event, &res)); err != nil {
-			return err
+			return merry.Wrap(err)
 		}
 	}
 
@@ -95,7 +102,7 @@ func (s *Server) applyResources(ctx context.Context, event *github.PullRequestEv
 func (s *Server) deleteResources(ctx context.Context, event *github.PullRequestEvent, repo *config.RepoConfig) error {
 	for _, res := range repo.Resources {
 		if err := s.KubernetesClient.Delete(ctx, s.buildResource(event, &res)); err != nil {
-			return err
+			return merry.Wrap(err)
 		}
 	}
 

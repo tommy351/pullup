@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"encoding/json"
 
+	"github.com/ansel1/merry"
 	"github.com/evanphx/json-patch"
 	"github.com/tommy351/pullup/pkg/config"
 )
@@ -20,19 +21,19 @@ func NewJSONPatchReducer(patches []JSONPatch) (JSONPatchReducer, error) {
 	buf, err := json.Marshal(patches)
 
 	if err != nil {
-		return nil, err
+		return nil, merry.Wrap(err)
 	}
 
 	patch, err := jsonpatch.DecodePatch(buf)
 
 	if err != nil {
-		return nil, err
+		return nil, merry.Wrap(err)
 	}
 
 	return JSONPatchReducer(patch), nil
 }
 
-func NewJSONPatchReducerMust(patches []JSONPatch) JSONPatchReducer {
+func MustNewJSONPatchReducer(patches []JSONPatch) JSONPatchReducer {
 	reducer, err := NewJSONPatchReducer(patches)
 
 	if err != nil {

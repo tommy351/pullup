@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ansel1/merry"
 	"github.com/mitchellh/go-homedir"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
@@ -16,17 +17,23 @@ func LoadConfig() (*rest.Config, error) {
 	if err == nil {
 		return conf, nil
 	} else if err != rest.ErrNotInCluster {
-		return nil, err
+		return nil, merry.Wrap(err)
 	}
 
 	home, err := homedir.Dir()
 
 	if err != nil {
-		return nil, err
+		return nil, merry.Wrap(err)
 	}
 
 	path := filepath.Join(home, ".kube", "config")
-	return clientcmd.BuildConfigFromFlags("", path)
+	conf, err = clientcmd.BuildConfigFromFlags("", path)
+
+	if err != nil {
+		return nil, merry.Wrap(err)
+	}
+
+	return conf, nil
 }
 
 func GetVersionedConfig(input *rest.Config, apiVersion string) *rest.Config {

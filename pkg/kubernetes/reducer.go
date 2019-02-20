@@ -1,5 +1,7 @@
 package kubernetes
 
+import "github.com/ansel1/merry"
+
 type Reducer interface {
 	Reduce(data []byte, resource *Resource) ([]byte, error)
 }
@@ -11,11 +13,11 @@ func (r Reducers) Reduce(input []byte, resource *Resource) (output []byte, err e
 
 	for _, reducer := range r {
 		if output, err = reducer.Reduce(output, resource); err != nil {
-			return
+			return nil, merry.Wrap(err)
 		}
 	}
 
-	return
+	return output, nil
 }
 
 type ReducerFunc func(data []byte, resource *Resource) ([]byte, error)
