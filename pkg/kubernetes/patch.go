@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// nolint: gochecknoglobals
 var commonReducer = MustNewJSONPatchReducer(JSONPatchFromConfig([]config.ResourcePatch{
 	{Remove: "/status"},
 	{Replace: "/metadata/name", Value: "{{ .ModifiedName }}"},
@@ -17,6 +18,7 @@ var commonReducer = MustNewJSONPatchReducer(JSONPatchFromConfig([]config.Resourc
 	{Remove: "/metadata/uid"},
 }))
 
+// nolint: gochecknoglobals
 var typedReducers = map[string]Reducer{
 	"v1/Service": Reducers{
 		MustNewJSONPatchReducer(JSONPatchFromConfig([]config.ResourcePatch{

@@ -11,10 +11,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
+
+	// Load auth plugins
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+// nolint: gochecknoglobals
 var pluralKindCache = cache.NewMap()
 
 func getPluralKind(kind string) string {

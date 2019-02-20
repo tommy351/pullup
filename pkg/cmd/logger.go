@@ -9,6 +9,7 @@ import (
 	"github.com/tommy351/pullup/pkg/config"
 )
 
+// nolint: gochecknoinits
 func init() {
 	zerolog.ErrorStackMarshaler = func(err error) interface{} {
 		return merry.Stacktrace(err)

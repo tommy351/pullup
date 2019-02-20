@@ -31,8 +31,7 @@ func (s *Server) GitHubWebhook(w http.ResponseWriter, r *http.Request) error {
 
 	logger.Debug().Interface("payload", event).Msg("Received GitHub webhook")
 
-	switch event := event.(type) {
-	case *github.PullRequestEvent:
+	if event, ok := event.(*github.PullRequestEvent); ok {
 		repo := s.findRepoConfig("github.com/" + *event.Repo.FullName)
 
 		if repo == nil {
@@ -59,6 +58,8 @@ func (s *Server) validatePayload(req *http.Request) ([]byte, error) {
 
 func (s *Server) findRepoConfig(name string) *config.RepoConfig {
 	for _, repo := range s.Config.Repositories {
+		repo := repo
+
 		if repo.Name == name {
 			return &repo
 		}
@@ -91,6 +92,8 @@ func (s *Server) buildResource(event *github.PullRequestEvent, res *config.Resou
 
 func (s *Server) applyResources(ctx context.Context, event *github.PullRequestEvent, repo *config.RepoConfig) error {
 	for _, res := range repo.Resources {
+		res := res
+
 		if err := s.KubernetesClient.Apply(ctx, s.buildResource(event, &res)); err != nil {
 			return merry.Wrap(err)
 		}
@@ -101,6 +104,8 @@ func (s *Server) applyResources(ctx context.Context, event *github.PullRequestEv
 
 func (s *Server) deleteResources(ctx context.Context, event *github.PullRequestEvent, repo *config.RepoConfig) error {
 	for _, res := range repo.Resources {
+		res := res
+
 		if err := s.KubernetesClient.Delete(ctx, s.buildResource(event, &res)); err != nil {
 			return merry.Wrap(err)
 		}
