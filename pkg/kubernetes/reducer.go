@@ -1,27 +1,58 @@
 package kubernetes
 
-import "github.com/ansel1/merry"
+import (
+	"github.com/ansel1/merry"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/json"
+)
 
 type Reducer interface {
-	Reduce(data []byte, resource *Resource) ([]byte, error)
+	Reduce(resource *Resource) error
 }
 
 type Reducers []Reducer
 
-func (r Reducers) Reduce(input []byte, resource *Resource) (output []byte, err error) {
-	output = input
-
+func (r Reducers) Reduce(resource *Resource) error {
 	for _, reducer := range r {
-		if output, err = reducer.Reduce(output, resource); err != nil {
-			return nil, merry.Wrap(err)
+		if err := reducer.Reduce(resource); err != nil {
+			return merry.Wrap(err)
 		}
 	}
 
-	return output, nil
+	return nil
 }
 
-type ReducerFunc func(data []byte, resource *Resource) ([]byte, error)
+type ReducerFunc func(resource *Resource) error
 
-func (r ReducerFunc) Reduce(data []byte, resource *Resource) ([]byte, error) {
-	return r(data, resource)
+func (r ReducerFunc) Reduce(resource *Resource) error {
+	return r(resource)
+}
+
+func newUnstructuredFromRawJSON(buf []byte) (*unstructured.Unstructured, error) {
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(buf, &data); err != nil {
+		return nil, merry.Wrap(err)
+	}
+
+	return &unstructured.Unstructured{Object: data}, nil
+}
+
+type ByteReducerFunc func(data []byte, resource *Resource) ([]byte, error)
+
+func (b ByteReducerFunc) Reduce(resource *Resource) error {
+	buf, err := resource.PatchedResource.MarshalJSON()
+
+	if err != nil {
+		return merry.Wrap(err)
+	}
+
+	buf, err = b(buf, resource)
+
+	if err != nil {
+		return merry.Wrap(err)
+	}
+
+	resource.PatchedResource, err = newUnstructuredFromRawJSON(buf)
+	return merry.Wrap(err)
 }

@@ -9,7 +9,11 @@ import (
 
 type TemplateReducer struct{}
 
-func (t *TemplateReducer) Reduce(data []byte, resource *Resource) ([]byte, error) {
+func (t TemplateReducer) Reduce(resource *Resource) error {
+	return ByteReducerFunc(t.reduceBytes).Reduce(resource)
+}
+
+func (t TemplateReducer) reduceBytes(data []byte, resource *Resource) ([]byte, error) {
 	tmpl, err := template.New("").Parse(string(data))
 
 	if err != nil {

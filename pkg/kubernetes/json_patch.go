@@ -43,8 +43,12 @@ func MustNewJSONPatchReducer(patches []JSONPatch) JSONPatchReducer {
 	return reducer
 }
 
-func (j JSONPatchReducer) Reduce(input []byte, resource *Resource) ([]byte, error) {
-	return jsonpatch.Patch(j).Apply(input)
+func (j JSONPatchReducer) Reduce(resource *Resource) error {
+	return ByteReducerFunc(j.reduceBytes).Reduce(resource)
+}
+
+func (j JSONPatchReducer) reduceBytes(data []byte, resource *Resource) ([]byte, error) {
+	return jsonpatch.Patch(j).Apply(data)
 }
 
 func JSONPatchFromConfig(conf []config.ResourcePatch) []JSONPatch {

@@ -27,7 +27,7 @@ require (
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/zenazn/goji v0.9.0 // indirect
 	golang.org/x/crypto v0.0.0-20190219172222-a4c6cb3142f2 // indirect
-	k8s.io/api v0.0.0-20181121191454-a61488babbd6
+	k8s.io/api v0.0.0-20181121191454-a61488babbd6 // indirect
 	k8s.io/apimachinery v0.0.0-20190216013122-f05b8decd79c
 	k8s.io/client-go v10.0.0+incompatible
 	k8s.io/klog v0.2.0 // indirect

@@ -2,15 +2,16 @@ package kubernetes
 
 import (
 	"context"
+	"strings"
 
 	"github.com/ansel1/merry"
 	"github.com/jinzhu/inflection"
 	"github.com/rs/zerolog"
 	"github.com/tommy351/pullup/pkg/cache"
 	"github.com/tommy351/pullup/pkg/config"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/kubernetes/scheme"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 
 	// Load auth plugins
@@ -28,140 +29,155 @@ func getPluralKind(kind string) string {
 	return v.(string)
 }
 
-type Client struct {
-	config      *rest.Config
-	namespace   string
-	clientCache *cache.Map
+type Client interface {
+	Apply(ctx context.Context, resource *Resource) error
+	Delete(ctx context.Context, resource *Resource) error
 }
 
-func NewClient(conf *config.KubernetesConfig) (*Client, error) {
+type client struct {
+	config    *rest.Config
+	namespace string
+	client    dynamic.Interface
+}
+
+func NewClient(conf *config.KubernetesConfig) (Client, error) {
 	restConf, err := LoadConfig()
 
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
 
-	restConf.UserAgent = rest.DefaultKubernetesUserAgent()
-	restConf.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
-
-	return &Client{
-		config:      restConf,
-		namespace:   conf.Namespace,
-		clientCache: cache.NewMap(),
-	}, nil
-}
-
-func (c *Client) newRESTClient(apiVersion string) (rest.Interface, error) {
-	var err error
-
-	client, _ := c.clientCache.LoadOrStore(apiVersion, func() interface{} {
-		var value rest.Interface
-		value, err = rest.RESTClientFor(GetVersionedConfig(c.config, apiVersion))
-		return value
-	})
+	dynamicClient, err := dynamic.NewForConfig(restConf)
 
 	if err != nil {
 		return nil, merry.Wrap(err)
 	}
 
-	return client.(rest.Interface), nil
+	return &client{
+		config:    restConf,
+		namespace: conf.Namespace,
+		client:    dynamicClient,
+	}, nil
 }
 
-func (c *Client) newRequest(ctx context.Context, client rest.Interface, verb string) *rest.Request {
-	return client.Verb(verb).Context(ctx).Namespace(c.namespace)
-}
-
-func (c *Client) logResult(ctx context.Context, result rest.Result) *zerolog.Event {
-	logger := zerolog.Ctx(ctx)
-	event := logger.Debug()
-
-	if event.Enabled() {
-		raw, _ := result.Raw()
-		event = event.RawJSON("result", raw)
+func (c *client) newResource(resource *Resource) dynamic.ResourceInterface {
+	gvr := schema.GroupVersionResource{
+		Resource: strings.ToLower(getPluralKind(resource.Kind)),
 	}
 
-	return event
+	parts := strings.SplitN(resource.APIVersion, "/", 2)
+
+	if len(parts) == 2 {
+		gvr.Group = parts[0]
+		gvr.Version = parts[1]
+	} else {
+		gvr.Version = parts[0]
+	}
+
+	return c.client.Resource(gvr).Namespace(c.namespace)
 }
 
-func (c *Client) Apply(ctx context.Context, resource *Resource) error {
+func (c *client) Apply(ctx context.Context, resource *Resource) error {
 	logger := zerolog.Ctx(ctx)
-	client, err := c.newRESTClient(resource.APIVersion)
+	result, err := c.newResource(resource).Get(resource.Name, metav1.GetOptions{})
 
 	if err != nil {
 		return merry.Wrap(err)
 	}
 
-	kind := getPluralKind(resource.Kind)
+	resource.OriginalResource = result
 
-	// Get the original resource
-	result := c.newRequest(ctx, client, "GET").
-		Resource(kind).
-		Name(resource.Name).
-		Do()
+	logger.Debug().
+		Interface("resource", result.Object).
+		Msg("Original resource get")
 
-	if err := result.Error(); err != nil {
-		return merry.Wrap(err)
-	}
-
-	c.logResult(ctx, result).Msg("Original resource get")
-
-	// Patch the resource
-	patched, err := PatchResource(result, resource)
-
-	if err != nil {
-		return merry.Wrap(err)
-	}
-
-	logger.Debug().RawJSON("resource", patched).Msg("Original resource patched")
-
-	// Apply the patched resource
-	result = c.newRequest(ctx, client, "PUT").
-		Resource(kind).
-		Name(resource.ModifiedName()).
-		Body(patched).
-		Do()
-
-	if err := result.Error(); err == nil {
-		c.logResult(ctx, result).Msg("Patched resource applied")
+	if err := c.create(ctx, resource); err == nil {
 		return nil
-	} else if !errors.IsNotFound(err) {
+	} else if !IsAlreadyExistError(err) {
 		return merry.Wrap(err)
 	}
 
-	// Create the resource if apply failed
-	result = c.newRequest(ctx, client, "POST").
-		Resource(kind).
-		Body(patched).
-		Do()
+	return c.update(ctx, resource)
+}
 
-	if err := result.Error(); err != nil {
+func (c *client) update(ctx context.Context, resource *Resource) error {
+	logger := zerolog.Ctx(ctx)
+	name := resource.ModifiedName()
+	applied, err := c.newResource(resource).Get(name, metav1.GetOptions{})
+
+	if err != nil {
 		return merry.Wrap(err)
 	}
 
-	c.logResult(ctx, result).Msg("Patched resource created")
+	resource.AppliedResource = applied
+
+	if err := resource.Patch(); err != nil {
+		return merry.Wrap(err)
+	}
+
+	logger.Debug().
+		Interface("resource", resource.PatchedResource.Object).
+		Msg("Resource to update")
+
+	result, err := c.newResource(resource).
+		Update(resource.PatchedResource, metav1.UpdateOptions{})
+
+	if err != nil {
+		return merry.Wrap(err)
+	}
+
+	logger.Debug().
+		Interface("result", result.Object).
+		Msg("Patch resource updated")
+
 	return nil
 }
 
-func (c *Client) Delete(ctx context.Context, resource *Resource) error {
-	client, err := c.newRESTClient(resource.APIVersion)
+func (c *client) create(ctx context.Context, resource *Resource) error {
+	logger := zerolog.Ctx(ctx)
+
+	if err := resource.Patch(); err != nil {
+		return merry.Wrap(err)
+	}
+
+	logger.Debug().
+		Interface("resource", resource.PatchedResource.Object).
+		Msg("Resource to create")
+
+	result, err := c.newResource(resource).
+		Create(resource.PatchedResource, metav1.CreateOptions{})
 
 	if err != nil {
 		return merry.Wrap(err)
 	}
 
-	result := c.newRequest(ctx, client, "DELETE").
-		Resource(getPluralKind(resource.Kind)).
-		Name(resource.ModifiedName()).
-		Do()
+	logger.Debug().
+		Interface("result", result.Object).
+		Msg("Patched resource created")
 
-	if err := result.Error(); err != nil {
-		if errors.IsNotFound(err) {
+	return nil
+}
+
+func (c *client) Delete(ctx context.Context, resource *Resource) error {
+	logger := zerolog.Ctx(ctx)
+	name := resource.ModifiedName()
+
+	err := c.newResource(resource).
+		Delete(resource.ModifiedName(), &metav1.DeleteOptions{})
+
+	if err != nil {
+		if IsNotFoundError(err) {
 			return nil
 		}
 
 		return merry.Wrap(err)
 	}
 
-	c.logResult(ctx, result).Msg("Patched resource deleted")
+	logger.Debug().
+		Str("name", name).
+		Str("apiVersion", resource.APIVersion).
+		Str("kind", resource.Kind).
+		Msg("Patched resource deleted")
+
 	return nil
 }

@@ -13,7 +13,7 @@ import (
 
 type Server struct {
 	Config           *config.Config
-	KubernetesClient *kubernetes.Client
+	KubernetesClient kubernetes.Client
 }
 
 func (s *Server) Serve(ctx context.Context) error {
