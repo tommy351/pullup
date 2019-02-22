@@ -56,3 +56,23 @@ func (b ByteReducerFunc) Reduce(resource *Resource) error {
 	resource.PatchedResource, err = newUnstructuredFromRawJSON(buf)
 	return merry.Wrap(err)
 }
+
+type ConditionalReducer struct {
+	condition func(resource *Resource) bool
+	reducer   Reducer
+}
+
+func NewConditionalReducer(condition func(resource *Resource) bool, reducer Reducer) *ConditionalReducer {
+	return &ConditionalReducer{
+		condition: condition,
+		reducer:   reducer,
+	}
+}
+
+func (c ConditionalReducer) Reduce(resource *Resource) error {
+	if c.condition(resource) {
+		return c.reducer.Reduce(resource)
+	}
+
+	return nil
+}

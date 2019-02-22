@@ -9,34 +9,22 @@ import (
 )
 
 // nolint: gochecknoglobals
-var metadataFieldsToRemove = []string{"creationTimestamp", "resourceVersion", "selfLink", "uid"}
-
-// nolint: gochecknoglobals
-var commonReducer = ReducerFunc(func(resource *Resource) error {
-	applied := resource.AppliedResource
-	patched := resource.PatchedResource
-
-	if applied == nil {
-		// Set name
-		patched.SetName(resource.ModifiedName())
-
-		// Remove metadata
-		for _, field := range metadataFieldsToRemove {
-			unstructured.RemoveNestedField(patched.Object, "metadata", field)
-		}
-
-		return nil
-	}
-
-	// Copy metadata from the applied resource
-	meta, ok, err := unstructured.NestedMap(applied.Object, "metadata")
-
-	if !ok {
-		return merry.Wrap(err)
-	}
-
-	return unstructured.SetNestedMap(patched.Object, meta, "metadata")
-})
+var commonReducer = Reducers{
+	NewConditionalReducer(func(resource *Resource) bool {
+		return resource.AppliedResource == nil
+	}, MustNewJSONPatchReducer(JSONPatchFromConfig([]config.ResourcePatch{
+		{Replace: "/metadata/name", Value: "{{ .ModifiedName }}"},
+		{Remove: "/metadata/creationTimestamp"},
+		{Remove: "/metadata/resourceVersion"},
+		{Remove: "/metadata/selfLink"},
+		{Remove: "/metadata/uid"},
+	}))),
+	NewConditionalReducer(func(resource *Resource) bool {
+		return resource.AppliedResource != nil
+	}, ReducerFunc(func(resource *Resource) error {
+		return copyNestedField(resource.AppliedResource, resource.PatchedResource, "metadata")
+	})),
+}
 
 // nolint: gochecknoglobals
 var typedReducers = map[string]Reducer{
@@ -44,14 +32,7 @@ var typedReducers = map[string]Reducer{
 		patched := resource.PatchedResource
 
 		if applied := resource.AppliedResource; applied != nil {
-			// Copy spec from the applied resource
-			spec, ok, err := unstructured.NestedMap(applied.Object, "spec")
-
-			if !ok {
-				return merry.Wrap(err)
-			}
-
-			return unstructured.SetNestedMap(patched.Object, spec, "spec")
+			return copyNestedField(applied, patched, "spec")
 		}
 
 		// Remove spec.clusterIP
@@ -71,8 +52,18 @@ var typedReducers = map[string]Reducer{
 			newPorts = append(newPorts, portMap)
 		}
 
-		return unstructured.SetNestedSlice(patched.Object, newPorts, "spec", "ports")
+		return merry.Wrap(unstructured.SetNestedSlice(patched.Object, newPorts, "spec", "ports"))
 	}),
+}
+
+func copyNestedField(src, dst *unstructured.Unstructured, fields ...string) error {
+	value, ok, err := unstructured.NestedFieldCopy(src.Object, fields...)
+
+	if !ok {
+		return merry.Wrap(err)
+	}
+
+	return merry.Wrap(unstructured.SetNestedField(dst.Object, value, fields...))
 }
 
 type Resource struct {

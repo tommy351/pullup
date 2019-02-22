@@ -25,7 +25,8 @@ type RepoConfig struct {
 type ResourceConfig struct {
 	ResourceReference `mapstructure:",squash"`
 
-	Patch []ResourcePatch `mapstructure:"patch"`
+	Create map[string]interface{} `mapstructure:"create"`
+	Patch  []ResourcePatch        `mapstructure:"patch"`
 }
 
 type ResourcePatch struct {

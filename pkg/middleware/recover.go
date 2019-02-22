@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/ansel1/merry"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -17,7 +18,7 @@ func Recover(handler http.Handler) mux.MiddlewareFunc {
 					event := logger.Error()
 
 					if err, ok := err.(error); ok {
-						event = event.Err(err)
+						event = event.Err(merry.Wrap(err))
 					} else {
 						event = event.Interface(zerolog.ErrorFieldName, err)
 					}

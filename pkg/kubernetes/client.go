@@ -2,7 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"strings"
+	"time"
 
 	"github.com/ansel1/merry"
 	"github.com/jinzhu/inflection"
@@ -10,6 +13,7 @@ import (
 	"github.com/tommy351/pullup/pkg/cache"
 	"github.com/tommy351/pullup/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -27,6 +31,57 @@ func getPluralKind(kind string) string {
 	})
 
 	return v.(string)
+}
+
+func normalizeJSONValue(input interface{}) (interface{}, error) {
+	v := reflect.ValueOf(input)
+
+	switch v.Kind() {
+	case reflect.String:
+		return v.String(), nil
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int(), nil
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return v.Uint(), nil
+
+	case reflect.Float32, reflect.Float64:
+		return v.Float(), nil
+
+	case reflect.Slice, reflect.Array:
+		//var arr []interface{}
+		arr := make([]interface{}, v.Len())
+
+		for i := 0; i < v.Len(); i++ {
+			value, err := normalizeJSONValue(v.Index(i).Interface())
+
+			if err != nil {
+				return nil, merry.Wrap(err)
+			}
+
+			arr[i] = value
+		}
+
+		return arr, nil
+
+	case reflect.Map:
+		result := map[string]interface{}{}
+
+		for _, key := range v.MapKeys() {
+			value, err := normalizeJSONValue(v.MapIndex(key).Interface())
+
+			if err != nil {
+				return nil, merry.Wrap(err)
+			}
+
+			result[key.Interface().(string)] = value
+		}
+
+		return result, nil
+	}
+
+	return nil, merry.Wrap(fmt.Errorf("unsupported type: %T", input))
 }
 
 type Client interface {
@@ -79,17 +134,38 @@ func (c *client) newResource(resource *Resource) dynamic.ResourceInterface {
 
 func (c *client) Apply(ctx context.Context, resource *Resource) error {
 	logger := zerolog.Ctx(ctx)
-	result, err := c.newResource(resource).Get(resource.Name, metav1.GetOptions{})
 
-	if err != nil {
-		return merry.Wrap(err)
+	if create := resource.Create; create != nil {
+		obj, err := normalizeJSONValue(create)
+
+		if err != nil {
+			return merry.Wrap(err)
+		}
+
+		resource.OriginalResource = &unstructured.Unstructured{
+			Object: obj.(map[string]interface{}),
+		}
+
+		resource.OriginalResource.SetAPIVersion(resource.APIVersion)
+		resource.OriginalResource.SetKind(resource.Kind)
+		resource.OriginalResource.SetName(resource.Name)
+		resource.OriginalResource.SetCreationTimestamp(metav1.Time{Time: time.Now()})
+		resource.OriginalResource.SetResourceVersion("0")
+		resource.OriginalResource.SetSelfLink("0")
+		resource.OriginalResource.SetUID("0")
+	} else {
+		result, err := c.newResource(resource).Get(resource.Name, metav1.GetOptions{})
+
+		if err != nil {
+			return merry.Wrap(err)
+		}
+
+		resource.OriginalResource = result
+
+		logger.Debug().
+			Interface("resource", result.Object).
+			Msg("Original resource get")
 	}
-
-	resource.OriginalResource = result
-
-	logger.Debug().
-		Interface("resource", result.Object).
-		Msg("Original resource get")
 
 	if err := c.create(ctx, resource); err == nil {
 		return nil
