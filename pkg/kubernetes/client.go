@@ -50,7 +50,6 @@ func normalizeJSONValue(input interface{}) (interface{}, error) {
 		return v.Float(), nil
 
 	case reflect.Slice, reflect.Array:
-		//var arr []interface{}
 		arr := make([]interface{}, v.Len())
 
 		for i := 0; i < v.Len(); i++ {
@@ -129,7 +128,13 @@ func (c *client) newResource(resource *Resource) dynamic.ResourceInterface {
 		gvr.Version = parts[0]
 	}
 
-	return c.client.Resource(gvr).Namespace(c.namespace)
+	ns := resource.Namespace
+
+	if ns != "" {
+		ns = c.namespace
+	}
+
+	return c.client.Resource(gvr).Namespace(ns)
 }
 
 func (c *client) Apply(ctx context.Context, resource *Resource) error {

@@ -46,6 +46,7 @@ type ResourceReference struct {
 	APIVersion string `mapstructure:"apiVersion"`
 	Kind       string `mapstructure:"kind"`
 	Name       string `mapstructure:"name"`
+	Namespace  string `mapstructure:"namespace"`
 }
 
 type GitHubConfig struct {
