@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"github.com/tommy351/pullup/pkg/config"
-	"github.com/tommy351/pullup/pkg/kubernetes"
+	"github.com/tommy351/pullup/pkg/model"
 )
 
 func (s *Server) GitHubWebhook(w http.ResponseWriter, r *http.Request) error {
@@ -82,8 +82,8 @@ func (s *Server) handlePullRequestEvent(ctx context.Context, event *github.PullR
 	return nil
 }
 
-func (s *Server) buildResource(event *github.PullRequestEvent, res *config.ResourceConfig) *kubernetes.Resource {
-	return &kubernetes.Resource{
+func (s *Server) buildResource(event *github.PullRequestEvent, res *config.ResourceConfig) *model.Resource {
+	return &model.Resource{
 		ResourceConfig:    *res,
 		PullRequestNumber: *event.Number,
 		HeadCommitSHA:     *event.PullRequest.Head.SHA,

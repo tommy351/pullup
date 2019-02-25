@@ -1,4 +1,4 @@
-package kubernetes
+package reducer
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"github.com/ansel1/merry"
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/tommy351/pullup/pkg/config"
+	"github.com/tommy351/pullup/pkg/model"
 )
 
 type JSONPatch struct {
@@ -15,9 +16,15 @@ type JSONPatch struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
-type JSONPatchReducer jsonpatch.Patch
+type jsonPatchReducer jsonpatch.Patch
 
-func NewJSONPatchReducer(patches []JSONPatch) (JSONPatchReducer, error) {
+func (j jsonPatchReducer) Reduce(resource *model.Resource) error {
+	return ReduceBytes(resource, func(data []byte, resource *model.Resource) ([]byte, error) {
+		return jsonpatch.Patch(j).Apply(data)
+	})
+}
+
+func NewJSONPatch(patches []JSONPatch) (Reducer, error) {
 	buf, err := json.Marshal(patches)
 
 	if err != nil {
@@ -30,25 +37,7 @@ func NewJSONPatchReducer(patches []JSONPatch) (JSONPatchReducer, error) {
 		return nil, merry.Wrap(err)
 	}
 
-	return JSONPatchReducer(patch), nil
-}
-
-func MustNewJSONPatchReducer(patches []JSONPatch) JSONPatchReducer {
-	reducer, err := NewJSONPatchReducer(patches)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return reducer
-}
-
-func (j JSONPatchReducer) Reduce(resource *Resource) error {
-	return ByteReducerFunc(j.reduceBytes).Reduce(resource)
-}
-
-func (j JSONPatchReducer) reduceBytes(data []byte, resource *Resource) ([]byte, error) {
-	return jsonpatch.Patch(j).Apply(data)
+	return jsonPatchReducer(patch), nil
 }
 
 func JSONPatchFromConfig(conf []config.ResourcePatch) []JSONPatch {

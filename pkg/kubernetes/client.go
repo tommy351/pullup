@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/tommy351/pullup/pkg/cache"
 	"github.com/tommy351/pullup/pkg/config"
+	"github.com/tommy351/pullup/pkg/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -84,8 +85,8 @@ func normalizeJSONValue(input interface{}) (interface{}, error) {
 }
 
 type Client interface {
-	Apply(ctx context.Context, resource *Resource) error
-	Delete(ctx context.Context, resource *Resource) error
+	Apply(ctx context.Context, resource *model.Resource) error
+	Delete(ctx context.Context, resource *model.Resource) error
 }
 
 type client struct {
@@ -114,7 +115,7 @@ func NewClient(conf *config.KubernetesConfig) (Client, error) {
 	}, nil
 }
 
-func (c *client) newResource(resource *Resource) dynamic.ResourceInterface {
+func (c *client) newResource(resource *model.Resource) dynamic.ResourceInterface {
 	gvr := schema.GroupVersionResource{
 		Resource: strings.ToLower(getPluralKind(resource.Kind)),
 	}
@@ -137,7 +138,7 @@ func (c *client) newResource(resource *Resource) dynamic.ResourceInterface {
 	return c.client.Resource(gvr).Namespace(ns)
 }
 
-func (c *client) Apply(ctx context.Context, resource *Resource) error {
+func (c *client) Apply(ctx context.Context, resource *model.Resource) error {
 	logger := zerolog.Ctx(ctx)
 
 	if create := resource.Create; create != nil {
@@ -181,7 +182,7 @@ func (c *client) Apply(ctx context.Context, resource *Resource) error {
 	return c.update(ctx, resource)
 }
 
-func (c *client) update(ctx context.Context, resource *Resource) error {
+func (c *client) update(ctx context.Context, resource *model.Resource) error {
 	logger := zerolog.Ctx(ctx)
 	name := resource.ModifiedName()
 	applied, err := c.newResource(resource).Get(name, metav1.GetOptions{})
@@ -192,7 +193,7 @@ func (c *client) update(ctx context.Context, resource *Resource) error {
 
 	resource.AppliedResource = applied
 
-	if err := resource.Patch(); err != nil {
+	if err := Patch(resource); err != nil {
 		return merry.Wrap(err)
 	}
 
@@ -214,10 +215,10 @@ func (c *client) update(ctx context.Context, resource *Resource) error {
 	return nil
 }
 
-func (c *client) create(ctx context.Context, resource *Resource) error {
+func (c *client) create(ctx context.Context, resource *model.Resource) error {
 	logger := zerolog.Ctx(ctx)
 
-	if err := resource.Patch(); err != nil {
+	if err := Patch(resource); err != nil {
 		return merry.Wrap(err)
 	}
 
@@ -239,7 +240,7 @@ func (c *client) create(ctx context.Context, resource *Resource) error {
 	return nil
 }
 
-func (c *client) Delete(ctx context.Context, resource *Resource) error {
+func (c *client) Delete(ctx context.Context, resource *model.Resource) error {
 	logger := zerolog.Ctx(ctx)
 	name := resource.ModifiedName()
 

@@ -1,34 +1,33 @@
 package kubernetes
 
 import (
-	"fmt"
-
 	"github.com/ansel1/merry"
 	"github.com/tommy351/pullup/pkg/config"
+	"github.com/tommy351/pullup/pkg/model"
+	"github.com/tommy351/pullup/pkg/reducer"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // nolint: gochecknoglobals
-var commonReducer = Reducers{
-	NewConditionalReducer(func(resource *Resource) bool {
+var commonReducer = &reducer.If{
+	Condition: func(resource *model.Resource) bool {
 		return resource.AppliedResource == nil
-	}, MustNewJSONPatchReducer(JSONPatchFromConfig([]config.ResourcePatch{
+	},
+	True: reducer.Must(reducer.NewJSONPatch(reducer.JSONPatchFromConfig([]config.ResourcePatch{
 		{Replace: "/metadata/name", Value: "{{ .ModifiedName }}"},
 		{Remove: "/metadata/creationTimestamp"},
 		{Remove: "/metadata/resourceVersion"},
 		{Remove: "/metadata/selfLink"},
 		{Remove: "/metadata/uid"},
 	}))),
-	NewConditionalReducer(func(resource *Resource) bool {
-		return resource.AppliedResource != nil
-	}, ReducerFunc(func(resource *Resource) error {
+	False: reducer.Func(func(resource *model.Resource) error {
 		return copyNestedField(resource.AppliedResource, resource.PatchedResource, "metadata")
-	})),
+	}),
 }
 
 // nolint: gochecknoglobals
-var typedReducers = map[string]Reducer{
-	"v1/Service": ReducerFunc(func(resource *Resource) error {
+var typedReducers = map[string]reducer.Reducer{
+	"v1/Service": reducer.Func(func(resource *model.Resource) error {
 		patched := resource.PatchedResource
 
 		if applied := resource.AppliedResource; applied != nil {
@@ -66,29 +65,15 @@ func copyNestedField(src, dst *unstructured.Unstructured, fields ...string) erro
 	return merry.Wrap(unstructured.SetNestedField(dst.Object, value, fields...))
 }
 
-type Resource struct {
-	config.ResourceConfig
+func Patch(resource *model.Resource) error {
+	reducers := reducer.List{commonReducer}
 
-	PullRequestNumber int
-	HeadCommitSHA     string
-	OriginalResource  *unstructured.Unstructured
-	AppliedResource   *unstructured.Unstructured
-	PatchedResource   *unstructured.Unstructured
-}
-
-func (r *Resource) ModifiedName() string {
-	return fmt.Sprintf("%s-pullup-%d", r.Name, r.PullRequestNumber)
-}
-
-func (r *Resource) Patch() error {
-	reducers := Reducers{commonReducer}
-
-	if r, ok := typedReducers[r.OriginalResource.GetAPIVersion()+"/"+r.OriginalResource.GetKind()]; ok {
+	if r, ok := typedReducers[resource.OriginalResource.GetAPIVersion()+"/"+resource.OriginalResource.GetKind()]; ok {
 		reducers = append(reducers, r)
 	}
 
-	if patches := r.ResourceConfig.Patch; len(patches) > 0 {
-		r, err := NewJSONPatchReducer(JSONPatchFromConfig(patches))
+	if patches := resource.ResourceConfig.Patch; len(patches) > 0 {
+		r, err := reducer.NewJSONPatch(reducer.JSONPatchFromConfig(patches))
 
 		if err != nil {
 			return merry.Wrap(err)
@@ -97,8 +82,8 @@ func (r *Resource) Patch() error {
 		reducers = append(reducers, r)
 	}
 
-	reducers = append(reducers, &TemplateReducer{})
-	r.PatchedResource = r.OriginalResource.DeepCopy()
+	reducers = append(reducers, &reducer.Template{})
+	resource.PatchedResource = resource.OriginalResource.DeepCopy()
 
-	return merry.Wrap(reducers.Reduce(r))
+	return merry.Wrap(reducers.Reduce(resource))
 }
