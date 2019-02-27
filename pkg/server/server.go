@@ -44,7 +44,11 @@ func (s *Server) newRouter(ctx context.Context) *mux.Router {
 		})),
 	)
 
-	r.Methods("POST").Path("/webhooks/github").Handler(NewHandler(s.GitHubWebhook))
+	r.Methods(http.MethodGet).Path("/").Handler(NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+		return String(w, http.StatusOK, "ok")
+	}))
+
+	r.Methods(http.MethodPost).Path("/webhooks/github").Handler(NewHandler(s.GitHubWebhook))
 
 	return r
 }
