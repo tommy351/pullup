@@ -10,7 +10,7 @@ import (
 	"github.com/ansel1/merry"
 	"github.com/jinzhu/inflection"
 	"github.com/rs/zerolog"
-	"github.com/tommy351/pullup/pkg/cache"
+	"github.com/tommy351/pullup/internal/cache"
 	"github.com/tommy351/pullup/pkg/config"
 	"github.com/tommy351/pullup/pkg/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

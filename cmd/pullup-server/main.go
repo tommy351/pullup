@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/tommy351/pullup/pkg/cmd"
+	"github.com/tommy351/pullup/internal/cmd"
 	"github.com/tommy351/pullup/pkg/config"
 	"github.com/tommy351/pullup/pkg/kubernetes"
 	"github.com/tommy351/pullup/pkg/server"
