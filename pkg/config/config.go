@@ -5,6 +5,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+// nolint: gochecknoglobals
+var configEnvs = []string{
+	"server.address",
+	"github.secret",
+	"kubernetes.namespace",
+	"log.level",
+	"log.format",
+}
+
 type Config struct {
 	Server       ServerConfig     `mapstructure:"server"`
 	Repositories []RepoConfig     `mapstructure:"repositories"`
@@ -14,7 +23,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Addr string `mapstructure:"addr"`
+	Address string `mapstructure:"address"`
 }
 
 type RepoConfig struct {
@@ -73,11 +82,14 @@ func ReadConfig() (*Config, error) {
 	v.AddConfigPath(".")
 
 	// Bind to environment variables
-	v.AutomaticEnv()
-	v.SetEnvPrefix("pullup")
+	for _, env := range configEnvs {
+		if err := v.BindEnv(env); err != nil {
+			return nil, merry.Wrap(err)
+		}
+	}
 
 	// Default values
-	v.SetDefault("server.addr", ":4000")
+	v.SetDefault("server.address", ":4000")
 	v.SetDefault("kubernetes.namespace", "default")
 	v.SetDefault("log.level", "info")
 

@@ -19,10 +19,10 @@ type Server struct {
 func (s *Server) Serve(ctx context.Context) error {
 	handler := s.newRouter(ctx)
 	logger := zerolog.Ctx(ctx)
-	addr := s.Config.Server.Addr
+	address := s.Config.Server.Address
 
-	logger.Info().Str("addr", addr).Msg("Starting server")
-	return http.ListenAndServe(addr, handler)
+	logger.Info().Str("address", address).Msg("Starting server")
+	return http.ListenAndServe(address, handler)
 }
 
 func (s *Server) newRouter(ctx context.Context) *mux.Router {
@@ -38,7 +38,9 @@ func (s *Server) newRouter(ctx context.Context) *mux.Router {
 		middleware.Context(ctx),
 		middleware.Logger(),
 		middleware.Recover(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_ = Error(w, ErrUnknown)
+			if err := Error(w, ErrUnknown); err != nil {
+				panic(err)
+			}
 		})),
 	)
 
