@@ -7,13 +7,13 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"github.com/tommy351/pullup/pkg/config"
-	"github.com/tommy351/pullup/pkg/kubernetes"
+	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/middleware"
 )
 
 type Server struct {
 	Config           *config.Config
-	KubernetesClient kubernetes.Client
+	KubernetesClient k8s.Client
 }
 
 func (s *Server) Serve(ctx context.Context) error {

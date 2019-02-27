@@ -5,7 +5,7 @@ import (
 
 	"github.com/tommy351/pullup/internal/cmd"
 	"github.com/tommy351/pullup/pkg/config"
-	"github.com/tommy351/pullup/pkg/kubernetes"
+	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/server"
 )
 
@@ -13,7 +13,7 @@ func main() {
 	conf := config.MustReadConfig()
 	ctx := context.Background()
 	logger := cmd.NewLogger(&conf.Log)
-	kubeClient, err := kubernetes.NewClient(&conf.Kubernetes)
+	kubeClient, err := k8s.NewClient(&conf.Kubernetes)
 
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to create a Kubernetes client")
