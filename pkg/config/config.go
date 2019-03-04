@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/ansel1/merry"
 	"github.com/spf13/viper"
 )
@@ -82,6 +84,8 @@ func ReadConfig() (*Config, error) {
 	v.AddConfigPath(".")
 
 	// Bind to environment variables
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
 	for _, env := range configEnvs {
 		if err := v.BindEnv(env); err != nil {
 			return nil, merry.Wrap(err)

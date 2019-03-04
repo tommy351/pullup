@@ -22,7 +22,7 @@ require (
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
 	github.com/rs/xid v1.2.1 // indirect
-	github.com/rs/zerolog v1.11.1-0.20190207154502-4daee2b75898
+	github.com/rs/zerolog v1.12.0
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/zenazn/goji v0.9.0 // indirect

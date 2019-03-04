@@ -18,7 +18,7 @@ func Recover(handler http.Handler) mux.MiddlewareFunc {
 					event := logger.Error()
 
 					if err, ok := err.(error); ok {
-						event = event.Err(merry.Wrap(err))
+						event = event.Stack().Err(merry.Wrap(err))
 					} else {
 						event = event.Interface(zerolog.ErrorFieldName, err)
 					}

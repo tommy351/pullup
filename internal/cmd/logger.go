@@ -35,7 +35,6 @@ func NewLogger(conf *config.LogConfig) *zerolog.Logger {
 		Level(lv).
 		With().
 		Timestamp().
-		Stack().
 		Logger()
 
 	return &logger

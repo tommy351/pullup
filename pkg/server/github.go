@@ -18,14 +18,14 @@ func (s *Server) GitHubWebhook(w http.ResponseWriter, r *http.Request) error {
 	payload, err := s.validatePayload(r)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to validate payload")
+		logger.Warn().Stack().Err(err).Msg("Failed to validate payload")
 		return ErrInvalidPayload
 	}
 
 	event, err := github.ParseWebHook(github.WebHookType(r), payload)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to parse webhook")
+		logger.Warn().Stack().Err(err).Msg("Failed to parse webhook")
 		return ErrInvalidPayload
 	}
 

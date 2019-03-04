@@ -11,26 +11,25 @@ import (
 )
 
 func LoadConfig() (*rest.Config, error) {
-	path := getKubeConfigPath()
-	conf, err := clientcmd.BuildConfigFromFlags("", path)
+	conf, err := rest.InClusterConfig()
 
-	if err != nil {
+	if err == nil {
+		return conf, nil
+	} else if err != rest.ErrNotInCluster {
 		return nil, merry.Wrap(err)
 	}
 
-	return conf, nil
-}
+	path := os.Getenv("KUBECONFIG")
 
-func getKubeConfigPath() string {
-	if env := os.Getenv("KUBECONFIG"); env != "" {
-		return env
+	if path == "" {
+		home, err := homedir.Dir()
+
+		if err != nil {
+			return nil, merry.Wrap(err)
+		}
+
+		path = filepath.Join(home, ".kube", "config")
 	}
 
-	home, err := homedir.Dir()
-
-	if err != nil {
-		return ""
-	}
-
-	return filepath.Join(home, ".kube", "config")
+	return clientcmd.BuildConfigFromFlags("", path)
 }

@@ -16,7 +16,7 @@ func main() {
 	kubeClient, err := k8s.NewClient(&conf.Kubernetes)
 
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to create a Kubernetes client")
+		logger.Fatal().Stack().Err(err).Msg("Failed to create a Kubernetes client")
 	}
 
 	ctx = logger.WithContext(ctx)
@@ -27,6 +27,6 @@ func main() {
 	}
 
 	if err := s.Serve(ctx); err != nil {
-		logger.Fatal().Err(err).Msg("Failed to start the server")
+		logger.Fatal().Stack().Err(err).Msg("Failed to start the server")
 	}
 }
