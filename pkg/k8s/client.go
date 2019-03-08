@@ -131,7 +131,7 @@ func (c *client) newResource(resource *model.Resource) dynamic.ResourceInterface
 
 	ns := resource.Namespace
 
-	if ns != "" {
+	if ns == "" {
 		ns = c.namespace
 	}
 
