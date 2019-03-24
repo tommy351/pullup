@@ -1,0 +1,26 @@
+apiVersion: pullup.dev/v1alpha1
+kind: Webhook
+metadata:
+  name: nginx
+spec:
+  github: {}
+  resources:
+    - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx
+      spec:
+        selector:
+          matchLabels:
+            app: "{{ .Name }}"
+        template:
+          metadata:
+            labels:
+              app: "{{ .Name }}"
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: nginx
+      spec:
+        selector:
+          app: "{{ .Name }}"

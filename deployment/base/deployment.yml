@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pullup
+  template:
+    metadata:
+      labels:
+        app: pullup
+    spec:
+      containers:
+        - name: pullup
+          image: tommy351/pullup
+          ports:
+            - name: webhook
+              containerPort: 4000
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      serviceAccountName: pullup

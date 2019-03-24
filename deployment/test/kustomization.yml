@@ -1,0 +1,9 @@
+bases:
+  - ./../base
+
+resources:
+  - nginx.yml
+  - webhook.yml
+
+patches:
+  - patch.yml

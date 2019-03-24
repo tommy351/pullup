@@ -1,0 +1,49 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pullup
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    verbs:
+      - get
+      - create
+      - update
+  - apiGroups:
+      - extensions
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - create
+      - update
+  - apiGroups:
+      - pullup.dev
+    resources:
+      - webhooks
+      - resourcesets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kds
+subjects:
+  - kind: ServiceAccount
+    name: pullup
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: pullup
+  apiGroup: rbac.authorization.k8s.io

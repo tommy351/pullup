@@ -1,0 +1,13 @@
+apiVersion: skaffold/v1beta6
+kind: Config
+build:
+  artifacts:
+    - image: tommy351/pullup
+      docker: {}
+deploy:
+  kustomize: {}
+profiles:
+  - name: test
+    deploy:
+      kustomize:
+        path: deployment/test
