@@ -1,2 +1,2 @@
 bases:
-  - deployment/base
+  - deployment

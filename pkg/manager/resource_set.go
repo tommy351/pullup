@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"html/template"
-	"strconv"
 
 	"github.com/Masterminds/sprig"
 	"github.com/rs/zerolog"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/k8s"
+	"github.com/tommy351/pullup/pkg/reducer"
 	"golang.org/x/xerrors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -75,65 +75,75 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		return xerrors.Errorf("failed to get applied resource: %w", err)
 	}
 
-	var patch interface{}
+	var reducers []reducer.Interface
 
 	if original != nil {
-		patch = mergeValue(patch, original.Object)
-	}
+		reducers = append(
+			reducers,
+			reducer.Merge{Source: original.Object},
+			// Remove metadata and status from the original resource
+			reducer.Merge{Source: map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"creationTimestamp": nil,
+					"resourceVersion":   nil,
+					"selfLink":          nil,
+					"uid":               nil,
+					"generation":        nil,
+					"annotations": map[string]interface{}{
+						"deployment.kubernetes.io/revision": nil,
+					},
+				},
+				"status": nil,
+			}},
+		)
 
-	// Remove metadata and status from the original resource
-	patch = mergeValue(patch, map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"creationTimestamp": nil,
-			"resourceVersion":   nil,
-			"selfLink":          nil,
-			"uid":               nil,
-			"generation":        nil,
-			"annotations": map[string]interface{}{
-				"deployment.kubernetes.io/revision": nil,
-			},
-		},
-		"status": nil,
-	})
-
-	// nolint: gocritic
-	switch gvr {
-	case schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"}:
-		// Remove cluster IP
-		patch = mergeValue(patch, map[string]interface{}{
-			"spec": map[string]interface{}{
-				"clusterIP": nil,
-			},
-		})
+		// nolint: gocritic
+		switch gvr {
+		case schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"}:
+			// Remove cluster IP and nodePorts
+			reducers = append(reducers, reducer.Merge{Source: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"clusterIP": nil,
+					"ports": reducer.Map{Func: func(value, _, _ interface{}) (interface{}, error) {
+						return reducer.Pipe(value, reducer.Filter{Func: func(_, key, _ interface{}) (bool, error) {
+							return key != "nodePort", nil
+						}})
+					}},
+				},
+			}})
+		}
 	}
 
 	if applied != nil {
-		patch = mergeValue(patch, applied.Object)
+		reducers = append(reducers, reducer.Merge{Source: applied.Object})
 	}
 
-	patch = mergeValue(patch, obj.Object)
-
-	// Set the name and owner references
-	patch = mergeValue(patch, map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"name": set.Name,
-			"ownerReferences": []interface{}{
-				map[string]interface{}{
-					"apiVersion":         set.APIVersion,
-					"kind":               set.Kind,
-					"name":               set.Name,
-					"uid":                set.UID,
-					"controller":         true,
-					"blockOwnerDeletion": true,
+	reducers = append(
+		reducers,
+		reducer.Merge{Source: obj.Object},
+		// Set the name and owner references
+		reducer.Merge{Source: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"name": set.Name,
+				"ownerReferences": []interface{}{
+					map[string]interface{}{
+						"apiVersion":         set.APIVersion,
+						"kind":               set.Kind,
+						"name":               set.Name,
+						"uid":                set.UID,
+						"controller":         true,
+						"blockOwnerDeletion": true,
+					},
 				},
 			},
-		},
-	})
+		}},
+		newTemplateReducer(set),
+	)
 
-	patch, err = deepRenderTemplate(patch, set, "")
+	patch, err := reducer.Pipe(nil, reducers...)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to render template")
+		logger.Warn().Err(err).Msg("Failed to reduce patches")
 		return nil
 	}
 
@@ -158,94 +168,38 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 	return nil
 }
 
-func mergeValue(base, patch interface{}) interface{} {
-	switch patch := patch.(type) {
-	case []interface{}:
-		baseArr, ok := base.([]interface{})
+func newTemplateReducer(data interface{}) reducer.Interface {
+	var mapper reducer.Map
 
-		if !ok {
-			return patch
-		}
-
-		var newArr []interface{}
-
-		copy(newArr, baseArr)
-
-		for i, v := range patch {
-			newArr[i] = mergeValue(newArr[i], v)
-		}
-
-		return newArr
-
-	case map[string]interface{}:
-		baseMap, ok := base.(map[string]interface{})
-
-		if !ok {
-			return patch
-		}
-
-		newMap := map[string]interface{}{}
-
-		for k, v := range baseMap {
-			newMap[k] = v
-		}
-
-		for k, v := range patch {
-			newMap[k] = mergeValue(newMap[k], v)
-		}
-
-		return newMap
-
-	default:
-		return patch
-	}
-}
-
-func deepRenderTemplate(input interface{}, data interface{}, parent string) (interface{}, error) {
-	switch input := input.(type) {
-	case string:
-		tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(input)
+	mapper = reducer.Map{Func: func(value, key, _ interface{}) (interface{}, error) {
+		v, err := mapper.Reduce(value)
 
 		if err != nil {
-			return nil, xerrors.Errorf("failed to parse template: %w", err)
-		}
-
-		var buf bytes.Buffer
-
-		if err := tmpl.Execute(&buf, data); err != nil {
-			return nil, xerrors.Errorf("failed to execute template: %w", err)
-		}
-
-		return buf.String(), nil
-
-	case []interface{}:
-		var err error
-		output := make([]interface{}, len(input))
-
-		for i, v := range input {
-			path := parent + strconv.Itoa(i)
-
-			if output[i], err = deepRenderTemplate(v, data, path+"."); err != nil {
-				return nil, xerrors.Errorf("render failed at path %q: %w", path, err)
+			if !xerrors.Is(err, reducer.ErrNotCollection) {
+				return nil, xerrors.Errorf("render error at key %v: %w", key, err)
 			}
-		}
 
-		return output, nil
+			if s, ok := value.(string); ok {
+				tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(s)
 
-	case map[string]interface{}:
-		var err error
-		output := make(map[string]interface{}, len(input))
+				if err != nil {
+					return nil, xerrors.Errorf("failed to parse template: %w", err)
+				}
 
-		for k, v := range input {
-			path := parent + k
+				var buf bytes.Buffer
 
-			if output[k], err = deepRenderTemplate(v, data, path+"."); err != nil {
-				return nil, xerrors.Errorf("render failed at path %q: %w", path, err)
+				if err := tmpl.Execute(&buf, data); err != nil {
+					return nil, xerrors.Errorf("failed to execute template: %w", err)
+				}
+
+				return buf.String(), nil
 			}
+
+			return value, nil
 		}
 
-		return output, nil
-	}
+		return v, nil
+	}}
 
-	return input, nil
+	return mapper
 }

@@ -10,4 +10,4 @@ profiles:
   - name: test
     deploy:
       kustomize:
-        path: deployment/test
+        path: test/deployment
