@@ -25,20 +25,14 @@ jobs:
   test_go:
     docker:
       - image: circleci/golang:1.12
-    environment:
-      TEST_RESULTS: /tmp/test-results
     steps:
       - checkout
       - go_get
-      - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/jstemmer/go-junit-report
       - run:
           name: Run tests
-          command: |
-            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-            go test -v ./... | tee ${TEST_RESULTS}/go-test.out
+          command: go test -v ./...
       - store_test_results:
-          path: /tmp/test-results
+          path: reports/junit
 
 workflows:
   version: 2
