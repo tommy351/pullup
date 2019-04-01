@@ -29,8 +29,11 @@ jobs:
       - checkout
       - go_get
       - run:
+          name: Install ginkgo
+          command: go get github.com/onsi/ginkgo/ginkgo
+      - run:
           name: Run tests
-          command: go test -v ./...
+          command: JUNIT_OUTPUT=$PWD/reports/junit/results.xml ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress
       - store_test_results:
           path: reports/junit
 
