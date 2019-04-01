@@ -8,10 +8,11 @@ services:
       dockerfile: Dockerfile.codegen
     working_dir: /go/src/github.com/tommy351/pullup
     command:
-      - /go/src/k8s.io/code-generator/generate-groups.sh
-      - all
-      - github.com/tommy351/pullup/pkg/client
-      - github.com/tommy351/pullup/pkg/apis
-      - pullup:v1alpha1
+      - bash
+      - -c
+      - |
+        set -euxo pipefail
+        /go/src/k8s.io/code-generator/generate-groups.sh all github.com/tommy351/pullup/pkg/client github.com/tommy351/pullup/pkg/apis pullup:v1alpha1
+        go generate ./...
     volumes:
       - .:/go/src/github.com/tommy351/pullup

@@ -18,7 +18,7 @@ import (
 )
 
 type ResourceSetEventHandler struct {
-	Client *k8s.Client
+	Client k8s.Client
 }
 
 func (r *ResourceSetEventHandler) OnUpdate(ctx context.Context, obj interface{}) error {

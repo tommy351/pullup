@@ -18,7 +18,7 @@ type Config struct {
 type Server struct {
 	http.Server
 
-	Client *k8s.Client
+	Client k8s.Client
 	Config Config
 }
 

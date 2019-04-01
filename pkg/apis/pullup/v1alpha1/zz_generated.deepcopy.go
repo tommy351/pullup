@@ -73,8 +73,8 @@ func (in *ResourceSet) DeepCopyInto(out *ResourceSet) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.Spec.DeepCopyInto(&out.Spec)
 	out.Status = in.Status
+	in.Spec.DeepCopyInto(&out.Spec)
 	return
 }
 
@@ -192,8 +192,8 @@ func (in *Webhook) DeepCopyInto(out *Webhook) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	in.Spec.DeepCopyInto(&out.Spec)
 	out.Status = in.Status
+	in.Spec.DeepCopyInto(&out.Spec)
 	return
 }
 

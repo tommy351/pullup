@@ -38,7 +38,7 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
-					Namespace: s.Client.Namespace,
+					Namespace: hook.Namespace,
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							APIVersion:         hook.APIVersion,
