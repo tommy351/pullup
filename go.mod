@@ -12,10 +12,9 @@ require (
 	github.com/evanphx/json-patch v4.1.0+incompatible // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
-	github.com/golang/mock v1.2.0
-	github.com/google/go-github/v24 v24.0.0
+	github.com/google/go-github/v24 v24.0.2-0.20190405195805-c22c8e3046a5
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
-	github.com/google/uuid v1.1.1 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190216224116-dcc6e84aef1b // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
@@ -36,7 +35,6 @@ require (
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/zenazn/goji v0.9.0 // indirect
-	golang.org/x/crypto v0.0.0-20190219172222-a4c6cb3142f2 // indirect
 	golang.org/x/xerrors v0.0.0-20190315151331-d61658bd2e18
 	k8s.io/api v0.0.0-20181121191454-a61488babbd6 // indirect
 	k8s.io/apimachinery v0.0.0-20190216013122-f05b8decd79c

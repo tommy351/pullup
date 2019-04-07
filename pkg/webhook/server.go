@@ -3,12 +3,14 @@ package webhook
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/dimfeld/httptreemux"
 	"github.com/justinas/alice"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"github.com/tommy351/pullup/pkg/k8s"
-	"github.com/tommy351/pullup/pkg/middleware"
+	"golang.org/x/xerrors"
 )
 
 type Config struct {
@@ -16,23 +18,37 @@ type Config struct {
 }
 
 type Server struct {
-	http.Server
-
-	Client k8s.Client
+	Client *k8s.Client
 	Config Config
 }
 
 func (s *Server) Serve(ctx context.Context) (err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	logger := zerolog.Ctx(ctx)
-	s.Server = http.Server{
+
+	chain := alice.New(
+		hlog.NewHandler(*logger),
+		hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+			hlog.FromRequest(r).Debug().
+				Int("status", status).
+				Int("size", size).
+				Dur("duration", duration).
+				Msg("")
+		}),
+		hlog.MethodHandler("method"),
+		hlog.URLHandler("url"),
+		hlog.RemoteAddrHandler("remoteIp"),
+		hlog.UserAgentHandler("userAgent"),
+	)
+
+	httpServer := http.Server{
 		Addr:    s.Config.Address,
-		Handler: s.newRouter(ctx),
+		Handler: chain.Then(s.newRouter()),
 	}
 
 	go func() {
-		logger.Info().Str("address", s.Server.Addr).Msg("Starting webhook server")
-		err = s.Server.ListenAndServe()
+		logger.Info().Str("address", httpServer.Addr).Msg("Starting webhook server")
+		err = httpServer.ListenAndServe()
 		cancel()
 	}()
 
@@ -43,32 +59,30 @@ func (s *Server) Serve(ctx context.Context) (err error) {
 	}
 
 	logger.Info().Msg("Shutting down webhook server")
-	return s.Server.Shutdown(context.Background())
+	return httpServer.Shutdown(context.Background())
 }
 
-func (s *Server) newRouter(ctx context.Context) *httptreemux.ContextMux {
+func (s *Server) newRouter() *httptreemux.ContextMux {
 	mux := httptreemux.NewContextMux()
 
-	mux.NotFoundHandler = func(w http.ResponseWriter, r *http.Request) {
-		if err := String(w, http.StatusNotFound, "Not found"); err != nil {
-			panic(err)
-		}
+	mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
+		logger := hlog.FromRequest(r)
+		logger.Error().Stack().
+			Err(xerrors.Errorf("http handler panicked: %w", err)).
+			Msg("HTTP handler panicked")
+
+		_ = String(w, http.StatusInternalServerError, "Internal server error")
 	}
 
-	chain := alice.New(
-		middleware.Logger(zerolog.Ctx(ctx)),
-		middleware.Recover(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if err := String(w, http.StatusInternalServerError, "Internal server error"); err != nil {
-				panic(err)
-			}
-		})),
-	)
+	mux.NotFoundHandler = NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+		return String(w, http.StatusNotFound, "Not found")
+	}).ServeHTTP
 
-	mux.Handler(http.MethodGet, "/", chain.Then(NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+	mux.Handler(http.MethodGet, "/", NewHandler(func(w http.ResponseWriter, r *http.Request) error {
 		return String(w, http.StatusOK, "ok")
-	})))
+	}))
 
-	mux.Handler(http.MethodPost, "/webhooks/:name", chain.Then(NewHandler(s.Webhook)))
+	mux.Handler(http.MethodPost, "/webhooks/:name", NewHandler(s.Webhook))
 
 	return mux
 }

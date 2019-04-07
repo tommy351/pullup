@@ -3,3 +3,10 @@ linters:
   disable:
     - lll
   fast: false
+
+issues:
+  exclude-rules:
+    - path: internal/testutil/random.go
+      text: "weak cryptographic primitive"
+      linters:
+        - gosec

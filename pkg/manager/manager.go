@@ -8,7 +8,7 @@ import (
 )
 
 type Manager struct {
-	Client k8s.Client
+	Client *k8s.Client
 }
 
 func (m *Manager) Run(ctx context.Context) error {

@@ -5,5 +5,4 @@ RUN go get \
   k8s.io/code-generator/cmd/deepcopy-gen \
   k8s.io/code-generator/cmd/defaulter-gen \
   k8s.io/code-generator/cmd/lister-gen \
-  k8s.io/code-generator/cmd/informer-gen \
-  github.com/golang/mock/mockgen
+  k8s.io/code-generator/cmd/informer-gen

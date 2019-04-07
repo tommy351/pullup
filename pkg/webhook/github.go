@@ -2,7 +2,6 @@ package webhook
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/google/go-github/v24/github"
@@ -12,10 +11,6 @@ import (
 	"golang.org/x/xerrors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func boolPtr(b bool) *bool {
-	return &b
-}
 
 func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1alpha1.Webhook) error {
 	logger := hlog.FromRequest(r)
@@ -45,8 +40,8 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 							Kind:               hook.Kind,
 							Name:               hook.Name,
 							UID:                hook.UID,
-							Controller:         boolPtr(true),
-							BlockOwnerDeletion: boolPtr(true),
+							Controller:         k8s.BoolP(true),
+							BlockOwnerDeletion: k8s.BoolP(true),
 						},
 					},
 				},
@@ -84,26 +79,11 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 }
 
 func parseGithubWebhook(r *http.Request, options *v1alpha1.GitHubOptions) (interface{}, error) {
-	var (
-		payload []byte
-		err     error
-	)
-
-	if secret := options.Secret; secret != "" {
-		payload, err = github.ValidatePayload(r, []byte(secret))
-	} else {
-		payload, err = ioutil.ReadAll(r.Body)
-	}
+	payload, err := github.ValidatePayload(r, []byte(options.Secret))
 
 	if err != nil {
 		return nil, err
 	}
 
-	event, err := github.ParseWebHook(github.WebHookType(r), payload)
-
-	if err != nil {
-		return nil, xerrors.Errorf("invalid github payload: %w", err)
-	}
-
-	return event, nil
+	return github.ParseWebHook(github.WebHookType(r), payload)
 }

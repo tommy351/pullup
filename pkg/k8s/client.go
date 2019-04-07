@@ -1,7 +1,5 @@
 package k8s
 
-//go:generate mockgen -source=$GOFILE -destination=mock/$GOFILE -package=mock
-
 import (
 	"context"
 	"encoding/json"
@@ -15,65 +13,47 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 
 	// Load auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-type Config struct {
-	Namespace string `mapstructure:"namespace"`
-	Config    string `mapstructure:"config"`
+type jsonPatchOp struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
 }
 
-type Client interface {
-	GetWebhook(ctx context.Context, name string) (*v1alpha1.Webhook, error)
-	ApplyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error
-	DeleteResourceSet(ctx context.Context, name string) error
-	NewInformer(ctx context.Context) externalversions.SharedInformerFactory
-	NewDynamicInterface(ctx context.Context, gvr schema.GroupVersionResource) dynamic.ResourceInterface
+type Client struct {
+	Namespace string
+	Dynamic   dynamic.Interface
+	Client    versioned.Interface
 }
 
-type client struct {
-	namespace string
-	dynamic   dynamic.Interface
-	client    versioned.Interface
-}
-
-func NewClient(config *Config) (Client, error) {
-	var (
-		conf *rest.Config
-		err  error
-	)
-
-	if path := config.Config; path == "" {
-		conf, err = rest.InClusterConfig()
-	} else {
-		conf, err = clientcmd.BuildConfigFromFlags("", path)
-	}
+func NewClient(config *Config) (*Client, error) {
+	conf, err := LoadConfig(config)
 
 	if err != nil {
 		return nil, xerrors.Errorf("failed to load kubernetes config: %w", err)
 	}
 
-	c := &client{
-		namespace: config.Namespace,
+	c := &Client{
+		Namespace: config.Namespace,
 	}
 
-	if c.dynamic, err = dynamic.NewForConfig(conf); err != nil {
+	if c.Dynamic, err = dynamic.NewForConfig(conf); err != nil {
 		return nil, xerrors.Errorf("failed to create a dynamic client: %w", err)
 	}
 
-	if c.client, err = versioned.NewForConfig(conf); err != nil {
+	if c.Client, err = versioned.NewForConfig(conf); err != nil {
 		return nil, xerrors.Errorf("failed to create a versioned client: %w", err)
 	}
 
 	return c, nil
 }
 
-func (c *client) GetWebhook(_ context.Context, name string) (*v1alpha1.Webhook, error) {
-	webhook, err := c.client.PullupV1alpha1().Webhooks(c.namespace).Get(name, metav1.GetOptions{})
+func (c *Client) GetWebhook(_ context.Context, name string) (*v1alpha1.Webhook, error) {
+	webhook, err := c.Client.PullupV1alpha1().Webhooks(c.Namespace).Get(name, metav1.GetOptions{})
 
 	if err != nil {
 		return nil, xerrors.Errorf("failed to get webhook: %w", err)
@@ -84,13 +64,13 @@ func (c *client) GetWebhook(_ context.Context, name string) (*v1alpha1.Webhook, 
 	return webhook, nil
 }
 
-func (c *client) ApplyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error {
+func (c *Client) ApplyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error {
 	logger := zerolog.Ctx(ctx).With().
 		Str("namespace", rs.Namespace).
 		Str("name", rs.Name).
 		Logger()
 
-	client := c.client.PullupV1alpha1().ResourceSets(c.namespace)
+	client := c.Client.PullupV1alpha1().ResourceSets(c.Namespace)
 
 	if _, err := client.Create(rs); err == nil {
 		logger.Debug().Msg("Created resource set")
@@ -99,15 +79,19 @@ func (c *client) ApplyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet)
 		return xerrors.Errorf("failed to create resource set: %w", err)
 	}
 
-	patchData, err := json.Marshal(map[string]interface{}{
-		"spec": rs.Spec,
+	patchData, err := json.Marshal([]jsonPatchOp{
+		{
+			Op:    "replace",
+			Path:  "/spec",
+			Value: rs.Spec,
+		},
 	})
 
 	if err != nil {
 		return xerrors.Errorf("failed to marshal resource set spec: %w", err)
 	}
 
-	if _, err := client.Patch(rs.Name, types.MergePatchType, patchData); err != nil {
+	if _, err := client.Patch(rs.Name, types.JSONPatchType, patchData); err != nil {
 		return xerrors.Errorf("failed to patch resource set: %w", err)
 	}
 
@@ -115,13 +99,13 @@ func (c *client) ApplyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet)
 	return nil
 }
 
-func (c *client) DeleteResourceSet(ctx context.Context, name string) error {
+func (c *Client) DeleteResourceSet(ctx context.Context, name string) error {
 	logger := zerolog.Ctx(ctx).With().
-		Str("namespace", c.namespace).
+		Str("namespace", c.Namespace).
 		Str("name", name).
 		Logger()
 
-	if err := c.client.PullupV1alpha1().ResourceSets(c.namespace).Delete(name, &metav1.DeleteOptions{}); err != nil {
+	if err := c.Client.PullupV1alpha1().ResourceSets(c.Namespace).Delete(name, &metav1.DeleteOptions{}); err != nil {
 		return xerrors.Errorf("failed to delete resource set: %w", err)
 	}
 
@@ -129,10 +113,10 @@ func (c *client) DeleteResourceSet(ctx context.Context, name string) error {
 	return nil
 }
 
-func (c *client) NewInformer(ctx context.Context) externalversions.SharedInformerFactory {
-	return externalversions.NewSharedInformerFactory(c.client, 0)
+func (c *Client) NewInformer(ctx context.Context) externalversions.SharedInformerFactory {
+	return externalversions.NewSharedInformerFactory(c.Client, 0)
 }
 
-func (c *client) NewDynamicInterface(ctx context.Context, gvr schema.GroupVersionResource) dynamic.ResourceInterface {
-	return c.dynamic.Resource(gvr).Namespace(c.namespace)
+func (c *Client) NewDynamicInterface(ctx context.Context, gvr schema.GroupVersionResource) dynamic.ResourceInterface {
+	return c.Dynamic.Resource(gvr).Namespace(c.Namespace)
 }
