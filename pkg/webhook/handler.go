@@ -9,12 +9,12 @@ import (
 
 type Handler func(w http.ResponseWriter, r *http.Request) error
 
-func NewHandler(handler Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func NewHandler(handler Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if err := handler(w, r); err != nil {
 			panic(xerrors.Errorf("http handler error: %w", err))
 		}
-	})
+	}
 }
 
 func Params(r *http.Request) map[string]string {

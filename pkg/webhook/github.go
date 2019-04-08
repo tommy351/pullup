@@ -13,11 +13,10 @@ import (
 )
 
 func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1alpha1.Webhook) error {
-	logger := hlog.FromRequest(r)
 	payload, err := parseGithubWebhook(r, hook.Spec.GitHub)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Invalid webhook")
+		hlog.FromRequest(r).Warn().Err(err).Msg("Invalid webhook")
 		return String(w, http.StatusBadRequest, "Invalid webhook")
 	}
 
@@ -67,10 +66,8 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 			}
 
 		case "closed":
-			if err := s.Client.DeleteResourceSet(r.Context(), name); err != nil {
-				if !k8s.IsNotFoundError(err) {
-					return xerrors.Errorf("failed to delete resource set %s: %w", name, err)
-				}
+			if err := s.Client.DeleteResourceSet(r.Context(), name); err != nil && !k8s.IsNotFoundError(err) {
+				return xerrors.Errorf("failed to delete resource set %s: %w", name, err)
 			}
 		}
 	}

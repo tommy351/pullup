@@ -39,7 +39,6 @@ var _ = Describe("Server.Webhook", func() {
 			Client: client,
 		}
 		router := server.newRouter()
-		router.PanicHandler = nil
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, req)
 		res = recorder.Result()
@@ -210,13 +209,25 @@ var _ = Describe("Server.Webhook", func() {
 					req = newPullRequestEvent("closed")
 				})
 
-				It("should respond 204", func() {
-					Expect(res.StatusCode).To(Equal(http.StatusNoContent))
+				When("resource set exists", func() {
+					It("should respond 204", func() {
+						Expect(res.StatusCode).To(Equal(http.StatusNoContent))
+					})
+
+					It("should delete the resource set", func() {
+						_, err := client.Client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
+						Expect(k8s.IsNotFoundError(err)).To(BeTrue())
+					})
 				})
 
-				It("should delete the resource set", func() {
-					_, err := client.Client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
-					Expect(k8s.IsNotFoundError(err)).To(BeTrue())
+				When("resource set not exist", func() {
+					BeforeEach(func() {
+						Expect(client.Client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Delete(resourceSet.Name, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+					})
+
+					It("should respond 204", func() {
+						Expect(res.StatusCode).To(Equal(http.StatusNoContent))
+					})
 				})
 			})
 		})

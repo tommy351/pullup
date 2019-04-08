@@ -68,8 +68,7 @@ func (s *Server) newRouter() *httptreemux.ContextMux {
 	mux := httptreemux.NewContextMux()
 
 	mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
-		logger := hlog.FromRequest(r)
-		logger.Error().Stack().
+		hlog.FromRequest(r).Error().Stack().
 			Err(xerrors.Errorf("http handler panicked: %w", err)).
 			Msg("HTTP handler panicked")
 
@@ -78,13 +77,13 @@ func (s *Server) newRouter() *httptreemux.ContextMux {
 
 	mux.NotFoundHandler = NewHandler(func(w http.ResponseWriter, r *http.Request) error {
 		return String(w, http.StatusNotFound, "Not found")
-	}).ServeHTTP
+	})
 
-	mux.Handler(http.MethodGet, "/", NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+	mux.GET("/", NewHandler(func(w http.ResponseWriter, r *http.Request) error {
 		return String(w, http.StatusOK, "ok")
 	}))
 
-	mux.Handler(http.MethodPost, "/webhooks/:name", NewHandler(s.Webhook))
+	mux.POST("/webhooks/:name", NewHandler(s.Webhook))
 
 	return mux
 }
