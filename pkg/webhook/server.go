@@ -29,11 +29,13 @@ func (s *Server) Serve(ctx context.Context) (err error) {
 	chain := alice.New(
 		hlog.NewHandler(*logger),
 		hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
-			hlog.FromRequest(r).Debug().
-				Int("status", status).
-				Int("size", size).
-				Dur("duration", duration).
-				Msg("")
+			if r.RequestURI != "/" {
+				hlog.FromRequest(r).Debug().
+					Int("status", status).
+					Int("size", size).
+					Dur("duration", duration).
+					Msg("")
+			}
 		}),
 		hlog.MethodHandler("method"),
 		hlog.URLHandler("url"),
