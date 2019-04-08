@@ -42,17 +42,19 @@ func (*ResourceSetEventHandler) OnDelete(ctx context.Context, obj interface{}) e
 }
 
 func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, raw json.RawMessage) error {
+	logger := zerolog.Ctx(ctx).With().Str("resourceSet", set.Name).Logger()
 	var obj unstructured.Unstructured
 
 	if err := json.Unmarshal(raw, &obj); err != nil {
-		return xerrors.Errorf("failed to unmarshal resource: %w", err)
+		logger.Warn().Err(err).Msg("Failed to unmarshal resource")
+		return nil
 	}
 
-	logger := zerolog.Ctx(ctx).With().
-		Str("resourceSet", set.Name).
-		Str("apiVersion", obj.GetAPIVersion()).
-		Str("kind", obj.GetKind()).
-		Str("name", obj.GetName()).
+	logger = zerolog.Ctx(ctx).With().
+		Dict("resource", zerolog.Dict().
+			Str("apiVersion", obj.GetAPIVersion()).
+			Str("kind", obj.GetKind()).
+			Str("name", obj.GetName())).
 		Logger()
 
 	gvr, err := k8s.ParseGVR(obj.GetAPIVersion(), obj.GetKind())
@@ -146,6 +148,8 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		logger.Warn().Err(err).Msg("Failed to reduce patches")
 		return nil
 	}
+
+	logger.Debug().Interface("patch", patch).Msg("Ready to patch the resource")
 
 	data := &unstructured.Unstructured{
 		Object: patch.(map[string]interface{}),

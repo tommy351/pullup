@@ -69,9 +69,9 @@ func (h *Handler) runQueue(ctx context.Context, queue workqueue.Interface, handl
 
 		if err := handler(ctx, item); err != nil {
 			logger.Error().Stack().Err(err).Msg("Event handler error")
+		} else {
+			queue.Done(item)
 		}
-
-		queue.Done(item)
 	}
 }
 

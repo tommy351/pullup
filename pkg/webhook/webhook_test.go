@@ -136,11 +136,11 @@ var _ = Describe("Server.Webhook", func() {
 					Number: k8s.IntP(46),
 					PullRequest: &github.PullRequest{
 						Base: &github.PullRequestBranch{
-							Ref: k8s.StringP("refs/heads/master"),
+							Ref: k8s.StringP("master"),
 							SHA: k8s.StringP(testutil.RandomSHA1()),
 						},
 						Head: &github.PullRequestBranch{
-							Ref: k8s.StringP("refs/heads/feat"),
+							Ref: k8s.StringP("test"),
 							SHA: k8s.StringP(testutil.RandomSHA1()),
 						},
 						MergeCommitSHA: k8s.StringP(testutil.RandomSHA1()),
