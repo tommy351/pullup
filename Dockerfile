@@ -9,6 +9,6 @@ COPY cmd cmd
 COPY pkg pkg
 RUN go build -o /usr/local/bin/pullup -tags netgo -ldflags "-w" ./cmd/pullup
 
-FROM scratch
+FROM gcr.io/distroless/base
 COPY --from=base /usr/local/bin /usr/local/bin
 CMD ["pullup"]
