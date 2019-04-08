@@ -1,6 +1,4 @@
-FROM golang:1.12-alpine AS base
-
-RUN apk add --update --no-cache git ca-certificates
+FROM golang:1.12 AS base
 
 WORKDIR /workspace
 COPY go.mod go.sum ./
@@ -11,4 +9,6 @@ COPY cmd cmd
 COPY pkg pkg
 RUN go build -o /usr/local/bin/pullup -tags netgo -ldflags "-w" ./cmd/pullup
 
+FROM scratch
+COPY --from=base /usr/local/bin /usr/local/bin
 CMD ["pullup"]
