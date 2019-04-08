@@ -1,9 +1,0 @@
-bases:
-  - ./../../deployment
-
-resources:
-  - nginx.yml
-  - webhook.yml
-
-patches:
-  - patch.yml
