@@ -36,6 +36,8 @@ jobs:
           command: JUNIT_OUTPUT=$PWD/reports/junit ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress
       - store_test_results:
           path: reports/junit
+      - run: ./hack/collect-coverage.sh
+      - run: bash <(curl -s https://codecov.io/bash)
   release:
     docker:
       - image: circleci/golang:1.12
