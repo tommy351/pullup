@@ -1,0 +1,47 @@
+project_name: pullup
+
+release:
+  github:
+    owner: tommy351
+    name: pullup
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - binary: pullup
+    goos:
+      - darwin
+      - windows
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/pullup
+
+archive:
+  format: tar.gz
+  name_template: '{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+  format_overrides:
+    - goos: windows
+      format: zip
+
+checksum:
+  name_template: '{{ .ProjectName }}-checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^ci:'
+      - '^docs:'
+      - '^test:'
+
+dockers:
+  - image_templates:
+      - 'tommy351/{{ .ProjectName }}:{{ .Version }}'
+      - 'tommy351/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}'
+      - 'tommy351/{{ .ProjectName }}:{{ .Major }}'
+      - 'tommy351/{{ .ProjectName }}:latest'

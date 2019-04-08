@@ -23,9 +23,17 @@ type Config struct {
 }
 
 // nolint: gochecknoglobals
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+// nolint: gochecknoglobals
 var rootCmd = &cobra.Command{
-	Use:   "pullup",
-	Short: "Deploy pull requests before merged",
+	Use:     "pullup",
+	Short:   "Deploy pull requests before merged",
+	Version: fmt.Sprintf("%s, commit %s, built at %s", version, commit, date),
 	Run: func(cmd *cobra.Command, args []string) {
 		conf := loadConfig()
 		logger := log.New(&conf.Log)
@@ -61,6 +69,8 @@ var rootCmd = &cobra.Command{
 // nolint: gochecknoinits
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	rootCmd.SetVersionTemplate("{{ .Version }}")
 
 	f := rootCmd.Flags()
 
