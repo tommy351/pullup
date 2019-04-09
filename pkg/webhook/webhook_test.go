@@ -17,6 +17,7 @@ import (
 	"github.com/tommy351/pullup/pkg/k8s/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("Server.Webhook", func() {
@@ -114,8 +115,8 @@ var _ = Describe("Server.Webhook", func() {
 						Kind:               webhook.Kind,
 						Name:               webhook.Name,
 						UID:                webhook.UID,
-						Controller:         k8s.BoolP(true),
-						BlockOwnerDeletion: k8s.BoolP(true),
+						Controller:         pointer.BoolPtr(true),
+						BlockOwnerDeletion: pointer.BoolPtr(true),
 					},
 				},
 			},
@@ -130,19 +131,20 @@ var _ = Describe("Server.Webhook", func() {
 			var event *github.PullRequestEvent
 
 			newPullRequestEvent := func(action string) *http.Request {
+				num := 46
 				event = &github.PullRequestEvent{
 					Action: &action,
-					Number: k8s.IntP(46),
+					Number: &num,
 					PullRequest: &github.PullRequest{
 						Base: &github.PullRequestBranch{
-							Ref: k8s.StringP("master"),
-							SHA: k8s.StringP(testutil.RandomSHA1()),
+							Ref: pointer.StringPtr("master"),
+							SHA: pointer.StringPtr(testutil.RandomSHA1()),
 						},
 						Head: &github.PullRequestBranch{
-							Ref: k8s.StringP("test"),
-							SHA: k8s.StringP(testutil.RandomSHA1()),
+							Ref: pointer.StringPtr("test"),
+							SHA: pointer.StringPtr(testutil.RandomSHA1()),
 						},
-						MergeCommitSHA: k8s.StringP(testutil.RandomSHA1()),
+						MergeCommitSHA: pointer.StringPtr(testutil.RandomSHA1()),
 					},
 				}
 				req := newRequest(event)

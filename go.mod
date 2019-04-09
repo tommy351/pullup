@@ -28,7 +28,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.4.3
-	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/rs/xid v1.2.1 // indirect
 	github.com/rs/zerolog v1.12.0
 	github.com/spf13/cobra v0.0.3
@@ -36,10 +35,11 @@ require (
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/zenazn/goji v0.9.0 // indirect
 	golang.org/x/xerrors v0.0.0-20190315151331-d61658bd2e18
-	k8s.io/api v0.0.0-20181121191454-a61488babbd6 // indirect
-	k8s.io/apimachinery v0.0.0-20190216013122-f05b8decd79c
-	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/api v0.0.0-20190313235455-40a48860b5ab // indirect
+	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
+	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/klog v0.2.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
+	k8s.io/utils v0.0.0-20190308190857-21c4ce38f2a7
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )

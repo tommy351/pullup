@@ -10,6 +10,7 @@ import (
 	"github.com/tommy351/pullup/pkg/k8s"
 	"golang.org/x/xerrors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1alpha1.Webhook) error {
@@ -39,8 +40,8 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 							Kind:               hook.Kind,
 							Name:               hook.Name,
 							UID:                hook.UID,
-							Controller:         k8s.BoolP(true),
-							BlockOwnerDeletion: k8s.BoolP(true),
+							Controller:         pointer.BoolPtr(true),
+							BlockOwnerDeletion: pointer.BoolPtr(true),
 						},
 					},
 				},

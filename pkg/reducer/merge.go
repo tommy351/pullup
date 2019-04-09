@@ -2,6 +2,7 @@ package reducer
 
 import (
 	"golang.org/x/xerrors"
+	"k8s.io/utils/integer"
 )
 
 type Merge struct {
@@ -17,7 +18,7 @@ func mergeArray(base, patch []interface{}) ([]interface{}, error) {
 		return mergeNamedArray(base, patch)
 	}
 
-	output := make([]interface{}, maxInt(len(base), len(patch)))
+	output := make([]interface{}, integer.IntMax(len(base), len(patch)))
 
 	copy(output, base)
 
@@ -93,7 +94,7 @@ func getArrayElement(arr []interface{}, i int) interface{} {
 }
 
 func mergeMap(base, patch map[string]interface{}) (map[string]interface{}, error) {
-	output := make(map[string]interface{}, maxInt(len(base), len(patch)))
+	output := make(map[string]interface{}, integer.IntMax(len(base), len(patch)))
 
 	for k, v := range base {
 		output[k] = v
@@ -142,12 +143,4 @@ func mergeValue(base, patch interface{}) (interface{}, error) {
 	default:
 		return patch, nil
 	}
-}
-
-func maxInt(a, b int) int {
-	if a > b {
-		return a
-	}
-
-	return b
 }
