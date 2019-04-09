@@ -88,7 +88,7 @@ func init() {
 
 	f.String("kubeconfig", "", "kubernetes config path")
 	_ = viper.BindPFlag("kubernetes.config", f.Lookup("kubeconfig"))
-	viper.RegisterAlias("kubernetes.config", "kubeconfig")
+	bindEnv("kubernetes.config", "KUBECONFIG")
 
 	f.String("webhook-address", "", "webhook listening address")
 	_ = viper.BindPFlag("webhook.address", f.Lookup("webhook-address"))
@@ -109,6 +109,12 @@ func loadConfig() *Config {
 	}
 
 	return &config
+}
+
+func bindEnv(key, env string) {
+	if v := os.Getenv(env); v != "" {
+		viper.Set(key, v)
+	}
 }
 
 func main() {
