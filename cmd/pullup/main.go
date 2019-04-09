@@ -86,7 +86,7 @@ func init() {
 	_ = viper.BindPFlag("kubernetes.namespace", f.Lookup("namespace"))
 	viper.SetDefault("kubernetes.namespace", "default")
 
-	f.String("kubeconfig", "", "kubernetes config path	")
+	f.String("kubeconfig", "", "kubernetes config path")
 	_ = viper.BindPFlag("kubernetes.config", f.Lookup("kubeconfig"))
 	viper.RegisterAlias("kubernetes.config", "kubeconfig")
 

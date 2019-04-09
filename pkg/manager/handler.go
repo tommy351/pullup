@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -17,21 +18,28 @@ type EventHandler interface {
 }
 
 type Handler struct {
-	name                     string
-	updateQueue, deleteQueue workqueue.Interface
+	Name     string
+	MaxRetry int
+	Handler  EventHandler
+
+	updateQueue, deleteQueue workqueue.RateLimitingInterface
 }
 
-func NewHandler(ctx context.Context, name string, handler EventHandler) *Handler {
-	h := new(Handler)
-	h.name = name
-	h.updateQueue = h.newQueue(name + "/update")
-	h.deleteQueue = h.newQueue(name + "/delete")
+func (h *Handler) Run(ctx context.Context) error {
+	logger := zerolog.Ctx(ctx)
+	h.updateQueue = h.newQueue(h.Name + "/update")
+	h.deleteQueue = h.newQueue(h.Name + "/delete")
 
-	go h.waitForShutdown(ctx)
-	go h.runQueue(ctx, h.updateQueue, handler.OnUpdate)
-	go h.runQueue(ctx, h.deleteQueue, handler.OnDelete)
+	go h.runQueue(ctx, h.updateQueue, h.Handler.OnUpdate)
+	go h.runQueue(ctx, h.deleteQueue, h.Handler.OnDelete)
 
-	return h
+	<-ctx.Done()
+
+	logger.Debug().Str("name", h.Name).Msg("Shutting down handler")
+	h.updateQueue.ShutDown()
+	h.deleteQueue.ShutDown()
+
+	return nil
 }
 
 func (h *Handler) OnAdd(obj interface{}) {
@@ -53,34 +61,49 @@ func (h *Handler) OnUpdate(oldObj, newObj interface{}) {
 	h.updateQueue.Add(newObj)
 }
 
-func (h *Handler) newQueue(name string) workqueue.Interface {
+func (h *Handler) newQueue(name string) workqueue.RateLimitingInterface {
 	return workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name)
 }
 
-func (h *Handler) runQueue(ctx context.Context, queue workqueue.Interface, handler func(ctx context.Context, obj interface{}) error) {
-	logger := zerolog.Ctx(ctx).With().Str("name", h.name).Logger()
-
-	for {
+func (h *Handler) runQueue(ctx context.Context, queue workqueue.RateLimitingInterface, handler func(ctx context.Context, obj interface{}) error) {
+	process := func() bool {
 		item, shutdown := queue.Get()
 
 		if shutdown {
-			return
+			return false
 		}
 
-		if err := handler(ctx, item); err != nil {
-			logger.Error().Stack().Err(err).Msg("Event handler error")
-		} else {
-			queue.Done(item)
+		defer queue.Done(item)
+
+		key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(item)
+		retry := queue.NumRequeues(item)
+		logger := zerolog.Ctx(ctx).With().
+			Dict("task", zerolog.Dict().
+				Str("key", key).
+				Int("retry", retry).
+				Int("maxRetry", h.MaxRetry)).
+			Logger()
+
+		ctx := logger.WithContext(ctx)
+		err := handler(ctx, item)
+
+		if err == nil {
+			logger.Debug().Msg("Task is done")
+			queue.Forget(item)
+			return true
 		}
+
+		if retry < h.MaxRetry {
+			logger.Debug().Msg("Task is requeued")
+			queue.AddRateLimited(item)
+			return true
+		}
+
+		logger.Error().Stack().Err(err).Msg("Task is dropped")
+		queue.Forget(item)
+		return true
 	}
-}
 
-func (h *Handler) waitForShutdown(ctx context.Context) {
-	logger := zerolog.Ctx(ctx)
-
-	<-ctx.Done()
-
-	logger.Debug().Str("name", h.name).Msg("Shutting down handler")
-	h.updateQueue.ShutDown()
-	h.deleteQueue.ShutDown()
+	for process() {
+	}
 }

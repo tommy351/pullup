@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog"
+	"github.com/tommy351/pullup/pkg/group"
 	"github.com/tommy351/pullup/pkg/k8s"
 )
 
@@ -14,15 +15,31 @@ type Manager struct {
 func (m *Manager) Run(ctx context.Context) error {
 	logger := zerolog.Ctx(ctx)
 	informer := m.Client.NewInformer(ctx)
+	g := group.NewGroup(ctx)
 
-	informer.Pullup().V1alpha1().ResourceSets().Informer().AddEventHandler(NewHandler(ctx, "ResourceSet", &ResourceSetEventHandler{
-		Client: m.Client,
-	}))
+	rsHandler := &Handler{
+		Name:     "ResourceSet",
+		MaxRetry: 5,
+		Handler: &ResourceSetEventHandler{
+			Client: m.Client,
+		},
+	}
 
-	logger.Info().Msg("Waiting for cache sync")
-	informer.WaitForCacheSync(ctx.Done())
+	informer.Pullup().V1alpha1().ResourceSets().Informer().AddEventHandler(rsHandler)
 
-	logger.Info().Msg("Starting informer")
-	informer.Start(ctx.Done())
-	return nil
+	g.Go(rsHandler.Run)
+
+	g.Go(func(ctx context.Context) error {
+		logger.Debug().Msg("Waiting for cache sync")
+		informer.WaitForCacheSync(ctx.Done())
+		return nil
+	})
+
+	g.Go(func(ctx context.Context) error {
+		logger.Info().Msg("Starting informer")
+		informer.Start(ctx.Done())
+		return nil
+	})
+
+	return g.Wait()
 }
