@@ -107,6 +107,10 @@ var _ = Describe("Server.Webhook", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-46",
 				Namespace: webhook.Namespace,
+				Labels: map[string]string{
+					k8s.LabelWebhookName:       webhook.Name,
+					k8s.LabelPullRequestNumber: "46",
+				},
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion:         webhook.APIVersion,

@@ -18,6 +18,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+const (
+	LabelWebhookName       = "webhook-name"
+	LabelPullRequestNumber = "pull-request-number"
+)
+
 type jsonPatchOp struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`

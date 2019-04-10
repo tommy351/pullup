@@ -3,6 +3,7 @@ package webhook
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/go-github/v24/github"
 	"github.com/rs/zerolog/hlog"
@@ -31,6 +32,10 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: hook.Namespace,
+					Labels: map[string]string{
+						k8s.LabelWebhookName:       hook.Name,
+						k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
+					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							APIVersion:         hook.APIVersion,
