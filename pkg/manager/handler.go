@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -18,7 +19,7 @@ type EventHandler interface {
 }
 
 type Handler struct {
-	Name     string
+	Kind     schema.GroupVersionKind
 	MaxRetry int
 	Handler  EventHandler
 
@@ -27,15 +28,15 @@ type Handler struct {
 
 func (h *Handler) Run(ctx context.Context) error {
 	logger := zerolog.Ctx(ctx)
-	h.updateQueue = h.newQueue(h.Name + "/update")
-	h.deleteQueue = h.newQueue(h.Name + "/delete")
+	h.updateQueue = h.newQueue("update")
+	h.deleteQueue = h.newQueue("delete")
 
 	go h.runQueue(ctx, h.updateQueue, h.Handler.OnUpdate)
 	go h.runQueue(ctx, h.deleteQueue, h.Handler.OnDelete)
 
 	<-ctx.Done()
 
-	logger.Debug().Str("name", h.Name).Msg("Shutting down handler")
+	logger.Debug().Str("kind", h.Kind.String()).Msg("Shutting down handler")
 	h.updateQueue.ShutDown()
 	h.deleteQueue.ShutDown()
 
@@ -61,8 +62,8 @@ func (h *Handler) OnUpdate(oldObj, newObj interface{}) {
 	h.updateQueue.Add(newObj)
 }
 
-func (h *Handler) newQueue(name string) workqueue.RateLimitingInterface {
-	return workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name)
+func (h *Handler) newQueue(event string) workqueue.RateLimitingInterface {
+	return workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), h.Kind.String()+", Event="+event)
 }
 
 func (h *Handler) runQueue(ctx context.Context, queue workqueue.RateLimitingInterface, handler func(ctx context.Context, obj interface{}) error) {
@@ -74,6 +75,10 @@ func (h *Handler) runQueue(ctx context.Context, queue workqueue.RateLimitingInte
 		}
 
 		defer queue.Done(item)
+
+		if obj, ok := item.(schema.ObjectKind); ok && obj.GroupVersionKind().Empty() {
+			obj.SetGroupVersionKind(h.Kind)
+		}
 
 		key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(item)
 		retry := queue.NumRequeues(item)

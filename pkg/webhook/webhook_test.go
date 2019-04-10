@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 
 	"github.com/google/go-github/v24/github"
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -16,7 +15,6 @@ import (
 	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/k8s/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 )
 
@@ -93,7 +91,7 @@ var _ = Describe("Server.Webhook", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
 				Namespace: "default",
-				UID:       types.UID(uuid.Must(uuid.NewRandom()).String()),
+				UID:       testutil.NewUID(),
 			},
 			Spec: v1alpha1.WebhookSpec{
 				Resources: []json.RawMessage{[]byte("{}")},

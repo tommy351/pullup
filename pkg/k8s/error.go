@@ -7,6 +7,10 @@ import (
 )
 
 func GetErrorReason(err error) metav1.StatusReason {
+	if err == nil {
+		return metav1.StatusReasonUnknown
+	}
+
 	var status errors.APIStatus
 
 	if xerrors.As(err, &status) {

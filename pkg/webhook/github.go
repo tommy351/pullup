@@ -27,10 +27,7 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 		switch event.GetAction() {
 		case "opened", "reopened", "synchronize":
 			err := s.Client.ApplyResourceSet(r.Context(), &v1alpha1.ResourceSet{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: v1alpha1.SchemeGroupVersion.String(),
-					Kind:       "ResourceSet",
-				},
+				TypeMeta: k8s.GVKToTypeMeta(v1alpha1.Kind("ResourceSet")),
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: hook.Namespace,

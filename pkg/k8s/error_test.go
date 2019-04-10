@@ -17,6 +17,7 @@ var notFoundErr = apierrors.NewNotFound(schema.GroupResource{}, "")
 var _ = DescribeTable("GetErrorReason", func(input error, expected metav1.StatusReason) {
 	Expect(GetErrorReason(input)).To(Equal(expected))
 },
+	Entry("nil", nil, metav1.StatusReasonUnknown),
 	Entry("Not APIStatus", errors.New(""), metav1.StatusReasonUnknown),
 	Entry("Naked StatusError", notFoundErr, metav1.StatusReasonNotFound),
 	Entry("Wrapped StatusError", xerrors.Errorf("k8s error: %w", notFoundErr), metav1.StatusReasonNotFound),

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog"
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/group"
 	"github.com/tommy351/pullup/pkg/k8s"
 )
@@ -18,7 +19,7 @@ func (m *Manager) Run(ctx context.Context) error {
 	g := group.NewGroup(ctx)
 
 	rsHandler := &Handler{
-		Name:     "ResourceSet",
+		Kind:     v1alpha1.Kind("ResourceSet"),
 		MaxRetry: 5,
 		Handler: &ResourceSetEventHandler{
 			Client: m.Client,

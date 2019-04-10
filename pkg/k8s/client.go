@@ -59,8 +59,8 @@ func (c *Client) GetWebhook(_ context.Context, name string) (*v1alpha1.Webhook, 
 		return nil, xerrors.Errorf("failed to get webhook: %w", err)
 	}
 
-	webhook.APIVersion = v1alpha1.SchemeGroupVersion.String()
-	webhook.Kind = "Webhook"
+	webhook.SetGroupVersionKind(v1alpha1.Kind("Webhook"))
+
 	return webhook, nil
 }
 
@@ -114,7 +114,11 @@ func (c *Client) DeleteResourceSet(ctx context.Context, name string) error {
 }
 
 func (c *Client) NewInformer(ctx context.Context) externalversions.SharedInformerFactory {
-	return externalversions.NewSharedInformerFactory(c.Client, 0)
+	return externalversions.NewSharedInformerFactoryWithOptions(
+		c.Client,
+		0,
+		externalversions.WithNamespace(c.Namespace),
+	)
 }
 
 func (c *Client) NewDynamicInterface(ctx context.Context, gvr schema.GroupVersionResource) dynamic.ResourceInterface {
