@@ -29,50 +29,64 @@ var (
 	date    = "unknown"
 )
 
-// nolint: gochecknoglobals
-var rootCmd = &cobra.Command{
-	Use:     "pullup",
-	Short:   "Deploy pull requests before merged",
-	Version: fmt.Sprintf("%s, commit %s, built at %s", version, commit, date),
-	Run: func(cmd *cobra.Command, args []string) {
-		conf := loadConfig()
-		logger := log.New(&conf.Log)
-		client, err := k8s.NewClient(&conf.Kubernetes)
+func loadConfig() *Config {
+	var config Config
 
-		if err != nil {
-			logger.Fatal().Stack().Err(err).Msg("Failed to create a Kubernetes client")
-		}
+	if err := viper.Unmarshal(&config); err != nil {
+		panic(err)
+	}
 
-		ctx := context.Background()
-		ctx = logger.WithContext(ctx)
-		ctx = signal.Context(ctx)
-
-		server := &webhook.Server{
-			Client: client,
-			Config: conf.Webhook,
-		}
-
-		mgr := &manager.Manager{
-			Client: client,
-		}
-
-		g := group.NewGroup(ctx)
-		g.Go(server.Serve)
-		g.Go(mgr.Run)
-
-		if err := g.Wait(); err != nil {
-			logger.Fatal().Stack().Err(err).Msg("Failed to start the server")
-		}
-	},
+	return &config
 }
 
-// nolint: gochecknoinits
-func init() {
-	cobra.OnInitialize(initConfig)
+func bindEnv(key, env string) {
+	if v := os.Getenv(env); v != "" {
+		viper.Set(key, v)
+	}
+}
 
-	rootCmd.SetVersionTemplate("{{ .Version }}")
+func run(_ *cobra.Command, _ []string) {
+	conf := loadConfig()
+	logger := log.New(&conf.Log)
+	client, err := k8s.NewClient(&conf.Kubernetes)
 
-	f := rootCmd.Flags()
+	if err != nil {
+		logger.Fatal().Stack().Err(err).Msg("Failed to create a Kubernetes client")
+	}
+
+	ctx := context.Background()
+	ctx = logger.WithContext(ctx)
+	ctx = signal.Context(ctx)
+
+	server := &webhook.Server{
+		Client: client,
+		Config: conf.Webhook,
+	}
+
+	mgr := &manager.Manager{
+		Client: client,
+	}
+
+	g := group.NewGroup(ctx)
+	g.Go(server.Serve)
+	g.Go(mgr.Run)
+
+	if err := g.Wait(); err != nil {
+		logger.Fatal().Stack().Err(err).Msg("Failed to start the server")
+	}
+}
+
+func newCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "pullup",
+		Short:   "Deploy pull requests before merged",
+		Version: fmt.Sprintf("%s, commit %s, built at %s", version, commit, date),
+		Run:     run,
+	}
+
+	cmd.SetVersionTemplate("{{ .Version }}")
+
+	f := cmd.Flags()
 
 	// Bind flags
 	f.String("log-level", "", "log level")
@@ -97,28 +111,12 @@ func init() {
 	// Bind environment variables
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-}
 
-func initConfig() {}
-
-func loadConfig() *Config {
-	var config Config
-
-	if err := viper.Unmarshal(&config); err != nil {
-		panic(err)
-	}
-
-	return &config
-}
-
-func bindEnv(key, env string) {
-	if v := os.Getenv(env); v != "" {
-		viper.Set(key, v)
-	}
+	return cmd
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := newCommand().Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
