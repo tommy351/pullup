@@ -13,9 +13,12 @@ type resourceVersionGetter interface {
 	GetResourceVersion() string
 }
 
-type EventHandler interface {
-	OnUpdate(ctx context.Context, obj interface{}) error
-	OnDelete(ctx context.Context, obj interface{}) error
+func getResourceVersion(obj interface{}) string {
+	if v, ok := obj.(resourceVersionGetter); ok {
+		return v.GetResourceVersion()
+	}
+
+	return ""
 }
 
 type Handler struct {
@@ -24,23 +27,10 @@ type Handler struct {
 	Handler  EventHandler
 
 	updateQueue, deleteQueue workqueue.RateLimitingInterface
-}
 
-func (h *Handler) Run(ctx context.Context) error {
-	logger := zerolog.Ctx(ctx)
-	h.updateQueue = h.newQueue("update")
-	h.deleteQueue = h.newQueue("delete")
-
-	go h.runQueue(ctx, h.updateQueue, h.Handler.OnUpdate)
-	go h.runQueue(ctx, h.deleteQueue, h.Handler.OnDelete)
-
-	<-ctx.Done()
-
-	logger.Debug().Str("kind", h.Kind.String()).Msg("Shutting down handler")
-	h.updateQueue.ShutDown()
-	h.deleteQueue.ShutDown()
-
-	return nil
+	// This is used to inject GinkgoRecover in tests
+	recover func()
+	readyCh chan struct{}
 }
 
 func (h *Handler) OnAdd(obj interface{}) {
@@ -52,14 +42,34 @@ func (h *Handler) OnDelete(obj interface{}) {
 }
 
 func (h *Handler) OnUpdate(oldObj, newObj interface{}) {
-	oldMeta := oldObj.(resourceVersionGetter)
-	newMeta := newObj.(resourceVersionGetter)
+	if getResourceVersion(oldObj) != getResourceVersion(newObj) {
+		h.updateQueue.Add(newObj)
+	}
+}
 
-	if oldMeta.GetResourceVersion() == newMeta.GetResourceVersion() {
-		return
+func (h *Handler) Run(ctx context.Context) error {
+	logger := zerolog.Ctx(ctx)
+	h.updateQueue = h.newQueue("update")
+	h.deleteQueue = h.newQueue("delete")
+
+	if h.recover == nil {
+		h.recover = func() {}
 	}
 
-	h.updateQueue.Add(newObj)
+	go h.runQueue(ctx, h.updateQueue, h.Handler.OnUpdate)
+	go h.runQueue(ctx, h.deleteQueue, h.Handler.OnDelete)
+
+	if h.readyCh != nil {
+		h.readyCh <- struct{}{}
+	}
+
+	<-ctx.Done()
+
+	logger.Debug().Str("kind", h.Kind.String()).Msg("Shutting down handler")
+	h.updateQueue.ShutDown()
+	h.deleteQueue.ShutDown()
+
+	return nil
 }
 
 func (h *Handler) newQueue(event string) workqueue.RateLimitingInterface {
@@ -67,6 +77,8 @@ func (h *Handler) newQueue(event string) workqueue.RateLimitingInterface {
 }
 
 func (h *Handler) runQueue(ctx context.Context, queue workqueue.RateLimitingInterface, handler func(ctx context.Context, obj interface{}) error) {
+	defer h.recover()
+
 	process := func() bool {
 		item, shutdown := queue.Get()
 
