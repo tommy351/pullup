@@ -28,6 +28,9 @@ func (r *ResourceSetEventHandler) OnUpdate(ctx context.Context, obj interface{})
 		return nil
 	}
 
+	set.APIVersion = v1alpha1.SchemeGroupVersion.String()
+	set.Kind = "ResourceSet"
+
 	for _, res := range set.Spec.Resources {
 		if err := r.applyResource(ctx, set, res); err != nil {
 			return xerrors.Errorf("failed to apply resource: %w", err)
