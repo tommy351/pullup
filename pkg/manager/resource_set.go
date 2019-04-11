@@ -20,8 +20,7 @@ import (
 )
 
 type ResourceSetEventHandler struct {
-	Dynamic   dynamic.Interface
-	Namespace string
+	Dynamic dynamic.Interface
 }
 
 func (r *ResourceSetEventHandler) OnUpdate(ctx context.Context, obj interface{}) error {
@@ -67,7 +66,7 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		return nil
 	}
 
-	client := r.Dynamic.Resource(gvr).Namespace(r.Namespace)
+	client := r.Dynamic.Resource(gvr).Namespace(set.Namespace)
 	original, err := client.Get(obj.GetName(), metav1.GetOptions{})
 
 	if err != nil && !errors.IsNotFound(err) {

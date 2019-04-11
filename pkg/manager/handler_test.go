@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/k8s"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -17,7 +18,7 @@ var _ = Describe("Handler", func() {
 
 	BeforeEach(func() {
 		handler = &Handler{
-			Kind:     v1alpha1.Kind("Webhook"),
+			Kind:     k8s.Kind("Webhook"),
 			MaxRetry: 5,
 		}
 	})

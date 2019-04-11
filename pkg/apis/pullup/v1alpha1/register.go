@@ -15,10 +15,6 @@ var (
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 )
 
-func Kind(kind string) schema.GroupVersionKind {
-	return SchemeGroupVersion.WithKind(kind)
-}
-
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }

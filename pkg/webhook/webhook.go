@@ -3,7 +3,7 @@ package webhook
 import (
 	"net/http"
 
-	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/k8s"
 	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +21,7 @@ func (s *Server) Webhook(w http.ResponseWriter, r *http.Request) error {
 		return xerrors.Errorf("failed to get webhook: %w", err)
 	}
 
-	hook.SetGroupVersionKind(v1alpha1.Kind("Webhook"))
+	hook.SetGroupVersionKind(k8s.Kind("Webhook"))
 
 	if hook.Spec.GitHub != nil {
 		return s.webhookGithub(w, r, hook)

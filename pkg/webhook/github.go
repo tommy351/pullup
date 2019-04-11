@@ -19,12 +19,6 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-type jsonPatchOp struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
-}
-
 func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1alpha1.Webhook) error {
 	logger := hlog.FromRequest(r)
 	payload, err := parseGithubWebhook(r, hook.Spec.GitHub)
@@ -40,7 +34,7 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 		switch event.GetAction() {
 		case "opened", "reopened", "synchronize":
 			err := s.applyResourceSet(r.Context(), &v1alpha1.ResourceSet{
-				TypeMeta: k8s.GVKToTypeMeta(v1alpha1.Kind("ResourceSet")),
+				TypeMeta: k8s.GVKToTypeMeta(k8s.Kind("ResourceSet")),
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: hook.Namespace,
@@ -87,9 +81,10 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 				return xerrors.Errorf("failed to delete resource set %s: %w", name, err)
 			}
 
-			logger.Debug().Dict("resourceSet", zerolog.Dict().
-				Str("name", name).
-				Str("namespace", hook.Namespace)).
+			logger.Debug().
+				Dict("resourceSet", zerolog.Dict().
+					Str("name", name).
+					Str("namespace", hook.Namespace)).
 				Msg("Deleted resource set")
 		}
 	}
@@ -99,9 +94,10 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 
 func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error {
 	client := s.Client.PullupV1alpha1().ResourceSets(s.Namespace)
-	logger := zerolog.Ctx(ctx).With().Dict("resourceSet", zerolog.Dict().
-		Str("name", rs.Name).
-		Str("namespace", rs.Namespace)).
+	logger := zerolog.Ctx(ctx).With().
+		Dict("resourceSet", zerolog.Dict().
+			Str("name", rs.Name).
+			Str("namespace", rs.Namespace)).
 		Logger()
 
 	if _, err := client.Create(rs); err == nil {
@@ -111,7 +107,7 @@ func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet)
 		return xerrors.Errorf("failed to create resource set: %w", err)
 	}
 
-	patch, err := json.Marshal([]jsonPatchOp{
+	patch, err := json.Marshal([]k8s.JSONPatch{
 		{
 			Op:    "replace",
 			Path:  "/spec",

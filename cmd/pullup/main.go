@@ -81,6 +81,7 @@ func run(_ *cobra.Command, _ []string) {
 
 	mgr := &manager.Manager{
 		Namespace: conf.Kubernetes.Namespace,
+		Client:    kubeClient,
 		Dynamic:   dynamicClient,
 		Informer: externalversions.NewSharedInformerFactoryWithOptions(
 			kubeClient,
