@@ -4,12 +4,12 @@ commands:
   go_get:
     steps:
       - restore_cache:
-          key: go-pkg
+          key: go-mod-{{ checksum "go.sum" }}
       - run: go get ./...
       - save_cache:
           paths:
-            - /go/pkg
-          key: go-pkg
+            - /go/pkg/mod
+          key: go-mod-{{ checksum "go.sum" }}
 
 jobs:
   lint:
