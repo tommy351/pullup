@@ -120,9 +120,16 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		reducers = append(reducers, reducer.Merge{Source: applied.Object})
 	}
 
+	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
+
+	if err != nil {
+		logger.Warn().Err(err).Msg("Failed to render object")
+		return nil
+	}
+
 	reducers = append(
 		reducers,
-		reducer.Merge{Source: obj.Object},
+		reducer.Merge{Source: renderedObj},
 		// Set the name and owner references
 		reducer.Merge{Source: map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -139,7 +146,6 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 				},
 			},
 		}},
-		newTemplateReducer(set),
 	)
 
 	patch, err := reducer.Pipe(nil, reducers...)
