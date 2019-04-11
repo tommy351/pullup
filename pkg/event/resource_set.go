@@ -1,4 +1,4 @@
-package manager
+package event
 
 import (
 	"bytes"
@@ -9,42 +9,57 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/rs/zerolog"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/reducer"
 	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type ResourceSetEventHandler struct {
-	Dynamic dynamic.Interface
+type ResourceSetReconciler struct {
+	Client client.Client
+	Logger zerolog.Logger
 }
 
-func (r *ResourceSetEventHandler) OnUpdate(ctx context.Context, obj interface{}) error {
-	set, ok := obj.(*v1alpha1.ResourceSet)
+func (r *ResourceSetReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+	var set v1alpha1.ResourceSet
+	logger := r.Logger.With().
+		Dict("resourceSet", zerolog.Dict().
+			Str("namespace", req.Namespace).
+			Str("name", req.Name)).
+		Logger()
+	ctx := logger.WithContext(context.Background())
 
-	if !ok {
-		return nil
+	if err := r.Client.Get(ctx, req.NamespacedName, &set); err != nil {
+		return reconcile.Result{}, xerrors.Errorf("failed to get resource set: %w", err)
 	}
 
 	for _, res := range set.Spec.Resources {
-		if err := r.applyResource(ctx, set, res); err != nil {
-			return xerrors.Errorf("failed to apply resource: %w", err)
+		if err := r.applyResource(ctx, &set, res); err != nil {
+			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to apply resource: %w", err)
 		}
 	}
 
-	return nil
+	return reconcile.Result{}, nil
 }
 
-func (*ResourceSetEventHandler) OnDelete(ctx context.Context, obj interface{}) error {
-	return nil
+func (r *ResourceSetReconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (*unstructured.Unstructured, error) {
+	obj := new(unstructured.Unstructured)
+	obj.SetGroupVersionKind(gvk)
+	err := r.Client.Get(ctx, key, obj)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
 
-func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, raw json.RawMessage) error {
-	logger := zerolog.Ctx(ctx).With().Str("resourceSet", set.Name).Logger()
+func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, raw json.RawMessage) error {
+	logger := zerolog.Ctx(ctx).With().Logger()
 	var obj unstructured.Unstructured
 
 	if err := json.Unmarshal(raw, &obj); err != nil {
@@ -52,28 +67,39 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		return nil
 	}
 
-	logger = zerolog.Ctx(ctx).With().
+	logger = logger.With().
 		Dict("resource", zerolog.Dict().
 			Str("apiVersion", obj.GetAPIVersion()).
 			Str("kind", obj.GetKind()).
 			Str("name", obj.GetName())).
 		Logger()
 
-	gvr, err := k8s.ParseGVR(obj.GetAPIVersion(), obj.GetKind())
+	gv, err := schema.ParseGroupVersion(obj.GetAPIVersion())
 
 	if err != nil {
 		logger.Warn().Err(err).Msg("Invalid API version")
 		return nil
 	}
 
-	client := r.Dynamic.Resource(gvr).Namespace(set.Namespace)
-	original, err := client.Get(obj.GetName(), metav1.GetOptions{})
+	gvk := schema.GroupVersionKind{
+		Group:   gv.Group,
+		Version: gv.Version,
+		Kind:    obj.GetKind(),
+	}
+
+	original, err := r.getUnstructured(ctx, gvk, types.NamespacedName{
+		Namespace: set.Namespace,
+		Name:      obj.GetName(),
+	})
 
 	if err != nil && !errors.IsNotFound(err) {
 		return xerrors.Errorf("failed to get original resource: %w", err)
 	}
 
-	applied, err := client.Get(set.Name, metav1.GetOptions{})
+	applied, err := r.getUnstructured(ctx, gvk, types.NamespacedName{
+		Namespace: set.Namespace,
+		Name:      set.Name,
+	})
 
 	if err != nil && !errors.IsNotFound(err) {
 		return xerrors.Errorf("failed to get applied resource: %w", err)
@@ -102,8 +128,8 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		)
 
 		// nolint: gocritic
-		switch gvr {
-		case schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"}:
+		switch gvk {
+		case schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"}:
 			// Remove cluster IP and nodePorts
 			reducers = append(reducers, reducer.Merge{Source: map[string]interface{}{
 				"spec": map[string]interface{}{
@@ -164,7 +190,7 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 	}
 
 	if applied != nil {
-		if _, err := client.Update(data, metav1.UpdateOptions{}); err != nil {
+		if err := r.Client.Update(ctx, data); err != nil {
 			return xerrors.Errorf("failed to update resource: %w", err)
 		}
 
@@ -172,7 +198,7 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		return nil
 	}
 
-	if _, err := client.Create(data, metav1.CreateOptions{}); err != nil {
+	if err := r.Client.Create(ctx, data); err != nil {
 		return xerrors.Errorf("failed to create resource: %w", err)
 	}
 

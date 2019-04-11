@@ -20,7 +20,7 @@ func init() {
 	}
 }
 
-func New(conf *Config) *zerolog.Logger {
+func New(conf *Config) zerolog.Logger {
 	var writer io.Writer
 	lv, _ := zerolog.ParseLevel(conf.Level)
 
@@ -41,5 +41,5 @@ func New(conf *Config) *zerolog.Logger {
 		Timestamp().
 		Logger()
 
-	return &logger
+	return logger
 }

@@ -3,15 +3,20 @@ package webhook
 import (
 	"net/http"
 
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/k8s"
 	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func (s *Server) Webhook(w http.ResponseWriter, r *http.Request) error {
-	name := Params(r)["name"]
-	hook, err := s.Client.PullupV1alpha1().Webhooks(s.Namespace).Get(name, metav1.GetOptions{})
+	var hook v1alpha1.Webhook
+
+	err := s.Client.Get(r.Context(), types.NamespacedName{
+		Namespace: s.Namespace,
+		Name:      Params(r)["name"],
+	}, &hook)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -24,7 +29,7 @@ func (s *Server) Webhook(w http.ResponseWriter, r *http.Request) error {
 	hook.SetGroupVersionKind(k8s.Kind("Webhook"))
 
 	if hook.Spec.GitHub != nil {
-		return s.webhookGithub(w, r, hook)
+		return s.webhookGithub(w, r, &hook)
 	}
 
 	return String(w, http.StatusBadRequest, "Unsupported webhook type")

@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,22 +11,31 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/rs/zerolog"
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"github.com/tommy351/pullup/pkg/client/clientset/versioned"
-	"github.com/tommy351/pullup/pkg/client/clientset/versioned/fake"
 	"github.com/tommy351/pullup/pkg/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("Server.Webhook", func() {
 	var (
-		client versioned.Interface
-		req    *http.Request
-		res    *http.Response
+		kubeClient client.Client
+		req        *http.Request
+		res        *http.Response
 	)
+
+	newClient := func(objects ...runtime.Object) client.Client {
+		scheme := runtime.NewScheme()
+		Expect(v1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
+		return fake.NewFakeClientWithScheme(scheme, objects...)
+	}
 
 	newRequest := func(body interface{}) *http.Request {
 		var buf bytes.Buffer
@@ -38,7 +48,8 @@ var _ = Describe("Server.Webhook", func() {
 	JustBeforeEach(func() {
 		server := &Server{
 			Namespace: "default",
-			Client:    client,
+			Client:    kubeClient,
+			Logger:    zerolog.Nop(),
 		}
 		router := server.newRouter()
 		router.PanicHandler = nil
@@ -49,7 +60,7 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook not found", func() {
 		BeforeEach(func() {
-			client = fake.NewSimpleClientset()
+			kubeClient = newClient()
 			req = newRequest(nil)
 		})
 
@@ -64,7 +75,7 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook type is unsupported", func() {
 		BeforeEach(func() {
-			client = fake.NewSimpleClientset(&v1alpha1.Webhook{
+			kubeClient = newClient(&v1alpha1.Webhook{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: v1alpha1.SchemeGroupVersion.String(),
 					Kind:       "Webhook",
@@ -130,7 +141,7 @@ var _ = Describe("Server.Webhook", func() {
 		}
 
 		BeforeEach(func() {
-			client = fake.NewSimpleClientset(webhook, resourceSet)
+			kubeClient = newClient(webhook, resourceSet)
 		})
 
 		When("event type is pull request", func() {
@@ -165,8 +176,11 @@ var _ = Describe("Server.Webhook", func() {
 					})
 
 					It("should apply the resource set", func() {
-						rs, err := client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
-						Expect(err).NotTo(HaveOccurred())
+						rs := new(v1alpha1.ResourceSet)
+						Expect(kubeClient.Get(context.TODO(), types.NamespacedName{
+							Namespace: resourceSet.Namespace,
+							Name:      resourceSet.Name,
+						}, rs)).NotTo(HaveOccurred())
 						Expect(rs).To(Equal(&v1alpha1.ResourceSet{
 							TypeMeta:   resourceSet.TypeMeta,
 							ObjectMeta: resourceSet.ObjectMeta,
@@ -195,7 +209,7 @@ var _ = Describe("Server.Webhook", func() {
 
 				When("resource set does not exist", func() {
 					BeforeEach(func() {
-						Expect(client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Delete(resourceSet.Name, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+						Expect(kubeClient.Delete(context.TODO(), resourceSet)).NotTo(HaveOccurred())
 					})
 
 					testSuccess()
@@ -237,14 +251,17 @@ var _ = Describe("Server.Webhook", func() {
 					})
 
 					It("should delete the resource set", func() {
-						_, err := client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
+						err := kubeClient.Get(context.TODO(), types.NamespacedName{
+							Namespace: resourceSet.Namespace,
+							Name:      resourceSet.Name,
+						}, new(v1alpha1.ResourceSet))
 						Expect(errors.IsNotFound(err)).To(BeTrue())
 					})
 				})
 
 				When("resource set not exist", func() {
 					BeforeEach(func() {
-						Expect(client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Delete(resourceSet.Name, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+						Expect(kubeClient.Delete(context.TODO(), resourceSet)).NotTo(HaveOccurred())
 					})
 
 					It("should respond 204", func() {

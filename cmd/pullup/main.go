@@ -1,22 +1,25 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tommy351/pullup/pkg/client/clientset/versioned"
-	"github.com/tommy351/pullup/pkg/client/informers/externalversions"
-	"github.com/tommy351/pullup/pkg/group"
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/event"
 	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/log"
-	"github.com/tommy351/pullup/pkg/manager"
-	"github.com/tommy351/pullup/pkg/signal"
 	"github.com/tommy351/pullup/pkg/webhook"
-	"k8s.io/client-go/dynamic"
+	"golang.org/x/xerrors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 type Config struct {
@@ -48,63 +51,86 @@ func bindEnv(key, env string) {
 	}
 }
 
-func run(_ *cobra.Command, _ []string) {
+func newController(name string, mgr manager.Manager, kind runtime.Object, reconciler reconcile.Reconciler) error {
+	ctrl, err := controller.New(name, mgr, controller.Options{
+		Reconciler: reconciler,
+	})
+
+	if err != nil {
+		return xerrors.Errorf("failed to create a controller: %w", err)
+	}
+
+	err = ctrl.Watch(&source.Kind{Type: kind}, &handler.EnqueueRequestForObject{})
+
+	if err != nil {
+		return xerrors.Errorf("failed to watch resource: %w", err)
+	}
+
+	return nil
+}
+
+func run(_ *cobra.Command, _ []string) error {
 	conf := loadConfig()
 	logger := log.New(&conf.Log)
 	kubeConf, err := k8s.LoadConfig(&conf.Kubernetes)
 
 	if err != nil {
-		logger.Fatal().Stack().Err(err).Msg("Failed to load Kubernetes config")
+		return xerrors.Errorf("failed to load Kubernetes config: %w", err)
 	}
 
-	kubeClient, err := versioned.NewForConfig(kubeConf)
+	mgr, err := manager.New(kubeConf, manager.Options{
+		Namespace: conf.Kubernetes.Namespace,
+	})
 
 	if err != nil {
-		logger.Fatal().Stack().Err(err).Msg("Failed to create a Kubernetes client")
+		return xerrors.Errorf("failed to create a manager: %w", err)
 	}
 
-	ctx := context.Background()
-	ctx = logger.WithContext(ctx)
-	ctx = signal.Context(ctx)
+	sb := runtime.NewSchemeBuilder(v1alpha1.AddToScheme)
 
-	server := &webhook.Server{
-		Client:    kubeClient,
-		Namespace: conf.Kubernetes.Namespace,
+	if err := sb.AddToScheme(mgr.GetScheme()); err != nil {
+		return xerrors.Errorf("failed to register scheme: %w", err)
+	}
+
+	err = newController("Webhook", mgr, &v1alpha1.Webhook{}, &event.WebhookReconciler{
+		Client: mgr.GetClient(),
+		Logger: logger,
+	})
+
+	if err != nil {
+		return xerrors.Errorf("failed to create a webhook controller: %w", err)
+	}
+
+	err = newController("ResourceSet", mgr, &v1alpha1.ResourceSet{}, &event.ResourceSetReconciler{
+		Client: mgr.GetClient(),
+		Logger: logger,
+	})
+
+	if err != nil {
+		return xerrors.Errorf("failed to create a resource set controller: %w", err)
+	}
+
+	err = mgr.Add(&webhook.Server{
 		Config:    conf.Webhook,
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(kubeConf)
+		Client:    mgr.GetClient(),
+		Namespace: conf.Kubernetes.Namespace,
+		Logger:    logger,
+	})
 
 	if err != nil {
-		logger.Fatal().Stack().Err(err).Msg("Failed to create a dynamic Kubernetes client")
+		return xerrors.Errorf("failed to add webhook server to manager: %w", err)
 	}
 
-	mgr := &manager.Manager{
-		Namespace: conf.Kubernetes.Namespace,
-		Client:    kubeClient,
-		Dynamic:   dynamicClient,
-		Informer: externalversions.NewSharedInformerFactoryWithOptions(
-			kubeClient,
-			0,
-			externalversions.WithNamespace(conf.Kubernetes.Namespace),
-		),
-	}
-
-	g := group.NewGroup(ctx)
-	g.Go(server.Serve)
-	g.Go(mgr.Run)
-
-	if err := g.Wait(); err != nil {
-		logger.Fatal().Stack().Err(err).Msg("Failed to start the server")
-	}
+	return mgr.Start(signals.SetupSignalHandler())
 }
 
 func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "pullup",
-		Short:   "Deploy pull requests before merged",
-		Version: fmt.Sprintf("%s, commit %s, built at %s", version, commit, date),
-		Run:     run,
+		Use:          "pullup",
+		Short:        "Deploy pull requests before merged",
+		Version:      fmt.Sprintf("%s, commit %s, built at %s", version, commit, date),
+		RunE:         run,
+		SilenceUsage: true,
 	}
 
 	cmd.SetVersionTemplate("{{ .Version }}")
@@ -140,7 +166,6 @@ func newCommand() *cobra.Command {
 
 func main() {
 	if err := newCommand().Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }

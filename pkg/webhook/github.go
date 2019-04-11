@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1alpha1.Webhook) error {
@@ -75,7 +76,12 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 			}
 
 		case "closed":
-			err := s.Client.PullupV1alpha1().ResourceSets(hook.Namespace).Delete(name, &metav1.DeleteOptions{})
+			err := s.Client.Delete(r.Context(), &v1alpha1.ResourceSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: hook.Namespace,
+					Name:      name,
+				},
+			})
 
 			if err != nil && !errors.IsNotFound(err) {
 				return xerrors.Errorf("failed to delete resource set %s: %w", name, err)
@@ -93,14 +99,13 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 }
 
 func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error {
-	client := s.Client.PullupV1alpha1().ResourceSets(s.Namespace)
 	logger := zerolog.Ctx(ctx).With().
 		Dict("resourceSet", zerolog.Dict().
 			Str("name", rs.Name).
 			Str("namespace", rs.Namespace)).
 		Logger()
 
-	if _, err := client.Create(rs); err == nil {
+	if err := s.Client.Create(ctx, rs); err == nil {
 		logger.Debug().Msg("Created resource set")
 		return nil
 	} else if !errors.IsAlreadyExists(err) {
@@ -119,7 +124,7 @@ func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet)
 		return xerrors.Errorf("failed to marshal resource set spec: %w", err)
 	}
 
-	if _, err := client.Patch(rs.Name, types.JSONPatchType, patch); err != nil {
+	if err := s.Client.Patch(ctx, rs, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
 		return xerrors.Errorf("failed to patch resource set: %w", err)
 	}
 

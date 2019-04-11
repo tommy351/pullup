@@ -9,8 +9,8 @@ import (
 	"github.com/justinas/alice"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
-	"github.com/tommy351/pullup/pkg/client/clientset/versioned"
 	"golang.org/x/xerrors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Config struct {
@@ -19,16 +19,14 @@ type Config struct {
 
 type Server struct {
 	Config    Config
-	Client    versioned.Interface
+	Client    client.Client
 	Namespace string
+	Logger    zerolog.Logger
 }
 
-func (s *Server) Serve(ctx context.Context) (err error) {
-	ctx, cancel := context.WithCancel(ctx)
-	logger := zerolog.Ctx(ctx)
-
+func (s *Server) Start(done <-chan struct{}) (err error) {
 	chain := alice.New(
-		hlog.NewHandler(*logger),
+		hlog.NewHandler(s.Logger),
 		hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
 			if r.RequestURI != "/" {
 				hlog.FromRequest(r).Debug().
@@ -50,18 +48,17 @@ func (s *Server) Serve(ctx context.Context) (err error) {
 	}
 
 	go func() {
-		logger.Info().Str("address", httpServer.Addr).Msg("Starting webhook server")
+		s.Logger.Info().Str("address", httpServer.Addr).Msg("Starting webhook server")
 		err = httpServer.ListenAndServe()
-		cancel()
 	}()
 
-	<-ctx.Done()
+	<-done
 
 	if err != nil {
 		return
 	}
 
-	logger.Info().Msg("Shutting down webhook server")
+	s.Logger.Info().Msg("Shutting down webhook server")
 	return httpServer.Shutdown(context.Background())
 }
 
