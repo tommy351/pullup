@@ -8,12 +8,15 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tommy351/pullup/pkg/client/clientset/versioned"
+	"github.com/tommy351/pullup/pkg/client/informers/externalversions"
 	"github.com/tommy351/pullup/pkg/group"
 	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/log"
 	"github.com/tommy351/pullup/pkg/manager"
 	"github.com/tommy351/pullup/pkg/signal"
 	"github.com/tommy351/pullup/pkg/webhook"
+	"k8s.io/client-go/dynamic"
 )
 
 type Config struct {
@@ -48,7 +51,13 @@ func bindEnv(key, env string) {
 func run(_ *cobra.Command, _ []string) {
 	conf := loadConfig()
 	logger := log.New(&conf.Log)
-	client, err := k8s.NewClient(&conf.Kubernetes)
+	kubeConf, err := k8s.LoadConfig(&conf.Kubernetes)
+
+	if err != nil {
+		logger.Fatal().Stack().Err(err).Msg("Failed to load Kubernetes config")
+	}
+
+	kubeClient, err := versioned.NewForConfig(kubeConf)
 
 	if err != nil {
 		logger.Fatal().Stack().Err(err).Msg("Failed to create a Kubernetes client")
@@ -59,12 +68,25 @@ func run(_ *cobra.Command, _ []string) {
 	ctx = signal.Context(ctx)
 
 	server := &webhook.Server{
-		Client: client,
-		Config: conf.Webhook,
+		Client:    kubeClient,
+		Namespace: conf.Kubernetes.Namespace,
+		Config:    conf.Webhook,
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(kubeConf)
+
+	if err != nil {
+		logger.Fatal().Stack().Err(err).Msg("Failed to create a dynamic Kubernetes client")
 	}
 
 	mgr := &manager.Manager{
-		Client: client,
+		Namespace: conf.Kubernetes.Namespace,
+		Dynamic:   dynamicClient,
+		Informer: externalversions.NewSharedInformerFactoryWithOptions(
+			kubeClient,
+			0,
+			externalversions.WithNamespace(conf.Kubernetes.Namespace),
+		),
 	}
 
 	g := group.NewGroup(ctx)

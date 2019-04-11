@@ -12,13 +12,16 @@ import (
 	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/reducer"
 	"golang.org/x/xerrors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 type ResourceSetEventHandler struct {
-	Client *k8s.Client
+	Dynamic   dynamic.Interface
+	Namespace string
 }
 
 func (r *ResourceSetEventHandler) OnUpdate(ctx context.Context, obj interface{}) error {
@@ -64,16 +67,16 @@ func (r *ResourceSetEventHandler) applyResource(ctx context.Context, set *v1alph
 		return nil
 	}
 
-	client := r.Client.NewDynamicInterface(ctx, gvr)
+	client := r.Dynamic.Resource(gvr).Namespace(r.Namespace)
 	original, err := client.Get(obj.GetName(), metav1.GetOptions{})
 
-	if err != nil && !k8s.IsNotFoundError(err) {
+	if err != nil && !errors.IsNotFound(err) {
 		return xerrors.Errorf("failed to get original resource: %w", err)
 	}
 
 	applied, err := client.Get(set.Name, metav1.GetOptions{})
 
-	if err != nil && !k8s.IsNotFoundError(err) {
+	if err != nil && !errors.IsNotFound(err) {
 		return xerrors.Errorf("failed to get applied resource: %w", err)
 	}
 

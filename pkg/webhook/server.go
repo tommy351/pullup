@@ -9,7 +9,7 @@ import (
 	"github.com/justinas/alice"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
-	"github.com/tommy351/pullup/pkg/k8s"
+	"github.com/tommy351/pullup/pkg/client/clientset/versioned"
 	"golang.org/x/xerrors"
 )
 
@@ -18,8 +18,9 @@ type Config struct {
 }
 
 type Server struct {
-	Client *k8s.Client
-	Config Config
+	Config    Config
+	Client    versioned.Interface
+	Namespace string
 }
 
 func (s *Server) Serve(ctx context.Context) (err error) {

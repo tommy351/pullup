@@ -1,24 +1,36 @@
 package webhook
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/google/go-github/v24/github"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/k8s"
 	"golang.org/x/xerrors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/utils/pointer"
 )
 
+type jsonPatchOp struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
+}
+
 func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1alpha1.Webhook) error {
+	logger := hlog.FromRequest(r)
 	payload, err := parseGithubWebhook(r, hook.Spec.GitHub)
 
 	if err != nil {
-		hlog.FromRequest(r).Warn().Err(err).Msg("Invalid webhook")
+		logger.Warn().Err(err).Msg("Invalid webhook")
 		return String(w, http.StatusBadRequest, "Invalid webhook")
 	}
 
@@ -27,7 +39,7 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 
 		switch event.GetAction() {
 		case "opened", "reopened", "synchronize":
-			err := s.Client.ApplyResourceSet(r.Context(), &v1alpha1.ResourceSet{
+			err := s.applyResourceSet(r.Context(), &v1alpha1.ResourceSet{
 				TypeMeta: k8s.GVKToTypeMeta(v1alpha1.Kind("ResourceSet")),
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
@@ -69,13 +81,54 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 			}
 
 		case "closed":
-			if err := s.Client.DeleteResourceSet(r.Context(), name); err != nil && !k8s.IsNotFoundError(err) {
+			err := s.Client.PullupV1alpha1().ResourceSets(hook.Namespace).Delete(name, &metav1.DeleteOptions{})
+
+			if err != nil && !errors.IsNotFound(err) {
 				return xerrors.Errorf("failed to delete resource set %s: %w", name, err)
 			}
+
+			logger.Debug().Dict("resourceSet", zerolog.Dict().
+				Str("name", name).
+				Str("namespace", hook.Namespace)).
+				Msg("Deleted resource set")
 		}
 	}
 
 	return NoContent(w)
+}
+
+func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error {
+	client := s.Client.PullupV1alpha1().ResourceSets(s.Namespace)
+	logger := zerolog.Ctx(ctx).With().Dict("resourceSet", zerolog.Dict().
+		Str("name", rs.Name).
+		Str("namespace", rs.Namespace)).
+		Logger()
+
+	if _, err := client.Create(rs); err == nil {
+		logger.Debug().Msg("Created resource set")
+		return nil
+	} else if !errors.IsAlreadyExists(err) {
+		return xerrors.Errorf("failed to create resource set: %w", err)
+	}
+
+	patch, err := json.Marshal([]jsonPatchOp{
+		{
+			Op:    "replace",
+			Path:  "/spec",
+			Value: rs.Spec,
+		},
+	})
+
+	if err != nil {
+		return xerrors.Errorf("failed to marshal resource set spec: %w", err)
+	}
+
+	if _, err := client.Patch(rs.Name, types.JSONPatchType, patch); err != nil {
+		return xerrors.Errorf("failed to patch resource set: %w", err)
+	}
+
+	logger.Debug().Msg("Updated resource set")
+	return nil
 }
 
 func parseGithubWebhook(r *http.Request, options *v1alpha1.GitHubOptions) (interface{}, error) {

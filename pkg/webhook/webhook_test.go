@@ -12,15 +12,17 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/client/clientset/versioned"
+	"github.com/tommy351/pullup/pkg/client/clientset/versioned/fake"
 	"github.com/tommy351/pullup/pkg/k8s"
-	"github.com/tommy351/pullup/pkg/k8s/fake"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("Server.Webhook", func() {
 	var (
-		client *k8s.Client
+		client versioned.Interface
 		req    *http.Request
 		res    *http.Response
 	)
@@ -35,9 +37,11 @@ var _ = Describe("Server.Webhook", func() {
 
 	JustBeforeEach(func() {
 		server := &Server{
-			Client: client,
+			Namespace: "default",
+			Client:    client,
 		}
 		router := server.newRouter()
+		router.PanicHandler = nil
 		recorder := httptest.NewRecorder()
 		router.ServeHTTP(recorder, req)
 		res = recorder.Result()
@@ -45,7 +49,7 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook not found", func() {
 		BeforeEach(func() {
-			client = fake.NewClient()
+			client = fake.NewSimpleClientset()
 			req = newRequest(nil)
 		})
 
@@ -60,7 +64,7 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook type is unsupported", func() {
 		BeforeEach(func() {
-			client = fake.NewClient(&v1alpha1.Webhook{
+			client = fake.NewSimpleClientset(&v1alpha1.Webhook{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: v1alpha1.SchemeGroupVersion.String(),
 					Kind:       "Webhook",
@@ -126,7 +130,7 @@ var _ = Describe("Server.Webhook", func() {
 		}
 
 		BeforeEach(func() {
-			client = fake.NewClient(webhook, resourceSet)
+			client = fake.NewSimpleClientset(webhook, resourceSet)
 		})
 
 		When("event type is pull request", func() {
@@ -155,32 +159,46 @@ var _ = Describe("Server.Webhook", func() {
 			}
 
 			testApply := func() {
-				It("should respond 204", func() {
-					Expect(res.StatusCode).To(Equal(http.StatusNoContent))
+				testSuccess := func() {
+					It("should respond 204", func() {
+						Expect(res.StatusCode).To(Equal(http.StatusNoContent))
+					})
+
+					It("should apply the resource set", func() {
+						rs, err := client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
+						Expect(err).NotTo(HaveOccurred())
+						Expect(rs).To(Equal(&v1alpha1.ResourceSet{
+							TypeMeta:   resourceSet.TypeMeta,
+							ObjectMeta: resourceSet.ObjectMeta,
+							Spec: v1alpha1.ResourceSetSpec{
+								Resources: webhook.Spec.Resources,
+								Number:    event.GetNumber(),
+								Base: &v1alpha1.Commit{
+									Ref: event.PullRequest.Base.Ref,
+									SHA: event.PullRequest.Base.SHA,
+								},
+								Head: &v1alpha1.Commit{
+									Ref: event.PullRequest.Head.Ref,
+									SHA: event.PullRequest.Head.SHA,
+								},
+								Merge: &v1alpha1.Commit{
+									SHA: event.PullRequest.MergeCommitSHA,
+								},
+							},
+						}))
+					})
+				}
+
+				When("resource set exists", func() {
+					testSuccess()
 				})
 
-				It("should apply the resource set", func() {
-					rs, err := client.Client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(rs).To(Equal(&v1alpha1.ResourceSet{
-						TypeMeta:   resourceSet.TypeMeta,
-						ObjectMeta: resourceSet.ObjectMeta,
-						Spec: v1alpha1.ResourceSetSpec{
-							Resources: webhook.Spec.Resources,
-							Number:    event.GetNumber(),
-							Base: &v1alpha1.Commit{
-								Ref: event.PullRequest.Base.Ref,
-								SHA: event.PullRequest.Base.SHA,
-							},
-							Head: &v1alpha1.Commit{
-								Ref: event.PullRequest.Head.Ref,
-								SHA: event.PullRequest.Head.SHA,
-							},
-							Merge: &v1alpha1.Commit{
-								SHA: event.PullRequest.MergeCommitSHA,
-							},
-						},
-					}))
+				When("resource set does not exist", func() {
+					BeforeEach(func() {
+						Expect(client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Delete(resourceSet.Name, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+					})
+
+					testSuccess()
 				})
 			}
 
@@ -219,14 +237,14 @@ var _ = Describe("Server.Webhook", func() {
 					})
 
 					It("should delete the resource set", func() {
-						_, err := client.Client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
-						Expect(k8s.IsNotFoundError(err)).To(BeTrue())
+						_, err := client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Get(resourceSet.Name, metav1.GetOptions{})
+						Expect(errors.IsNotFound(err)).To(BeTrue())
 					})
 				})
 
 				When("resource set not exist", func() {
 					BeforeEach(func() {
-						Expect(client.Client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Delete(resourceSet.Name, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
+						Expect(client.PullupV1alpha1().ResourceSets(resourceSet.Namespace).Delete(resourceSet.Name, &metav1.DeleteOptions{})).NotTo(HaveOccurred())
 					})
 
 					It("should respond 204", func() {

@@ -8,6 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const (
+	LabelWebhookName       = "webhook-name"
+	LabelPullRequestNumber = "pull-request-number"
+)
+
 func KindToResource(kind string) string {
 	return inflection.Plural(strings.ToLower(kind))
 }
