@@ -32,7 +32,7 @@ func (s *Server) InjectClient(c client.Client) error {
 }
 
 func (s *Server) InjectLogger(l logr.Logger) error {
-	s.logger = l.WithName("webhook")
+	s.logger = l
 	return nil
 }
 

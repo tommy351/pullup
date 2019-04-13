@@ -74,7 +74,7 @@ func (r *Reconciler) InjectClient(c client.Client) error {
 }
 
 func (r *Reconciler) InjectLogger(l logr.Logger) error {
-	r.logger = l.WithName("controller").WithName("resourceSet")
+	r.logger = l
 	return nil
 }
 

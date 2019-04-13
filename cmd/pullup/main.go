@@ -63,6 +63,8 @@ func newController(name string, mgr manager.Manager, logger logr.Logger, kind ru
 		return xerrors.Errorf("failed to create a controller: %w", err)
 	}
 
+	logger = logger.WithName("controller").WithName(name)
+
 	if _, err := inject.LoggerInto(logger, reconciler); err != nil {
 		return xerrors.Errorf("failed to inject logger into reconciler: %w", err)
 	}
@@ -103,13 +105,13 @@ func run(_ *cobra.Command, _ []string) error {
 
 	eventRecorder := mgr.GetEventRecorderFor("pullup")
 
-	err = newController("Webhook", mgr, logger, &v1alpha1.Webhook{}, &webhookctrl.Reconciler{})
+	err = newController("webhook", mgr, logger, &v1alpha1.Webhook{}, &webhookctrl.Reconciler{})
 
 	if err != nil {
 		return xerrors.Errorf("failed to create a webhook controller: %w", err)
 	}
 
-	err = newController("ResourceSet", mgr, logger, &v1alpha1.ResourceSet{}, &resourceset.Reconciler{
+	err = newController("resource-set", mgr, logger, &v1alpha1.ResourceSet{}, &resourceset.Reconciler{
 		EventRecorder: eventRecorder,
 	})
 
@@ -122,7 +124,7 @@ func run(_ *cobra.Command, _ []string) error {
 		Namespace: conf.Kubernetes.Namespace,
 	}
 
-	if _, err := inject.LoggerInto(logger, webhookServer); err != nil {
+	if _, err := inject.LoggerInto(logger.WithName("webhook"), webhookServer); err != nil {
 		return xerrors.Errorf("failed to inject logger into webhook server: %w", err)
 	}
 
