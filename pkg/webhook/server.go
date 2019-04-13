@@ -36,7 +36,7 @@ func (s *Server) InjectLogger(l logr.Logger) error {
 	return nil
 }
 
-func (s *Server) Start(done <-chan struct{}) (err error) {
+func (s *Server) Start(stop <-chan struct{}) error {
 	chain := alice.New(
 		middleware.SetLogger(s.logger),
 		middleware.RequestLog(func(r *http.Request, status, size int, duration time.Duration) {
@@ -59,19 +59,30 @@ func (s *Server) Start(done <-chan struct{}) (err error) {
 		Handler: chain.Then(s.newRouter()),
 	}
 
+	idleConnsClosed := make(chan struct{})
+
 	go func() {
-		s.logger.Info("Starting webhook server", "address", httpServer.Addr)
-		err = httpServer.ListenAndServe()
+		<-stop
+
+		s.logger.Info("Shutting down webhook server")
+
+		if err := httpServer.Shutdown(context.TODO()); err != nil {
+			// Error from closing listeners, or context timeout
+			s.logger.Error(err, "failed to shut down the webhook server")
+		}
+
+		close(idleConnsClosed)
 	}()
 
-	<-done
+	s.logger.Info("Starting webhook server", "address", httpServer.Addr)
+	err := httpServer.ListenAndServe()
 
-	if err != nil {
-		return
+	if err != nil && err != http.ErrServerClosed {
+		return err
 	}
 
-	s.logger.Info("Shutting down webhook server")
-	return httpServer.Shutdown(context.Background())
+	<-idleConnsClosed
+	return nil
 }
 
 func (s *Server) newRouter() *httptreemux.ContextMux {
