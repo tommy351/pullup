@@ -20,14 +20,25 @@ type Config struct {
 
 type Server struct {
 	Config    Config
-	Client    client.Client
 	Namespace string
-	Logger    logr.Logger
+
+	client client.Client
+	logger logr.Logger
+}
+
+func (s *Server) InjectClient(c client.Client) error {
+	s.client = c
+	return nil
+}
+
+func (s *Server) InjectLogger(l logr.Logger) error {
+	s.logger = l.WithName("webhook")
+	return nil
 }
 
 func (s *Server) Start(done <-chan struct{}) (err error) {
 	chain := alice.New(
-		middleware.SetLogger(s.Logger),
+		middleware.SetLogger(s.logger),
 		middleware.RequestLog(func(r *http.Request, status, size int, duration time.Duration) {
 			if r.RequestURI != "/" {
 				log.FromContext(r.Context()).V(log.Debug).Info("",
@@ -49,7 +60,7 @@ func (s *Server) Start(done <-chan struct{}) (err error) {
 	}
 
 	go func() {
-		s.Logger.Info("Starting webhook server", "address", httpServer.Addr)
+		s.logger.Info("Starting webhook server", "address", httpServer.Addr)
 		err = httpServer.ListenAndServe()
 	}()
 
@@ -59,7 +70,7 @@ func (s *Server) Start(done <-chan struct{}) (err error) {
 		return
 	}
 
-	s.Logger.Info("Shutting down webhook server")
+	s.logger.Info("Shutting down webhook server")
 	return httpServer.Shutdown(context.Background())
 }
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
@@ -20,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -52,13 +54,17 @@ func bindEnv(key, env string) {
 	}
 }
 
-func newController(name string, mgr manager.Manager, kind runtime.Object, reconciler reconcile.Reconciler) error {
+func newController(name string, mgr manager.Manager, logger logr.Logger, kind runtime.Object, reconciler reconcile.Reconciler) error {
 	ctrl, err := controller.New(name, mgr, controller.Options{
 		Reconciler: reconciler,
 	})
 
 	if err != nil {
 		return xerrors.Errorf("failed to create a controller: %w", err)
+	}
+
+	if _, err := inject.LoggerInto(logger, reconciler); err != nil {
+		return xerrors.Errorf("failed to inject logger into reconciler: %w", err)
 	}
 
 	err = ctrl.Watch(&source.Kind{Type: kind}, &handler.EnqueueRequestForObject{})
@@ -95,21 +101,15 @@ func run(_ *cobra.Command, _ []string) error {
 		return xerrors.Errorf("failed to register scheme: %w", err)
 	}
 
-	ctrlLogger := logger.WithName("controller")
 	eventRecorder := mgr.GetEventRecorderFor("pullup")
 
-	err = newController("Webhook", mgr, &v1alpha1.Webhook{}, &webhookctrl.Reconciler{
-		Client: mgr.GetClient(),
-		Logger: ctrlLogger.WithName("webhook"),
-	})
+	err = newController("Webhook", mgr, logger, &v1alpha1.Webhook{}, &webhookctrl.Reconciler{})
 
 	if err != nil {
 		return xerrors.Errorf("failed to create a webhook controller: %w", err)
 	}
 
-	err = newController("ResourceSet", mgr, &v1alpha1.ResourceSet{}, &resourceset.Reconciler{
-		Client:        mgr.GetClient(),
-		Logger:        ctrlLogger.WithName("resourceset"),
+	err = newController("ResourceSet", mgr, logger, &v1alpha1.ResourceSet{}, &resourceset.Reconciler{
 		EventRecorder: eventRecorder,
 	})
 
@@ -117,12 +117,16 @@ func run(_ *cobra.Command, _ []string) error {
 		return xerrors.Errorf("failed to create a resource set controller: %w", err)
 	}
 
-	err = mgr.Add(&webhook.Server{
+	webhookServer := &webhook.Server{
 		Config:    conf.Webhook,
-		Client:    mgr.GetClient(),
 		Namespace: conf.Kubernetes.Namespace,
-		Logger:    logger.WithName("webhook-server"),
-	})
+	}
+
+	if _, err := inject.LoggerInto(logger, webhookServer); err != nil {
+		return xerrors.Errorf("failed to inject logger into webhook server: %w", err)
+	}
+
+	err = mgr.Add(webhookServer)
 
 	if err != nil {
 		return xerrors.Errorf("failed to add webhook server to manager: %w", err)

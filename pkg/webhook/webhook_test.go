@@ -48,8 +48,8 @@ var _ = Describe("Server.Webhook", func() {
 	JustBeforeEach(func() {
 		server := &Server{
 			Namespace: "default",
-			Client:    kubeClient,
-			Logger:    log.NullLogger{},
+			client:    kubeClient,
+			logger:    log.NullLogger{},
 		}
 		router := server.newRouter()
 		router.PanicHandler = nil

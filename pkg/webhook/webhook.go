@@ -14,7 +14,7 @@ import (
 func (s *Server) Webhook(w http.ResponseWriter, r *http.Request) error {
 	hook := new(v1alpha1.Webhook)
 
-	err := s.Client.Get(r.Context(), types.NamespacedName{
+	err := s.client.Get(r.Context(), types.NamespacedName{
 		Namespace: s.Namespace,
 		Name:      Params(r)["name"],
 	}, hook)

@@ -81,7 +81,7 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 					Name:      name,
 				},
 			}
-			err := s.Client.Delete(r.Context(), rs)
+			err := s.client.Delete(r.Context(), rs)
 
 			if err != nil && !errors.IsNotFound(err) {
 				return xerrors.Errorf("failed to delete resource set %s: %w", name, err)
@@ -97,7 +97,7 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error {
 	logger := log.FromContext(ctx).WithValues("resourceSet", rs)
 
-	if err := s.Client.Create(ctx, rs); err == nil {
+	if err := s.client.Create(ctx, rs); err == nil {
 		logger.V(log.Debug).Info("Created resource set")
 		return nil
 	} else if !errors.IsAlreadyExists(err) {
@@ -116,7 +116,7 @@ func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet)
 		return xerrors.Errorf("failed to marshal resource set spec: %w", err)
 	}
 
-	if err := s.Client.Patch(ctx, rs, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
+	if err := s.client.Patch(ctx, rs, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
 		return xerrors.Errorf("failed to patch resource set: %w", err)
 	}
 

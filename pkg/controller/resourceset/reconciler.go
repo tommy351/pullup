@@ -35,21 +35,58 @@ const (
 	ReasonResourceExists  = "ResourceExists"
 )
 
+type applyResult struct {
+	Error   error
+	Reason  string
+	Message string
+	Requeue bool
+}
+
+func (a applyResult) record(recorder record.EventRecorder, obj runtime.Object, data *unstructured.Unstructured) {
+	eventType := corev1.EventTypeNormal
+	msg := a.Message
+
+	if err := a.Error; err != nil {
+		eventType = corev1.EventTypeWarning
+
+		if msg == "" {
+			msg = err.Error()
+		}
+	}
+
+	recorder.AnnotatedEventf(obj, map[string]string{
+		"apiVersion": data.GetAPIVersion(),
+		"kind":       data.GetKind(),
+		"name":       data.GetName(),
+	}, eventType, a.Reason, msg)
+}
+
 type Reconciler struct {
-	Client        client.Client
-	Logger        logr.Logger
 	EventRecorder record.EventRecorder
+
+	client client.Client
+	logger logr.Logger
+}
+
+func (r *Reconciler) InjectClient(c client.Client) error {
+	r.client = c
+	return nil
+}
+
+func (r *Reconciler) InjectLogger(l logr.Logger) error {
+	r.logger = l.WithName("controller").WithName("resourceSet")
+	return nil
 }
 
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	set := new(v1alpha1.ResourceSet)
 	ctx := context.Background()
 
-	if err := r.Client.Get(ctx, req.NamespacedName, set); err != nil {
+	if err := r.client.Get(ctx, req.NamespacedName, set); err != nil {
 		return reconcile.Result{}, xerrors.Errorf("failed to get resource set: %w", err)
 	}
 
-	logger := r.Logger.WithValues("resourceSet", set)
+	logger := r.logger.WithValues("resourceSet", set)
 	ctx = log.NewContext(ctx, logger)
 
 	for i, res := range set.Spec.Resources {
@@ -76,39 +113,13 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (*unstructured.Unstructured, error) {
 	obj := new(unstructured.Unstructured)
 	obj.SetGroupVersionKind(gvk)
-	err := r.Client.Get(ctx, key, obj)
+	err := r.client.Get(ctx, key, obj)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return obj, nil
-}
-
-type applyResult struct {
-	Error   error
-	Reason  string
-	Message string
-	Requeue bool
-}
-
-func (a applyResult) record(recorder record.EventRecorder, obj runtime.Object, data *unstructured.Unstructured) {
-	eventType := corev1.EventTypeNormal
-	msg := a.Message
-
-	if err := a.Error; err != nil {
-		eventType = corev1.EventTypeWarning
-
-		if msg == "" {
-			msg = err.Error()
-		}
-	}
-
-	recorder.AnnotatedEventf(obj, map[string]string{
-		"apiVersion": data.GetAPIVersion(),
-		"kind":       data.GetKind(),
-		"name":       data.GetName(),
-	}, eventType, a.Reason, msg)
 }
 
 func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, obj *unstructured.Unstructured) *applyResult {
@@ -250,7 +261,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	}
 
 	if applied != nil {
-		if err := r.Client.Update(ctx, data); err != nil {
+		if err := r.client.Update(ctx, data); err != nil {
 			return &applyResult{
 				Error:   xerrors.Errorf("failed to update resource: %w", err),
 				Reason:  ReasonUpdateFailed,
@@ -265,7 +276,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		}
 	}
 
-	if err := r.Client.Create(ctx, data); err != nil {
+	if err := r.client.Create(ctx, data); err != nil {
 		return &applyResult{
 			Error:   xerrors.Errorf("failed to create resource: %w", err),
 			Reason:  ReasonCreateFailed,

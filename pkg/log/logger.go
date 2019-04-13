@@ -66,7 +66,7 @@ func New(conf *Config) FlushLogger {
 			return zapcore.NewSampler(core, time.Second, 100, 100)
 		}),
 		zap.AddStacktrace(zapcore.WarnLevel),
-		zap.AddCaller(),
+		zap.AddCallerSkip(1),
 		zap.ErrorOutput(sink),
 	)
 	logger := zapr.NewLogger(zapLogger)
