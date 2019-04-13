@@ -7,10 +7,9 @@ import (
 	"strconv"
 
 	"github.com/google/go-github/v24/github"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/hlog"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/k8s"
+	"github.com/tommy351/pullup/pkg/log"
 	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,11 +20,11 @@ import (
 )
 
 func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1alpha1.Webhook) error {
-	logger := hlog.FromRequest(r)
+	logger := log.FromContext(r.Context())
 	payload, err := parseGithubWebhook(r, hook.Spec.GitHub)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Invalid webhook")
+		logger.V(log.Warn).Info("Invalid webhook", log.FieldError, err)
 		return String(w, http.StatusBadRequest, "Invalid webhook")
 	}
 
@@ -76,22 +75,19 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 			}
 
 		case "closed":
-			err := s.Client.Delete(r.Context(), &v1alpha1.ResourceSet{
+			rs := &v1alpha1.ResourceSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: hook.Namespace,
 					Name:      name,
 				},
-			})
+			}
+			err := s.Client.Delete(r.Context(), rs)
 
 			if err != nil && !errors.IsNotFound(err) {
 				return xerrors.Errorf("failed to delete resource set %s: %w", name, err)
 			}
 
-			logger.Debug().
-				Dict("resourceSet", zerolog.Dict().
-					Str("name", name).
-					Str("namespace", hook.Namespace)).
-				Msg("Deleted resource set")
+			logger.V(log.Debug).Info("Deleted resource set", "resourceSet", rs)
 		}
 	}
 
@@ -99,14 +95,10 @@ func (s *Server) webhookGithub(w http.ResponseWriter, r *http.Request, hook *v1a
 }
 
 func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet) error {
-	logger := zerolog.Ctx(ctx).With().
-		Dict("resourceSet", zerolog.Dict().
-			Str("name", rs.Name).
-			Str("namespace", rs.Namespace)).
-		Logger()
+	logger := log.FromContext(ctx).WithValues("resourceSet", rs)
 
 	if err := s.Client.Create(ctx, rs); err == nil {
-		logger.Debug().Msg("Created resource set")
+		logger.V(log.Debug).Info("Created resource set")
 		return nil
 	} else if !errors.IsAlreadyExists(err) {
 		return xerrors.Errorf("failed to create resource set: %w", err)
@@ -128,7 +120,7 @@ func (s *Server) applyResourceSet(ctx context.Context, rs *v1alpha1.ResourceSet)
 		return xerrors.Errorf("failed to patch resource set: %w", err)
 	}
 
-	logger.Debug().Msg("Updated resource set")
+	logger.V(log.Debug).Info("Updated resource set")
 	return nil
 }
 

@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/rs/zerolog"
+	"github.com/go-logr/logr"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/k8s"
+	"github.com/tommy351/pullup/pkg/log"
 	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,21 +16,19 @@ import (
 
 type WebhookReconciler struct {
 	Client client.Client
-	Logger zerolog.Logger
+	Logger logr.Logger
 }
 
 func (w *WebhookReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	var hook v1alpha1.Webhook
-	logger := w.Logger.With().
-		Dict("webhook", zerolog.Dict().
-			Str("namespace", req.Namespace).
-			Str("name", req.Name)).
-		Logger()
-	ctx := logger.WithContext(context.Background())
+	hook := new(v1alpha1.Webhook)
+	ctx := context.Background()
 
-	if err := w.Client.Get(ctx, req.NamespacedName, &hook); err != nil {
+	if err := w.Client.Get(ctx, req.NamespacedName, hook); err != nil {
 		return reconcile.Result{}, xerrors.Errorf("failed to get webhook: %w", err)
 	}
+
+	logger := w.Logger.WithValues("webhook", hook)
+	ctx = log.NewContext(ctx, logger)
 
 	var list v1alpha1.ResourceSetList
 	err := w.Client.List(ctx, &list, client.MatchingLabels(map[string]string{
@@ -42,7 +41,7 @@ func (w *WebhookReconciler) Reconcile(req reconcile.Request) (reconcile.Result, 
 
 	for _, set := range list.Items {
 		set := set
-		if err := w.patchResourceSet(ctx, &hook, &set); err != nil {
+		if err := w.patchResourceSet(ctx, hook, &set); err != nil {
 			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to patch resource set: %w", err)
 		}
 	}
@@ -51,11 +50,7 @@ func (w *WebhookReconciler) Reconcile(req reconcile.Request) (reconcile.Result, 
 }
 
 func (w *WebhookReconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) error {
-	logger := zerolog.Ctx(ctx).With().
-		Dict("resourceSet", zerolog.Dict().
-			Str("name", set.Name).
-			Str("namespace", set.Namespace)).
-		Logger()
+	logger := log.FromContext(ctx).WithValues("resourceSet", set)
 
 	patch, err := json.Marshal([]k8s.JSONPatch{
 		{
@@ -73,6 +68,6 @@ func (w *WebhookReconciler) patchResourceSet(ctx context.Context, webhook *v1alp
 		return xerrors.Errorf("failed to patch the resource set: %w", err)
 	}
 
-	logger.Debug().Msg("Patched resource set")
+	logger.V(log.Debug).Info("Patched resource set")
 	return nil
 }

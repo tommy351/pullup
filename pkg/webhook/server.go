@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/dimfeld/httptreemux"
+	"github.com/go-logr/logr"
 	"github.com/justinas/alice"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/hlog"
+	"github.com/tommy351/pullup/pkg/log"
+	"github.com/tommy351/pullup/pkg/middleware"
 	"golang.org/x/xerrors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -21,25 +22,25 @@ type Server struct {
 	Config    Config
 	Client    client.Client
 	Namespace string
-	Logger    zerolog.Logger
+	Logger    logr.Logger
 }
 
 func (s *Server) Start(done <-chan struct{}) (err error) {
 	chain := alice.New(
-		hlog.NewHandler(s.Logger),
-		hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+		middleware.SetLogger(s.Logger),
+		middleware.RequestLog(func(r *http.Request, status, size int, duration time.Duration) {
 			if r.RequestURI != "/" {
-				hlog.FromRequest(r).Debug().
-					Int("status", status).
-					Int("size", size).
-					Dur("duration", duration).
-					Msg("")
+				log.FromContext(r.Context()).V(log.Debug).Info("",
+					"requestMethod", r.Method,
+					"requestUrl", r.RequestURI,
+					"remoteAddr", r.RemoteAddr,
+					"userAgent", r.UserAgent(),
+					"responseStatus", status,
+					"responseSize", size,
+					"duration", duration,
+				)
 			}
 		}),
-		hlog.MethodHandler("method"),
-		hlog.URLHandler("url"),
-		hlog.RemoteAddrHandler("remoteIp"),
-		hlog.UserAgentHandler("userAgent"),
 	)
 
 	httpServer := http.Server{
@@ -48,7 +49,7 @@ func (s *Server) Start(done <-chan struct{}) (err error) {
 	}
 
 	go func() {
-		s.Logger.Info().Str("address", httpServer.Addr).Msg("Starting webhook server")
+		s.Logger.Info("Starting webhook server", "address", httpServer.Addr)
 		err = httpServer.ListenAndServe()
 	}()
 
@@ -58,7 +59,7 @@ func (s *Server) Start(done <-chan struct{}) (err error) {
 		return
 	}
 
-	s.Logger.Info().Msg("Shutting down webhook server")
+	s.Logger.Info("Shutting down webhook server")
 	return httpServer.Shutdown(context.Background())
 }
 
@@ -66,9 +67,10 @@ func (s *Server) newRouter() *httptreemux.ContextMux {
 	mux := httptreemux.NewContextMux()
 
 	mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
-		hlog.FromRequest(r).Error().Stack().
-			Err(xerrors.Errorf("http handler panicked: %w", err)).
-			Msg("HTTP handler panicked")
+		log.FromContext(r.Context()).Error(
+			xerrors.Errorf("http handler panicked: %w", err),
+			"HTTP handler panicked",
+		)
 
 		_ = String(w, http.StatusInternalServerError, "Internal server error")
 	}

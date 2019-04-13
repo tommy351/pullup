@@ -17,16 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-type Config struct {
-	Log        log.Config     `mapstructure:"log"`
-	Kubernetes k8s.Config     `mapstructure:"kubernetes"`
-	Webhook    webhook.Config `mapstructure:"webhook"`
-}
 
 // nolint: gochecknoglobals
 var (
@@ -34,6 +28,12 @@ var (
 	commit  = "none"
 	date    = "unknown"
 )
+
+type Config struct {
+	Log        log.Config     `mapstructure:"log"`
+	Kubernetes k8s.Config     `mapstructure:"kubernetes"`
+	Webhook    webhook.Config `mapstructure:"webhook"`
+}
 
 func loadConfig() *Config {
 	var config Config
@@ -72,6 +72,8 @@ func newController(name string, mgr manager.Manager, kind runtime.Object, reconc
 func run(_ *cobra.Command, _ []string) error {
 	conf := loadConfig()
 	logger := log.New(&conf.Log)
+	defer logger.Flush()
+
 	kubeConf, err := k8s.LoadConfig(&conf.Kubernetes)
 
 	if err != nil {
@@ -92,9 +94,11 @@ func run(_ *cobra.Command, _ []string) error {
 		return xerrors.Errorf("failed to register scheme: %w", err)
 	}
 
+	ctrlLogger := logger.WithName("controller")
+
 	err = newController("Webhook", mgr, &v1alpha1.Webhook{}, &event.WebhookReconciler{
 		Client: mgr.GetClient(),
-		Logger: logger,
+		Logger: ctrlLogger.WithName("webhook"),
 	})
 
 	if err != nil {
@@ -103,7 +107,7 @@ func run(_ *cobra.Command, _ []string) error {
 
 	err = newController("ResourceSet", mgr, &v1alpha1.ResourceSet{}, &event.ResourceSetReconciler{
 		Client: mgr.GetClient(),
-		Logger: logger,
+		Logger: ctrlLogger.WithName("resourceset"),
 	})
 
 	if err != nil {
@@ -114,7 +118,7 @@ func run(_ *cobra.Command, _ []string) error {
 		Config:    conf.Webhook,
 		Client:    mgr.GetClient(),
 		Namespace: conf.Kubernetes.Namespace,
-		Logger:    logger,
+		Logger:    logger.WithName("webhook-server"),
 	})
 
 	if err != nil {
@@ -141,9 +145,6 @@ func newCommand() *cobra.Command {
 	f.String("log-level", "", "log level")
 	_ = viper.BindPFlag("log.level", f.Lookup("log-level"))
 	viper.SetDefault("log.level", "info")
-
-	f.String("log-format", "", "log format")
-	_ = viper.BindPFlag("log.format", f.Lookup("log-format"))
 
 	f.String("namespace", "", "kubernetes namespace")
 	_ = viper.BindPFlag("kubernetes.namespace", f.Lookup("namespace"))

@@ -7,8 +7,9 @@ import (
 	"html/template"
 
 	"github.com/Masterminds/sprig"
-	"github.com/rs/zerolog"
+	"github.com/go-logr/logr"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/log"
 	"github.com/tommy351/pullup/pkg/reducer"
 	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,24 +22,22 @@ import (
 
 type ResourceSetReconciler struct {
 	Client client.Client
-	Logger zerolog.Logger
+	Logger logr.Logger
 }
 
 func (r *ResourceSetReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	var set v1alpha1.ResourceSet
-	logger := r.Logger.With().
-		Dict("resourceSet", zerolog.Dict().
-			Str("namespace", req.Namespace).
-			Str("name", req.Name)).
-		Logger()
-	ctx := logger.WithContext(context.Background())
+	set := new(v1alpha1.ResourceSet)
+	ctx := context.Background()
 
-	if err := r.Client.Get(ctx, req.NamespacedName, &set); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, set); err != nil {
 		return reconcile.Result{}, xerrors.Errorf("failed to get resource set: %w", err)
 	}
 
+	logger := r.Logger.WithValues("resourceSet", set)
+	ctx = log.NewContext(ctx, logger)
+
 	for _, res := range set.Spec.Resources {
-		if err := r.applyResource(ctx, &set, res); err != nil {
+		if err := r.applyResource(ctx, set, res); err != nil {
 			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to apply resource: %w", err)
 		}
 	}
@@ -59,25 +58,19 @@ func (r *ResourceSetReconciler) getUnstructured(ctx context.Context, gvk schema.
 }
 
 func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, raw json.RawMessage) error {
-	logger := zerolog.Ctx(ctx).With().Logger()
+	logger := log.FromContext(ctx)
 	var obj unstructured.Unstructured
 
 	if err := json.Unmarshal(raw, &obj); err != nil {
-		logger.Warn().Err(err).Msg("Failed to unmarshal resource")
+		logger.V(log.Warn).Info("Failed to unmarshal resource", log.FieldError, err) //.Err(err).Msg("Failed to unmarshal resource")
 		return nil
 	}
 
-	logger = logger.With().
-		Dict("resource", zerolog.Dict().
-			Str("apiVersion", obj.GetAPIVersion()).
-			Str("kind", obj.GetKind()).
-			Str("name", obj.GetName())).
-		Logger()
-
+	logger = logger.WithValues("resource", raw)
 	gv, err := schema.ParseGroupVersion(obj.GetAPIVersion())
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Invalid API version")
+		logger.V(log.Warn).Info("Invalid API version", log.FieldError, err)
 		return nil
 	}
 
@@ -151,7 +144,7 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to render object")
+		logger.V(log.Warn).Info("Failed to render object", log.FieldError, err)
 		return nil
 	}
 
@@ -179,11 +172,11 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 	patch, err := reducer.Pipe(nil, reducers...)
 
 	if err != nil {
-		logger.Warn().Err(err).Msg("Failed to reduce patches")
+		logger.V(log.Warn).Info("Failed to reduce patches", log.FieldError, err)
 		return nil
 	}
 
-	logger.Debug().Interface("patch", patch).Msg("Ready to patch the resource")
+	logger.V(log.Debug).Info("Ready to patch the resource", "patch", patch)
 
 	data := &unstructured.Unstructured{
 		Object: patch.(map[string]interface{}),
@@ -194,7 +187,7 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 			return xerrors.Errorf("failed to update resource: %w", err)
 		}
 
-		logger.Debug().Msg("Updated resource")
+		logger.V(log.Debug).Info("Updated resource")
 		return nil
 	}
 
@@ -202,7 +195,7 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 		return xerrors.Errorf("failed to create resource: %w", err)
 	}
 
-	logger.Debug().Msg("Created resource")
+	logger.V(log.Debug).Info("Created resource")
 	return nil
 }
 

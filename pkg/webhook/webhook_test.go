@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/rs/zerolog"
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/k8s"
@@ -22,6 +21,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = Describe("Server.Webhook", func() {
@@ -49,7 +49,7 @@ var _ = Describe("Server.Webhook", func() {
 		server := &Server{
 			Namespace: "default",
 			Client:    kubeClient,
-			Logger:    zerolog.Nop(),
+			Logger:    log.NullLogger{},
 		}
 		router := server.newRouter()
 		router.PanicHandler = nil
