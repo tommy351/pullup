@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"html/template"
 
 	"github.com/Masterminds/sprig"
@@ -260,7 +261,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		logger.V(log.Debug).Info("Updated resource")
 		return &applyResult{
 			Reason:  ReasonUpdated,
-			Message: "Updated resource",
+			Message: "Updated resource " + getResourceName(obj),
 		}
 	}
 
@@ -276,8 +277,12 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	return &applyResult{
 		Reason:  ReasonCreated,
-		Message: "Created resource",
+		Message: "Created resource " + getResourceName(obj),
 	}
+}
+
+func getResourceName(obj *unstructured.Unstructured) string {
+	return fmt.Sprintf("%s %s: %q", obj.GetAPIVersion(), obj.GetKind(), obj.GetName())
 }
 
 func newTemplateReducer(data interface{}) reducer.Interface {
