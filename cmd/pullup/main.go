@@ -8,7 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"github.com/tommy351/pullup/pkg/event"
+	"github.com/tommy351/pullup/pkg/controller/resourceset"
+	webhookctrl "github.com/tommy351/pullup/pkg/controller/webhook"
 	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/log"
 	"github.com/tommy351/pullup/pkg/webhook"
@@ -95,8 +96,9 @@ func run(_ *cobra.Command, _ []string) error {
 	}
 
 	ctrlLogger := logger.WithName("controller")
+	eventRecorder := mgr.GetEventRecorderFor("pullup")
 
-	err = newController("Webhook", mgr, &v1alpha1.Webhook{}, &event.WebhookReconciler{
+	err = newController("Webhook", mgr, &v1alpha1.Webhook{}, &webhookctrl.Reconciler{
 		Client: mgr.GetClient(),
 		Logger: ctrlLogger.WithName("webhook"),
 	})
@@ -105,9 +107,10 @@ func run(_ *cobra.Command, _ []string) error {
 		return xerrors.Errorf("failed to create a webhook controller: %w", err)
 	}
 
-	err = newController("ResourceSet", mgr, &v1alpha1.ResourceSet{}, &event.ResourceSetReconciler{
-		Client: mgr.GetClient(),
-		Logger: ctrlLogger.WithName("resourceset"),
+	err = newController("ResourceSet", mgr, &v1alpha1.ResourceSet{}, &resourceset.Reconciler{
+		Client:        mgr.GetClient(),
+		Logger:        ctrlLogger.WithName("resourceset"),
+		EventRecorder: eventRecorder,
 	})
 
 	if err != nil {

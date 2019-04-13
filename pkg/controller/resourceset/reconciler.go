@@ -1,4 +1,4 @@
-package event
+package resourceset
 
 import (
 	"bytes"
@@ -12,20 +12,35 @@ import (
 	"github.com/tommy351/pullup/pkg/log"
 	"github.com/tommy351/pullup/pkg/reducer"
 	"golang.org/x/xerrors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type ResourceSetReconciler struct {
-	Client client.Client
-	Logger logr.Logger
+const (
+	ReasonUpdated         = "Updated"
+	ReasonUpdateFailed    = "UpdateFailed"
+	ReasonCreated         = "Created"
+	ReasonCreateFailed    = "CreateFailed"
+	ReasonFailed          = "Failed"
+	ReasonInvalidResource = "InvalidResource"
+	ReasonResourceExists  = "ResourceExists"
+)
+
+type Reconciler struct {
+	Client        client.Client
+	Logger        logr.Logger
+	EventRecorder record.EventRecorder
 }
 
-func (r *ResourceSetReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	set := new(v1alpha1.ResourceSet)
 	ctx := context.Background()
 
@@ -36,16 +51,28 @@ func (r *ResourceSetReconciler) Reconcile(req reconcile.Request) (reconcile.Resu
 	logger := r.Logger.WithValues("resourceSet", set)
 	ctx = log.NewContext(ctx, logger)
 
-	for _, res := range set.Spec.Resources {
-		if err := r.applyResource(ctx, set, res); err != nil {
-			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to apply resource: %w", err)
+	for i, res := range set.Spec.Resources {
+		var obj unstructured.Unstructured
+
+		if err := json.Unmarshal(res, &obj); err != nil {
+			r.EventRecorder.Eventf(set, corev1.EventTypeWarning, ReasonInvalidResource, "Failed to unmarshal resource %d", i)
+			return reconcile.Result{}, xerrors.Errorf("failed to unmarshal resource %d: %w", i, err)
+		}
+
+		logger := log.FromContext(ctx).WithValues("resource", obj)
+		result := r.applyResource(log.NewContext(ctx, logger), set, &obj)
+		result.record(r.EventRecorder, set, &obj)
+
+		if err := result.Error; err != nil {
+			logger.Error(err, "Failed to apply resource")
+			return reconcile.Result{Requeue: result.Requeue}, err
 		}
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r *ResourceSetReconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (*unstructured.Unstructured, error) {
+func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (*unstructured.Unstructured, error) {
 	obj := new(unstructured.Unstructured)
 	obj.SetGroupVersionKind(gvk)
 	err := r.Client.Get(ctx, key, obj)
@@ -57,21 +84,41 @@ func (r *ResourceSetReconciler) getUnstructured(ctx context.Context, gvk schema.
 	return obj, nil
 }
 
-func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, raw json.RawMessage) error {
-	logger := log.FromContext(ctx)
-	var obj unstructured.Unstructured
+type applyResult struct {
+	Error   error
+	Reason  string
+	Message string
+	Requeue bool
+}
 
-	if err := json.Unmarshal(raw, &obj); err != nil {
-		logger.V(log.Warn).Info("Failed to unmarshal resource", log.FieldError, err) //.Err(err).Msg("Failed to unmarshal resource")
-		return nil
+func (a applyResult) record(recorder record.EventRecorder, obj runtime.Object, data *unstructured.Unstructured) {
+	eventType := corev1.EventTypeNormal
+	msg := a.Message
+
+	if err := a.Error; err != nil {
+		eventType = corev1.EventTypeWarning
+
+		if msg == "" {
+			msg = err.Error()
+		}
 	}
 
-	logger = logger.WithValues("resource", raw)
+	recorder.AnnotatedEventf(obj, map[string]string{
+		"apiVersion": data.GetAPIVersion(),
+		"kind":       data.GetKind(),
+		"name":       data.GetName(),
+	}, eventType, a.Reason, msg)
+}
+
+func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, obj *unstructured.Unstructured) *applyResult {
+	logger := log.FromContext(ctx)
 	gv, err := schema.ParseGroupVersion(obj.GetAPIVersion())
 
 	if err != nil {
-		logger.V(log.Warn).Info("Invalid API version", log.FieldError, err)
-		return nil
+		return &applyResult{
+			Error:  xerrors.Errorf("invalid API version: %w", err),
+			Reason: ReasonInvalidResource,
+		}
 	}
 
 	gvk := schema.GroupVersionKind{
@@ -86,7 +133,11 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 	})
 
 	if err != nil && !errors.IsNotFound(err) {
-		return xerrors.Errorf("failed to get original resource: %w", err)
+		return &applyResult{
+			Error:   xerrors.Errorf("failed to get original resource: %w", err),
+			Reason:  ReasonFailed,
+			Requeue: true,
+		}
 	}
 
 	applied, err := r.getUnstructured(ctx, gvk, types.NamespacedName{
@@ -95,7 +146,18 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 	})
 
 	if err != nil && !errors.IsNotFound(err) {
-		return xerrors.Errorf("failed to get applied resource: %w", err)
+		return &applyResult{
+			Error:   xerrors.Errorf("failed to get last applied resource: %w", err),
+			Reason:  ReasonFailed,
+			Requeue: true,
+		}
+	}
+
+	if !metav1.IsControlledBy(applied, set) {
+		return &applyResult{
+			Error:  xerrors.New("resource already exists and is not managed by pullup"),
+			Reason: ReasonResourceExists,
+		}
 	}
 
 	var reducers []reducer.Interface
@@ -144,8 +206,10 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
 
 	if err != nil {
-		logger.V(log.Warn).Info("Failed to render object", log.FieldError, err)
-		return nil
+		return &applyResult{
+			Error:  xerrors.Errorf("failed to render template: %w", err),
+			Reason: ReasonInvalidResource,
+		}
 	}
 
 	reducers = append(
@@ -172,8 +236,10 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 	patch, err := reducer.Pipe(nil, reducers...)
 
 	if err != nil {
-		logger.V(log.Warn).Info("Failed to reduce patches", log.FieldError, err)
-		return nil
+		return &applyResult{
+			Error:  xerrors.Errorf("failed to reduce patches: %w", err),
+			Reason: ReasonInvalidResource,
+		}
 	}
 
 	logger.V(log.Debug).Info("Ready to patch the resource", "patch", patch)
@@ -184,19 +250,34 @@ func (r *ResourceSetReconciler) applyResource(ctx context.Context, set *v1alpha1
 
 	if applied != nil {
 		if err := r.Client.Update(ctx, data); err != nil {
-			return xerrors.Errorf("failed to update resource: %w", err)
+			return &applyResult{
+				Error:   xerrors.Errorf("failed to update resource: %w", err),
+				Reason:  ReasonUpdateFailed,
+				Requeue: true,
+			}
 		}
 
 		logger.V(log.Debug).Info("Updated resource")
-		return nil
+		return &applyResult{
+			Reason:  ReasonUpdated,
+			Message: "Updated resource",
+		}
 	}
 
 	if err := r.Client.Create(ctx, data); err != nil {
-		return xerrors.Errorf("failed to create resource: %w", err)
+		return &applyResult{
+			Error:   xerrors.Errorf("failed to create resource: %w", err),
+			Reason:  ReasonCreateFailed,
+			Requeue: true,
+		}
 	}
 
 	logger.V(log.Debug).Info("Created resource")
-	return nil
+
+	return &applyResult{
+		Reason:  ReasonCreated,
+		Message: "Created resource",
+	}
 }
 
 func newTemplateReducer(data interface{}) reducer.Interface {

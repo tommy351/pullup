@@ -1,4 +1,4 @@
-package event
+package webhook
 
 import (
 	"context"
@@ -14,24 +14,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type WebhookReconciler struct {
+type Reconciler struct {
 	Client client.Client
 	Logger logr.Logger
 }
 
-func (w *WebhookReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	hook := new(v1alpha1.Webhook)
 	ctx := context.Background()
 
-	if err := w.Client.Get(ctx, req.NamespacedName, hook); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, hook); err != nil {
 		return reconcile.Result{}, xerrors.Errorf("failed to get webhook: %w", err)
 	}
 
-	logger := w.Logger.WithValues("webhook", hook)
+	logger := r.Logger.WithValues("webhook", hook)
 	ctx = log.NewContext(ctx, logger)
 
 	var list v1alpha1.ResourceSetList
-	err := w.Client.List(ctx, &list, client.MatchingLabels(map[string]string{
+	err := r.Client.List(ctx, &list, client.MatchingLabels(map[string]string{
 		k8s.LabelWebhookName: hook.Name,
 	}))
 
@@ -41,7 +41,7 @@ func (w *WebhookReconciler) Reconcile(req reconcile.Request) (reconcile.Result, 
 
 	for _, set := range list.Items {
 		set := set
-		if err := w.patchResourceSet(ctx, hook, &set); err != nil {
+		if err := r.patchResourceSet(ctx, hook, &set); err != nil {
 			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to patch resource set: %w", err)
 		}
 	}
@@ -49,7 +49,7 @@ func (w *WebhookReconciler) Reconcile(req reconcile.Request) (reconcile.Result, 
 	return reconcile.Result{}, nil
 }
 
-func (w *WebhookReconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) error {
+func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) error {
 	logger := log.FromContext(ctx).WithValues("resourceSet", set)
 
 	patch, err := json.Marshal([]k8s.JSONPatch{
@@ -64,7 +64,7 @@ func (w *WebhookReconciler) patchResourceSet(ctx context.Context, webhook *v1alp
 		return xerrors.Errorf("failed to marshal json patch: %w", err)
 	}
 
-	if err := w.Client.Patch(ctx, set, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
+	if err := r.Client.Patch(ctx, set, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
 		return xerrors.Errorf("failed to patch the resource set: %w", err)
 	}
 
