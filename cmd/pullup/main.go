@@ -15,6 +15,7 @@ import (
 	"github.com/tommy351/pullup/pkg/log"
 	"github.com/tommy351/pullup/pkg/webhook"
 	"golang.org/x/xerrors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -157,7 +158,7 @@ func newCommand() *cobra.Command {
 
 	f.String("namespace", "", "kubernetes namespace")
 	_ = viper.BindPFlag("kubernetes.namespace", f.Lookup("namespace"))
-	viper.SetDefault("kubernetes.namespace", "default")
+	viper.SetDefault("kubernetes.namespace", metav1.NamespaceDefault)
 
 	f.String("kubeconfig", "", "kubernetes config path")
 	_ = viper.BindPFlag("kubernetes.config", f.Lookup("kubeconfig"))
