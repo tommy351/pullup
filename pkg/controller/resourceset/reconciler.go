@@ -230,7 +230,8 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		// Set the name and owner references
 		reducer.Merge{Source: map[string]interface{}{
 			"metadata": map[string]interface{}{
-				"name": set.Name,
+				"name":      set.Name,
+				"namespace": set.Namespace,
 				"ownerReferences": []interface{}{
 					map[string]interface{}{
 						"apiVersion":         set.APIVersion,
