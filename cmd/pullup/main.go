@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/controller/builder"
 	"github.com/tommy351/pullup/pkg/controller/resourceset"
 	webhookctrl "github.com/tommy351/pullup/pkg/controller/webhook"
 	"github.com/tommy351/pullup/pkg/k8s"
@@ -17,13 +17,9 @@ import (
 	"golang.org/x/xerrors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // nolint: gochecknoglobals
@@ -55,30 +51,6 @@ func bindEnv(key, env string) {
 	}
 }
 
-func newController(name string, mgr manager.Manager, logger logr.Logger, kind runtime.Object, reconciler reconcile.Reconciler) error {
-	ctrl, err := controller.New(name, mgr, controller.Options{
-		Reconciler: reconciler,
-	})
-
-	if err != nil {
-		return xerrors.Errorf("failed to create a controller: %w", err)
-	}
-
-	logger = logger.WithName("controller").WithName(name)
-
-	if _, err := inject.LoggerInto(logger, reconciler); err != nil {
-		return xerrors.Errorf("failed to inject logger into reconciler: %w", err)
-	}
-
-	err = ctrl.Watch(&source.Kind{Type: kind}, &handler.EnqueueRequestForObject{})
-
-	if err != nil {
-		return xerrors.Errorf("failed to watch resource: %w", err)
-	}
-
-	return nil
-}
-
 func run(_ *cobra.Command, _ []string) error {
 	conf := loadConfig()
 	logger := log.New(&conf.Log)
@@ -104,17 +76,24 @@ func run(_ *cobra.Command, _ []string) error {
 		return xerrors.Errorf("failed to register scheme: %w", err)
 	}
 
-	eventRecorder := mgr.GetEventRecorderFor("pullup")
+	ctrlLogger := logger.WithName("controller")
 
-	err = newController("webhook", mgr, logger, &v1alpha1.Webhook{}, &webhookctrl.Reconciler{})
+	err = builder.New(mgr).
+		WithLogger(ctrlLogger.WithName("webhook")).
+		For(&v1alpha1.Webhook{}).
+		Owns(&v1alpha1.ResourceSet{}).
+		Complete(&webhookctrl.Reconciler{})
 
 	if err != nil {
 		return xerrors.Errorf("failed to create a webhook controller: %w", err)
 	}
 
-	err = newController("resource-set", mgr, logger, &v1alpha1.ResourceSet{}, &resourceset.Reconciler{
-		EventRecorder: eventRecorder,
-	})
+	err = builder.New(mgr).
+		WithLogger(ctrlLogger.WithName("resourceset")).
+		For(&v1alpha1.ResourceSet{}).
+		Complete(&resourceset.Reconciler{
+			EventRecorder: mgr.GetEventRecorderFor("pullup"),
+		})
 
 	if err != nil {
 		return xerrors.Errorf("failed to create a resource set controller: %w", err)
