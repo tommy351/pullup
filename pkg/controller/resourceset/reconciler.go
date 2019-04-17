@@ -165,7 +165,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		}
 	}
 
-	if !metav1.IsControlledBy(applied, set) {
+	if applied != nil && !metav1.IsControlledBy(applied, set) {
 		return &applyResult{
 			Error:  xerrors.New("resource already exists and is not managed by pullup"),
 			Reason: ReasonResourceExists,
