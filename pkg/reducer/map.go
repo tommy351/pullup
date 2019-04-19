@@ -1,19 +1,53 @@
 package reducer
 
-import "golang.org/x/xerrors"
+import (
+	"reflect"
 
-type Map struct {
-	Func func(value, key, collection interface{}) (interface{}, error)
-}
+	"golang.org/x/xerrors"
+)
 
-func (m Map) Reduce(input interface{}) (interface{}, error) {
-	return reduce(input, func(e *element) (*element, error) {
-		v, err := m.Func(e.value, e.key, input)
+var ErrNotArrayOrMap = xerrors.New("expected an array or a map")
 
-		if err != nil {
-			return nil, xerrors.Errorf("map error: %w", err)
+type MapFunc func(interface{}) (interface{}, error)
+
+func MapValue(fn MapFunc) Interface {
+	return Func(func(input interface{}) (interface{}, error) {
+		iv := reflect.ValueOf(input)
+
+		switch iv.Kind() {
+		case reflect.Array, reflect.Slice:
+			output := reflect.MakeSlice(iv.Type(), iv.Cap(), iv.Len())
+
+			for i := 0; i < iv.Len(); i++ {
+				newValue, err := fn(iv.Index(i).Interface())
+
+				if err != nil {
+					return nil, xerrors.Errorf("map error at index %d: %w", i, err)
+				}
+
+				output.Index(i).Set(reflect.ValueOf(newValue))
+			}
+
+			return output.Interface(), nil
+
+		case reflect.Map:
+			output := reflect.MakeMapWithSize(iv.Type(), iv.Len())
+			iter := iv.MapRange()
+
+			for iter.Next() {
+				newValue, err := fn(iter.Value().Interface())
+
+				if err != nil {
+					return nil, xerrors.Errorf("map error at key %v: %w", iter.Key().Interface(), err)
+				}
+
+				output.SetMapIndex(iter.Key(), reflect.ValueOf(newValue))
+			}
+
+			return output.Interface(), nil
+
+		default:
+			return nil, ErrNotArrayOrMap
 		}
-
-		return &element{key: e.key, value: v}, nil
 	})
 }

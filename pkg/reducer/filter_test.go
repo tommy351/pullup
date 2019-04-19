@@ -6,15 +6,15 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var _ = Describe("Filter", func() {
+var _ = Describe("FilterKey", func() {
 	var (
 		input, output interface{}
-		filter        Filter
+		reducer       Interface
 		err           error
 	)
 
 	JustBeforeEach(func() {
-		output, err = filter.Reduce(input)
+		output, err = reducer.Reduce(input)
 	})
 
 	expectSuccess := func(expected interface{}) {
@@ -31,9 +31,9 @@ var _ = Describe("Filter", func() {
 		filterErr := xerrors.New("filter error")
 
 		BeforeEach(func() {
-			filter = Filter{Func: func(_, _, _ interface{}) (bool, error) {
+			reducer = FilterKey(func(_ interface{}) (bool, error) {
 				return false, filterErr
-			}}
+			})
 		})
 
 		It("should return nil", func() {
@@ -46,45 +46,25 @@ var _ = Describe("Filter", func() {
 		})
 	}
 
-	When("type = array", func() {
-		BeforeEach(func() {
-			input = []string{"abc", "def", "ghi"}
-		})
-
-		When("success", func() {
-			BeforeEach(func() {
-				filter = Filter{Func: func(_, key, _ interface{}) (bool, error) {
-					return key.(int)%2 == 0, nil
-				}}
-			})
-
-			expectSuccess([]interface{}{"abc", "ghi"})
-		})
-
-		When("func returns an error", func() {
-			expectFuncError()
-		})
-	})
-
 	When("type = map", func() {
 		BeforeEach(func() {
 			input = map[string]int{
-				"ab": 1,
-				"bc": 2,
-				"ac": 3,
+				"a": 1,
+				"b": 2,
+				"c": 3,
 			}
 		})
 
-		When("success", func() {
+		When("Success", func() {
 			BeforeEach(func() {
-				filter = Filter{Func: func(value, _, _ interface{}) (bool, error) {
-					return value.(int)%2 != 0, nil
-				}}
+				reducer = FilterKey(func(value interface{}) (bool, error) {
+					return value.(string) != "b", nil
+				})
 			})
 
-			expectSuccess(map[string]interface{}{
-				"ab": 1,
-				"ac": 3,
+			expectSuccess(map[string]int{
+				"a": 1,
+				"c": 3,
 			})
 		})
 
@@ -94,19 +74,24 @@ var _ = Describe("Filter", func() {
 	})
 
 	When("other types", func() {
+		expectError := func() {
+			It("should return nil", func() {
+				Expect(output).To(BeNil())
+			})
+
+			It("should return an error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(xerrors.Is(err, ErrNotMap)).To(BeTrue())
+			})
+		}
+
 		BeforeEach(func() {
-			input = nil
-			filter = Filter{Func: func(value, _, _ interface{}) (bool, error) {
+			input = 5566
+			reducer = FilterKey(func(value interface{}) (bool, error) {
 				return true, nil
-			}}
+			})
 		})
 
-		It("should return nil", func() {
-			Expect(output).To(BeNil())
-		})
-
-		It("should return the error", func() {
-			Expect(err).To(HaveOccurred())
-		})
+		expectError()
 	})
 })

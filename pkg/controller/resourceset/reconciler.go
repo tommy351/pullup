@@ -172,47 +172,41 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		}
 	}
 
-	var reducers []reducer.Interface
+	var reducers reducer.Reducers
 
 	if original != nil {
 		reducers = append(
 			reducers,
-			reducer.Merge{Source: original.Object},
+			mergeResource(original.Object),
 			// Remove metadata and status from the original resource
-			reducer.Merge{Source: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"creationTimestamp": nil,
-					"resourceVersion":   nil,
-					"selfLink":          nil,
-					"uid":               nil,
-					"generation":        nil,
-					"annotations": map[string]interface{}{
-						"deployment.kubernetes.io/revision": nil,
-					},
-				},
-				"status": nil,
-			}},
+			reducer.DeleteNested([]string{"status"}),
+			reducer.ReduceNested([]string{"metadata"}, deleteKeys([]string{
+				"creationTimestamp",
+				"resourceVersion",
+				"selfLink",
+				"uid",
+				"generation",
+			})),
+			reducer.ReduceNested([]string{"metadata", "annotations"}, deleteKeys([]string{
+				"deployment.kubernetes.io/revision",
+				"kubectl.kubernetes.io/last-applied-configuration",
+			})),
 		)
 
 		// nolint: gocritic
 		switch gvk {
 		case schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"}:
 			// Remove cluster IP and nodePorts
-			reducers = append(reducers, reducer.Merge{Source: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"clusterIP": nil,
-					"ports": reducer.Map{Func: func(value, _, _ interface{}) (interface{}, error) {
-						return reducer.Pipe(value, reducer.Filter{Func: func(_, key, _ interface{}) (bool, error) {
-							return key != "nodePort", nil
-						}})
-					}},
-				},
-			}})
+			reducers = append(
+				reducers,
+				reducer.DeleteNested([]string{"spec", "clusterIP"}),
+				reducer.ReduceNested([]string{"spec", "ports"}, deleteKeys([]string{"nodePort"})),
+			)
 		}
 	}
 
 	if applied != nil {
-		reducers = append(reducers, reducer.Merge{Source: applied.Object})
+		reducers = append(reducers, mergeResource(applied.Object))
 	}
 
 	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
@@ -226,27 +220,23 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	reducers = append(
 		reducers,
-		reducer.Merge{Source: renderedObj},
+		mergeResource(renderedObj),
 		// Set the name and owner references
-		reducer.Merge{Source: map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"name":      set.Name,
-				"namespace": set.Namespace,
-				"ownerReferences": []interface{}{
-					map[string]interface{}{
-						"apiVersion":         set.APIVersion,
-						"kind":               set.Kind,
-						"name":               set.Name,
-						"uid":                set.UID,
-						"controller":         true,
-						"blockOwnerDeletion": true,
-					},
-				},
+		reducer.SetNested([]string{"metadata", "name"}, set.Name),
+		reducer.SetNested([]string{"metadata", "namespace"}, set.Namespace),
+		reducer.SetNested([]string{"metadata", "ownerReferences"}, []interface{}{
+			map[string]interface{}{
+				"apiVersion":         set.APIVersion,
+				"kind":               set.Kind,
+				"name":               set.Name,
+				"uid":                set.UID,
+				"controller":         true,
+				"blockOwnerDeletion": true,
 			},
-		}},
+		}),
 	)
 
-	patch, err := reducer.Pipe(nil, reducers...)
+	patch, err := reducers.Reduce(nil)
 
 	if err != nil {
 		return &applyResult{
@@ -298,37 +288,25 @@ func getResourceName(obj *unstructured.Unstructured) string {
 }
 
 func newTemplateReducer(data interface{}) reducer.Interface {
-	var mapper reducer.Map
+	return reducer.DeepMapValue(func(value interface{}) (interface{}, error) {
+		s, ok := value.(string)
 
-	mapper = reducer.Map{Func: func(value, key, _ interface{}) (interface{}, error) {
-		v, err := mapper.Reduce(value)
-
-		if err != nil {
-			if !xerrors.Is(err, reducer.ErrNotCollection) {
-				return nil, xerrors.Errorf("render error at key %v: %w", key, err)
-			}
-
-			if s, ok := value.(string); ok {
-				tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(s)
-
-				if err != nil {
-					return nil, xerrors.Errorf("failed to parse template: %w", err)
-				}
-
-				var buf bytes.Buffer
-
-				if err := tmpl.Execute(&buf, data); err != nil {
-					return nil, xerrors.Errorf("failed to execute template: %w", err)
-				}
-
-				return buf.String(), nil
-			}
-
+		if !ok {
 			return value, nil
 		}
 
-		return v, nil
-	}}
+		tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(s)
 
-	return mapper
+		if err != nil {
+			return nil, xerrors.Errorf("failed to parse template: %w", err)
+		}
+
+		var buf bytes.Buffer
+
+		if err := tmpl.Execute(&buf, data); err != nil {
+			return nil, xerrors.Errorf("failed to execute template: %w", err)
+		}
+
+		return buf.String(), nil
+	})
 }

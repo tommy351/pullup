@@ -1,22 +1,20 @@
 package reducer
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/xerrors"
 )
 
-var _ = Describe("Map", func() {
+var _ = Describe("MapValue", func() {
 	var (
 		input, output interface{}
-		mapper        Map
+		reducer       Interface
 		err           error
 	)
 
 	JustBeforeEach(func() {
-		output, err = mapper.Reduce(input)
+		output, err = reducer.Reduce(input)
 	})
 
 	expectSuccess := func(expected interface{}) {
@@ -33,9 +31,9 @@ var _ = Describe("Map", func() {
 		mapErr := xerrors.New("map error")
 
 		BeforeEach(func() {
-			mapper = Map{Func: func(_, _, _ interface{}) (interface{}, error) {
+			reducer = MapValue(func(_ interface{}) (interface{}, error) {
 				return nil, mapErr
-			}}
+			})
 		})
 
 		It("should return nil", func() {
@@ -50,17 +48,17 @@ var _ = Describe("Map", func() {
 
 	When("type = array", func() {
 		BeforeEach(func() {
-			input = []string{"abc", "def", "ghi"}
+			input = []int{1, 2, 3}
 		})
 
-		When("success", func() {
+		When("Success", func() {
 			BeforeEach(func() {
-				mapper = Map{Func: func(value, key, _ interface{}) (interface{}, error) {
-					return fmt.Sprintf("%v%v", key, value), nil
-				}}
+				reducer = MapValue(func(value interface{}) (interface{}, error) {
+					return value.(int) * 2, nil
+				})
 			})
 
-			expectSuccess([]interface{}{"0abc", "1def", "2ghi"})
+			expectSuccess([]int{2, 4, 6})
 		})
 
 		When("func returns an error", func() {
@@ -70,24 +68,24 @@ var _ = Describe("Map", func() {
 
 	When("type = map", func() {
 		BeforeEach(func() {
-			input = map[string]string{
-				"a": "bc",
-				"d": "ef",
-				"g": "hi",
+			input = map[string]int{
+				"a": 1,
+				"b": 2,
+				"c": 3,
 			}
 		})
 
 		When("Success", func() {
 			BeforeEach(func() {
-				mapper = Map{Func: func(value, key, _ interface{}) (interface{}, error) {
-					return fmt.Sprintf("%v%v", key, value), nil
-				}}
+				reducer = MapValue(func(value interface{}) (interface{}, error) {
+					return value.(int) * 2, nil
+				})
 			})
 
-			expectSuccess(map[string]interface{}{
-				"a": "abc",
-				"d": "def",
-				"g": "ghi",
+			expectSuccess(map[string]int{
+				"a": 2,
+				"b": 4,
+				"c": 6,
 			})
 		})
 
@@ -97,19 +95,24 @@ var _ = Describe("Map", func() {
 	})
 
 	When("other types", func() {
+		expectError := func() {
+			It("should return nil", func() {
+				Expect(output).To(BeNil())
+			})
+
+			It("should return an error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(xerrors.Is(err, ErrNotArrayOrMap)).To(BeTrue())
+			})
+		}
+
 		BeforeEach(func() {
-			input = nil
-			mapper = Map{Func: func(value, _, _ interface{}) (interface{}, error) {
+			input = 5566
+			reducer = MapValue(func(value interface{}) (interface{}, error) {
 				return value, nil
-			}}
+			})
 		})
 
-		It("should return nil", func() {
-			Expect(output).To(BeNil())
-		})
-
-		It("should return an error", func() {
-			Expect(xerrors.Is(err, ErrNotCollection)).To(BeTrue())
-		})
+		expectError()
 	})
 })

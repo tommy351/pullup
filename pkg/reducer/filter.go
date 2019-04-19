@@ -1,23 +1,37 @@
 package reducer
 
-import "golang.org/x/xerrors"
+import (
+	"reflect"
 
-type Filter struct {
-	Func func(value, key, collection interface{}) (bool, error)
-}
+	"golang.org/x/xerrors"
+)
 
-func (f Filter) Reduce(input interface{}) (interface{}, error) {
-	return reduce(input, func(e *element) (*element, error) {
-		ok, err := f.Func(e.value, e.key, input)
+type FilterFunc func(interface{}) (bool, error)
 
-		if err != nil {
-			return nil, xerrors.Errorf("filter error: %w", err)
+func FilterKey(fn FilterFunc) Interface {
+	return Func(func(input interface{}) (interface{}, error) {
+		iv := reflect.ValueOf(input)
+
+		if err := assertMapKind(iv); err != nil {
+			return nil, err
 		}
 
-		if !ok {
-			return nil, nil
+		output := reflect.MakeMap(iv.Type())
+		iter := iv.MapRange()
+
+		for iter.Next() {
+			key := iter.Key().Interface()
+			ok, err := fn(key)
+
+			if err != nil {
+				return nil, xerrors.Errorf("filter error at key %v: %w", key, err)
+			}
+
+			if ok {
+				output.SetMapIndex(iter.Key(), iter.Value())
+			}
 		}
 
-		return e, nil
+		return output.Interface(), nil
 	})
 }
