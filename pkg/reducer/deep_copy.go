@@ -9,7 +9,7 @@ func DeepCopy(input interface{}) interface{} {
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
-		output := reflect.MakeSlice(v.Type(), v.Cap(), v.Len())
+		output := reflect.MakeSlice(v.Type(), v.Len(), v.Cap())
 
 		for i := 0; i < v.Len(); i++ {
 			output.Index(i).Set(reflect.ValueOf(DeepCopy(v.Index(i).Interface())))

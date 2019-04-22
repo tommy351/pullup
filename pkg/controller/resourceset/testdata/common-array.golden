@@ -1,0 +1,19 @@
+# This is a golden file. DO NOT EDIT.
+storage.k8s.io/v1, Kind=StorageClass:
+  test/test-46:
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: test-46
+      namespace: test
+      ownerReferences:
+      - apiVersion: pullup.dev/v1alpha1
+        blockOwnerDeletion: true
+        controller: true
+        kind: ResourceSet
+        name: test-46
+        uid: c37ee64f-5c69-4c53-8585-adc137d0acca
+    mountOptions:
+    - a3
+    - b3
+    - c

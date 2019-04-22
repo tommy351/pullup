@@ -1,13 +1,10 @@
 package resourceset
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 
-	"github.com/Masterminds/sprig"
 	"github.com/go-logr/logr"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/log"
@@ -139,6 +136,15 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		Kind:    obj.GetKind(),
 	}
 
+	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
+
+	if err != nil {
+		return &applyResult{
+			Error:  xerrors.Errorf("failed to render template: %w", err),
+			Reason: ReasonInvalidResource,
+		}
+	}
+
 	original, err := r.getUnstructured(ctx, gvk, types.NamespacedName{
 		Namespace: set.Namespace,
 		Name:      obj.GetName(),
@@ -167,7 +173,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	if applied != nil && !metav1.IsControlledBy(applied, set) {
 		return &applyResult{
-			Error:  xerrors.New("resource already exists and is not managed by pullup"),
+			Error:  xerrors.Errorf("resource already exists and is not managed by pullup: %s", getResourceName(applied)),
 			Reason: ReasonResourceExists,
 		}
 	}
@@ -200,22 +206,13 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 			reducers = append(
 				reducers,
 				reducer.DeleteNested([]string{"spec", "clusterIP"}),
-				reducer.ReduceNested([]string{"spec", "ports"}, deleteKeys([]string{"nodePort"})),
+				reducer.ReduceNested([]string{"spec", "ports"}, reducer.MapReduceValue(deleteKeys([]string{"nodePort"}))),
 			)
 		}
 	}
 
 	if applied != nil {
 		reducers = append(reducers, mergeResource(applied.Object))
-	}
-
-	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
-
-	if err != nil {
-		return &applyResult{
-			Error:  xerrors.Errorf("failed to render template: %w", err),
-			Reason: ReasonInvalidResource,
-		}
 	}
 
 	reducers = append(
@@ -234,6 +231,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 				"blockOwnerDeletion": true,
 			},
 		}),
+		reducer.DeepMapValue(normalizeValue),
 	)
 
 	patch, err := reducers.Reduce(nil)
@@ -263,7 +261,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		logger.V(log.Debug).Info("Updated resource")
 		return &applyResult{
 			Reason:  ReasonUpdated,
-			Message: "Updated resource " + getResourceName(obj),
+			Message: "Updated resource " + getResourceName(data),
 		}
 	}
 
@@ -279,34 +277,10 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	return &applyResult{
 		Reason:  ReasonCreated,
-		Message: "Created resource " + getResourceName(obj),
+		Message: "Created resource " + getResourceName(data),
 	}
 }
 
 func getResourceName(obj *unstructured.Unstructured) string {
 	return fmt.Sprintf("%s %s: %q", obj.GetAPIVersion(), obj.GetKind(), obj.GetName())
-}
-
-func newTemplateReducer(data interface{}) reducer.Interface {
-	return reducer.DeepMapValue(func(value interface{}) (interface{}, error) {
-		s, ok := value.(string)
-
-		if !ok {
-			return value, nil
-		}
-
-		tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(s)
-
-		if err != nil {
-			return nil, xerrors.Errorf("failed to parse template: %w", err)
-		}
-
-		var buf bytes.Buffer
-
-		if err := tmpl.Execute(&buf, data); err != nil {
-			return nil, xerrors.Errorf("failed to execute template: %w", err)
-		}
-
-		return buf.String(), nil
-	})
 }

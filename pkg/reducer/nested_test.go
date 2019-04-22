@@ -50,6 +50,29 @@ var _ = Describe("ReduceNested", func() {
 			})
 		})
 
+		When("key does not exist", func() {
+			BeforeEach(func() {
+				reducer = ReduceNested([]string{"a", "b", "d"}, Func(func(value interface{}) (interface{}, error) {
+					return 2, nil
+				}))
+			})
+
+			It("should return reduced result", func() {
+				Expect(output).To(Equal(map[string]interface{}{
+					"a": map[string]interface{}{
+						"b": map[string]int{
+							"c": 1,
+							"d": 2,
+						},
+					},
+				}))
+			})
+
+			It("should not have errors", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
 		When("reducer returns an error", func() {
 			reduceErr := xerrors.New("reduce error")
 
@@ -166,6 +189,26 @@ var _ = Describe("DeleteNested", func() {
 				"d": map[string]int{
 					"e": 2,
 				},
+			}))
+		})
+
+		It("should have no errors", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	When("keys length = 1", func() {
+		BeforeEach(func() {
+			input = map[string]interface{}{
+				"a": 1,
+				"d": 2,
+			}
+			reducer = DeleteNested([]string{"a"})
+		})
+
+		It("should delete nested key", func() {
+			Expect(output).To(Equal(map[string]interface{}{
+				"d": 2,
 			}))
 		})
 

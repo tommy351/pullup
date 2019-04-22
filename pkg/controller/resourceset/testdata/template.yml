@@ -1,0 +1,27 @@
+---
+apiVersion: pullup.dev/v1alpha1
+kind: ResourceSet
+metadata:
+  name: test-46
+  namespace: test
+  uid: c37ee64f-5c69-4c53-8585-adc137d0acca
+spec:
+  base:
+    ref: master
+    sha: efef1cefcd199ce6e0f1f0b9f8acac420563044b
+  head:
+    ref: fix-test
+    sha: aad2b388e813f3a3c90672332bdd2f9c5bac568c
+  number: 46
+  resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: test
+      spec:
+        containers:
+          - name: '{{ .Name }}'
+            image: 'gcr.io/test/foo:{{ .Spec.Head.SHA }}'
+            env:
+              - name: PR_NUMBER
+                value: '{{ .Spec.Number }}'

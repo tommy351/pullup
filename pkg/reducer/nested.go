@@ -2,6 +2,7 @@ package reducer
 
 import (
 	"reflect"
+	"strings"
 
 	"golang.org/x/xerrors"
 )
@@ -19,29 +20,36 @@ func assertMapKind(v reflect.Value) error {
 func ReduceNested(keys []string, reducer Interface) Interface {
 	return Func(func(input interface{}) (interface{}, error) {
 		output := DeepCopy(input)
-		value := output
+		value := reflect.ValueOf(output)
+		parent := value
 
-		for i, k := range keys {
-			key := reflect.ValueOf(k)
-			v := reflect.ValueOf(value)
-
-			if err := assertMapKind(v); err != nil {
+		for _, k := range keys {
+			if err := assertMapKind(value); err != nil {
 				return nil, err
 			}
 
-			if i == len(keys)-1 {
-				newValue, err := reducer.Reduce(v.MapIndex(key).Interface())
+			key := reflect.ValueOf(k)
+			parent = value
+			value = value.MapIndex(key)
 
-				if err != nil {
-					return nil, xerrors.Errorf("reduce error: %w", err)
-				}
-
-				v.SetMapIndex(key, reflect.ValueOf(newValue))
-			} else {
-				value = v.MapIndex(key).Interface()
+			if value.Kind() == reflect.Interface {
+				value = value.Elem()
 			}
 		}
 
+		var orig interface{}
+
+		if value.IsValid() {
+			orig = value.Interface()
+		}
+
+		newValue, err := reducer.Reduce(orig)
+
+		if err != nil {
+			return nil, xerrors.Errorf("reduce error at key %s: %w", strings.Join(keys, "."), err)
+		}
+
+		parent.SetMapIndex(reflect.ValueOf(keys[len(keys)-1]), reflect.ValueOf(newValue))
 		return output, nil
 	})
 }
@@ -53,9 +61,17 @@ func SetNested(keys []string, value interface{}) Interface {
 }
 
 func DeleteNested(keys []string) Interface {
-	lastKey := keys[len(keys)-1]
+	lastIndex := len(keys) - 1
+	lastKey := keys[lastIndex]
+	headKeys := keys[0:lastIndex]
 
-	return ReduceNested(keys[0:len(keys)-1], FilterKey(func(key interface{}) (bool, error) {
+	if len(headKeys) == 0 {
+		return FilterKey(func(key interface{}) (bool, error) {
+			return key != lastKey, nil
+		})
+	}
+
+	return ReduceNested(headKeys, FilterKey(func(key interface{}) (bool, error) {
 		return key != lastKey, nil
 	}))
 }

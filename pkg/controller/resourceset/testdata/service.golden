@@ -1,0 +1,23 @@
+# This is a golden file. DO NOT EDIT.
+/v1, Kind=Service:
+  test/test-46:
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: test-46
+      namespace: test
+      ownerReferences:
+      - apiVersion: pullup.dev/v1alpha1
+        blockOwnerDeletion: true
+        controller: true
+        kind: ResourceSet
+        name: test-46
+        uid: c37ee64f-5c69-4c53-8585-adc137d0acca
+    spec:
+      ports:
+      - port: 80
+        protocol: TCP
+        targetPort: 80
+      selector:
+        app: test
+      type: NodePort
