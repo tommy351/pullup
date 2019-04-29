@@ -1,0 +1,45 @@
+---
+apiVersion: pullup.dev/v1alpha1
+kind: Webhook
+metadata:
+  name: bar
+  namespace: foo
+spec:
+  resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: bar
+---
+apiVersion: pullup.dev/v1alpha1
+kind: ResourceSet
+metadata:
+  name: bar-46
+  namespace: foo
+  labels:
+    webhook-name: bar
+    pull-request-number: '46'
+spec:
+  number: 46
+---
+apiVersion: pullup.dev/v1alpha1
+kind: ResourceSet
+metadata:
+  name: bar-64
+  namespace: foo
+  labels:
+    webhook-name: bar
+    pull-request-number: '64'
+spec:
+  number: 64
+---
+apiVersion: pullup.dev/v1alpha1
+kind: ResourceSet
+metadata:
+  name: baz-123
+  namespace: foo
+  labels:
+    webhook-name: baz
+    pull-request-number: '123'
+spec:
+  number: 123

@@ -2,17 +2,14 @@ package resourceset
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/testutil"
-	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -26,34 +23,16 @@ var _ = Describe("Reconciler", func() {
 		err           error
 	)
 
-	newClient := func(objects ...runtime.Object) *testutil.Client {
-		scheme := runtime.NewScheme()
-		sb := runtime.NewSchemeBuilder(v1alpha1.AddToScheme)
-		Expect(sb.AddToScheme(scheme)).NotTo(HaveOccurred())
-		return &testutil.Client{
-			Client: fake.NewFakeClientWithScheme(scheme, objects...),
-		}
-	}
-
 	loadTestData := func(name string) []runtime.Object {
-		path := filepath.Join("testdata", name+".yml")
-		file, err := os.Open(path)
+		data, err := testutil.DecodeYAMLFile(filepath.Join("testdata", name+".yml"))
 		Expect(err).NotTo(HaveOccurred())
-		defer file.Close()
-
-		stat, err := file.Stat()
-		Expect(err).NotTo(HaveOccurred())
-
-		input, err := testutil.DecodeYAMLObjects(file, int(stat.Size()))
-		Expect(err).NotTo(HaveOccurred())
-
-		return input
+		return data
 	}
 
 	testSuccess := func(name string) {
 		BeforeEach(func() {
 			data := loadTestData(name)
-			client = newClient(data...)
+			client = testutil.NewClient(data...)
 			eventRecorder = record.NewFakeRecorder(len(data))
 		})
 
@@ -66,7 +45,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should match the golden file", func() {
-			Expect(client.Changes).To(testutil.MatchGolden(fmt.Sprintf("testdata/%s.golden", name)))
+			Expect(client.Changed).To(testutil.MatchGolden(fmt.Sprintf("testdata/%s.golden", name)))
 		})
 	}
 
@@ -80,7 +59,7 @@ var _ = Describe("Reconciler", func() {
 		reconciler.client = client
 		reconciler.EventRecorder = eventRecorder
 		result, err = reconciler.Reconcile(reconcile.Request{
-			NamespacedName: ktypes.NamespacedName{
+			NamespacedName: types.NamespacedName{
 				Name:      "test-46",
 				Namespace: "test",
 			},
@@ -89,7 +68,7 @@ var _ = Describe("Reconciler", func() {
 
 	When("resource set does not exist", func() {
 		BeforeEach(func() {
-			client = newClient()
+			client = testutil.NewClient()
 			eventRecorder = record.NewFakeRecorder(0)
 		})
 
@@ -137,7 +116,7 @@ var _ = Describe("Reconciler", func() {
 	When("resource is not controlled", func() {
 		BeforeEach(func() {
 			data := loadTestData("resource-not-controlled")
-			client = newClient(data...)
+			client = testutil.NewClient(data...)
 			eventRecorder = record.NewFakeRecorder(len(data))
 		})
 

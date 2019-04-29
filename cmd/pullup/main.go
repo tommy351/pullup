@@ -77,12 +77,15 @@ func run(_ *cobra.Command, _ []string) error {
 	}
 
 	ctrlLogger := logger.WithName("controller")
+	eventRecorder := mgr.GetEventRecorderFor("pullup")
 
 	err = builder.New(mgr).
 		WithLogger(ctrlLogger.WithName("webhook")).
 		For(&v1alpha1.Webhook{}).
 		Owns(&v1alpha1.ResourceSet{}).
-		Complete(&webhookctrl.Reconciler{})
+		Complete(&webhookctrl.Reconciler{
+			EventRecorder: eventRecorder,
+		})
 
 	if err != nil {
 		return xerrors.Errorf("failed to create a webhook controller: %w", err)
@@ -92,7 +95,7 @@ func run(_ *cobra.Command, _ []string) error {
 		WithLogger(ctrlLogger.WithName("resourceset")).
 		For(&v1alpha1.ResourceSet{}).
 		Complete(&resourceset.Reconciler{
-			EventRecorder: mgr.GetEventRecorderFor("pullup"),
+			EventRecorder: eventRecorder,
 		})
 
 	if err != nil {

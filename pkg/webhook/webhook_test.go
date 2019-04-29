@@ -16,26 +16,17 @@ import (
 	"github.com/tommy351/pullup/pkg/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = Describe("Server.Webhook", func() {
 	var (
-		kubeClient client.Client
-		req        *http.Request
-		res        *http.Response
+		client *testutil.Client
+		req    *http.Request
+		res    *http.Response
 	)
-
-	newClient := func(objects ...runtime.Object) client.Client {
-		scheme := runtime.NewScheme()
-		Expect(v1alpha1.AddToScheme(scheme)).NotTo(HaveOccurred())
-		return fake.NewFakeClientWithScheme(scheme, objects...)
-	}
 
 	newRequest := func(body interface{}) *http.Request {
 		var buf bytes.Buffer
@@ -48,7 +39,7 @@ var _ = Describe("Server.Webhook", func() {
 	JustBeforeEach(func() {
 		server := &Server{
 			Namespace: "default",
-			client:    kubeClient,
+			client:    client,
 			logger:    log.NullLogger{},
 		}
 		router := server.newRouter()
@@ -60,7 +51,7 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook not found", func() {
 		BeforeEach(func() {
-			kubeClient = newClient()
+			client = testutil.NewClient()
 			req = newRequest(nil)
 		})
 
@@ -75,7 +66,7 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook type is unsupported", func() {
 		BeforeEach(func() {
-			kubeClient = newClient(&v1alpha1.Webhook{
+			client = testutil.NewClient(&v1alpha1.Webhook{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: v1alpha1.SchemeGroupVersion.String(),
 					Kind:       "Webhook",
@@ -141,7 +132,7 @@ var _ = Describe("Server.Webhook", func() {
 		}
 
 		BeforeEach(func() {
-			kubeClient = newClient(webhook, resourceSet)
+			client = testutil.NewClient(webhook, resourceSet)
 		})
 
 		When("event type is pull request", func() {
@@ -177,7 +168,7 @@ var _ = Describe("Server.Webhook", func() {
 
 					It("should apply the resource set", func() {
 						rs := new(v1alpha1.ResourceSet)
-						Expect(kubeClient.Get(context.TODO(), types.NamespacedName{
+						Expect(client.Get(context.TODO(), types.NamespacedName{
 							Namespace: resourceSet.Namespace,
 							Name:      resourceSet.Name,
 						}, rs)).NotTo(HaveOccurred())
@@ -209,7 +200,7 @@ var _ = Describe("Server.Webhook", func() {
 
 				When("resource set does not exist", func() {
 					BeforeEach(func() {
-						Expect(kubeClient.Delete(context.TODO(), resourceSet)).NotTo(HaveOccurred())
+						Expect(client.Delete(context.TODO(), resourceSet)).NotTo(HaveOccurred())
 					})
 
 					testSuccess()
@@ -251,7 +242,7 @@ var _ = Describe("Server.Webhook", func() {
 					})
 
 					It("should delete the resource set", func() {
-						err := kubeClient.Get(context.TODO(), types.NamespacedName{
+						err := client.Get(context.TODO(), types.NamespacedName{
 							Namespace: resourceSet.Namespace,
 							Name:      resourceSet.Name,
 						}, new(v1alpha1.ResourceSet))
@@ -261,7 +252,7 @@ var _ = Describe("Server.Webhook", func() {
 
 				When("resource set not exist", func() {
 					BeforeEach(func() {
-						Expect(kubeClient.Delete(context.TODO(), resourceSet)).NotTo(HaveOccurred())
+						Expect(client.Delete(context.TODO(), resourceSet)).NotTo(HaveOccurred())
 					})
 
 					It("should respond 204", func() {

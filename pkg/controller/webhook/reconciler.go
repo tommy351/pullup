@@ -9,12 +9,21 @@ import (
 	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/log"
 	"golang.org/x/xerrors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	ReasonPatched     = "Patched"
+	ReasonPatchFailed = "PatchFailed"
+)
+
 type Reconciler struct {
+	EventRecorder record.EventRecorder
+
 	client client.Client
 	logger logr.Logger
 }
@@ -40,8 +49,8 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	logger := r.logger.WithValues("webhook", hook)
 	ctx = log.NewContext(ctx, logger)
 
-	var list v1alpha1.ResourceSetList
-	err := r.client.List(ctx, &list, client.MatchingLabels(map[string]string{
+	list := new(v1alpha1.ResourceSetList)
+	err := r.client.List(ctx, list, client.MatchingLabels(map[string]string{
 		k8s.LabelWebhookName: hook.Name,
 	}))
 
@@ -51,9 +60,13 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 
 	for _, set := range list.Items {
 		set := set
+
 		if err := r.patchResourceSet(ctx, hook, &set); err != nil {
+			r.EventRecorder.Eventf(hook, corev1.EventTypeWarning, ReasonPatchFailed, "Failed to patch resource set %q: %v", set.Name, err)
 			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to patch resource set: %w", err)
 		}
+
+		r.EventRecorder.Eventf(hook, corev1.EventTypeNormal, ReasonPatched, "Patched resource set %q", set.Name)
 	}
 
 	return reconcile.Result{}, nil

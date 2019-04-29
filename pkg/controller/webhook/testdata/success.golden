@@ -1,0 +1,38 @@
+# This is a golden file. DO NOT EDIT.
+pullup.dev/v1alpha1, Kind=ResourceSet:
+  foo/bar-46:
+    apiVersion: pullup.dev/v1alpha1
+    kind: ResourceSet
+    metadata:
+      creationTimestamp: null
+      labels:
+        pull-request-number: "46"
+        webhook-name: bar
+      name: bar-46
+      namespace: foo
+    spec:
+      number: 46
+      resources:
+      - apiVersion: v1
+        kind: Pod
+        metadata:
+          name: bar
+    status: {}
+  foo/bar-64:
+    apiVersion: pullup.dev/v1alpha1
+    kind: ResourceSet
+    metadata:
+      creationTimestamp: null
+      labels:
+        pull-request-number: "64"
+        webhook-name: bar
+      name: bar-64
+      namespace: foo
+    spec:
+      number: 64
+      resources:
+      - apiVersion: v1
+        kind: Pod
+        metadata:
+          name: bar
+    status: {}
