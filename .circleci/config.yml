@@ -28,16 +28,20 @@ jobs:
     steps:
       - checkout
       - go_get
-      - run:
-          name: Install ginkgo
-          command: go get github.com/onsi/ginkgo/ginkgo
-      - run:
-          name: Run tests
-          command: JUNIT_OUTPUT=$PWD/reports/junit ginkgo -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress
+      - run: hack/run-test.sh
       - store_test_results:
           path: reports/junit
-      - run: ./hack/collect-coverage.sh
       - run: bash <(curl -s https://codecov.io/bash)
+  test_integration:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - go_get
+      - run: hack/download-test-assets.sh
+      - run: hack/run-test.sh -tags integration
+      - store_test_results:
+          path: reports/junit
   release:
     docker:
       - image: circleci/golang:1.12
@@ -62,10 +66,15 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - test_integration:
+          filters:
+            tags:
+              only: /.*/
       - release:
           requires:
             - lint
             - test_go
+            - test_integration
           filters:
             branches:
               ignore: /.*/

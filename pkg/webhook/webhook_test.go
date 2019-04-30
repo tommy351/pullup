@@ -11,21 +11,24 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = Describe("Server.Webhook", func() {
 	var (
-		client *testutil.Client
-		req    *http.Request
-		res    *http.Response
+		client    *testutil.Client
+		req       *http.Request
+		res       *http.Response
+		namespace string
 	)
 
 	newRequest := func(body interface{}) *http.Request {
@@ -36,9 +39,13 @@ var _ = Describe("Server.Webhook", func() {
 		return req
 	}
 
+	BeforeEach(func() {
+		namespace = rand.String(8)
+	})
+
 	JustBeforeEach(func() {
 		server := &Server{
-			Namespace: "default",
+			Namespace: namespace,
 			client:    client,
 			logger:    log.NullLogger{},
 		}
@@ -51,7 +58,7 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook not found", func() {
 		BeforeEach(func() {
-			client = testutil.NewClient()
+			client = testutil.NewClient(env)
 			req = newRequest(nil)
 		})
 
@@ -66,14 +73,14 @@ var _ = Describe("Server.Webhook", func() {
 
 	When("webhook type is unsupported", func() {
 		BeforeEach(func() {
-			client = testutil.NewClient(&v1alpha1.Webhook{
+			client = testutil.NewClient(env, &v1alpha1.Webhook{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: v1alpha1.SchemeGroupVersion.String(),
 					Kind:       "Webhook",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
-					Namespace: "default",
+					Namespace: namespace,
 				},
 			})
 			req = newRequest(nil)
@@ -89,50 +96,51 @@ var _ = Describe("Server.Webhook", func() {
 	})
 
 	When("webhook type is github", func() {
-		webhook := &v1alpha1.Webhook{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1alpha1.SchemeGroupVersion.String(),
-				Kind:       "Webhook",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "default",
-				UID:       testutil.NewUID(),
-			},
-			Spec: v1alpha1.WebhookSpec{
-				Resources: []json.RawMessage{[]byte("{}")},
-				GitHub:    &v1alpha1.GitHubOptions{},
-			},
-		}
-
-		resourceSet := &v1alpha1.ResourceSet{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1alpha1.SchemeGroupVersion.String(),
-				Kind:       "ResourceSet",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-46",
-				Namespace: webhook.Namespace,
-				Labels: map[string]string{
-					k8s.LabelWebhookName:       webhook.Name,
-					k8s.LabelPullRequestNumber: "46",
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion:         webhook.APIVersion,
-						Kind:               webhook.Kind,
-						Name:               webhook.Name,
-						UID:                webhook.UID,
-						Controller:         pointer.BoolPtr(true),
-						BlockOwnerDeletion: pointer.BoolPtr(true),
-					},
-				},
-			},
-			Spec: v1alpha1.ResourceSetSpec{},
-		}
+		var (
+			webhook     *v1alpha1.Webhook
+			resourceSet *v1alpha1.ResourceSet
+		)
 
 		BeforeEach(func() {
-			client = testutil.NewClient(webhook, resourceSet)
+			webhook = &v1alpha1.Webhook{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: namespace,
+					UID:       random.UID(),
+				},
+				Spec: v1alpha1.WebhookSpec{
+					Resources: []json.RawMessage{[]byte("{}")},
+					GitHub:    &v1alpha1.GitHubOptions{},
+				},
+			}
+			client = testutil.NewClient(env, webhook)
+
+			resourceSet = &v1alpha1.ResourceSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-46",
+					Namespace: webhook.Namespace,
+					Labels: map[string]string{
+						k8s.LabelWebhookName:       webhook.Name,
+						k8s.LabelPullRequestNumber: "46",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         "pullup.dev/v1alpha1",
+							Kind:               "Webhook",
+							Name:               webhook.Name,
+							UID:                webhook.UID,
+							Controller:         pointer.BoolPtr(true),
+							BlockOwnerDeletion: pointer.BoolPtr(true),
+						},
+					},
+				},
+				Spec: v1alpha1.ResourceSetSpec{},
+			}
+			Expect(client.Create(context.Background(), resourceSet)).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			Expect(client.Delete(context.Background(), webhook)).NotTo(HaveOccurred())
 		})
 
 		When("event type is pull request", func() {
@@ -146,13 +154,13 @@ var _ = Describe("Server.Webhook", func() {
 					PullRequest: &github.PullRequest{
 						Base: &github.PullRequestBranch{
 							Ref: pointer.StringPtr("master"),
-							SHA: pointer.StringPtr(testutil.RandomSHA1()),
+							SHA: pointer.StringPtr(random.SHA1()),
 						},
 						Head: &github.PullRequestBranch{
 							Ref: pointer.StringPtr("test"),
-							SHA: pointer.StringPtr(testutil.RandomSHA1()),
+							SHA: pointer.StringPtr(random.SHA1()),
 						},
-						MergeCommitSHA: pointer.StringPtr(testutil.RandomSHA1()),
+						MergeCommitSHA: pointer.StringPtr(random.SHA1()),
 					},
 				}
 				req := newRequest(event)
@@ -167,28 +175,25 @@ var _ = Describe("Server.Webhook", func() {
 					})
 
 					It("should apply the resource set", func() {
-						rs := new(v1alpha1.ResourceSet)
+						actual := new(v1alpha1.ResourceSet)
 						Expect(client.Get(context.TODO(), types.NamespacedName{
 							Namespace: resourceSet.Namespace,
 							Name:      resourceSet.Name,
-						}, rs)).NotTo(HaveOccurred())
-						Expect(rs).To(Equal(&v1alpha1.ResourceSet{
-							TypeMeta:   resourceSet.TypeMeta,
-							ObjectMeta: resourceSet.ObjectMeta,
-							Spec: v1alpha1.ResourceSetSpec{
-								Resources: webhook.Spec.Resources,
-								Number:    event.GetNumber(),
-								Base: &v1alpha1.Commit{
-									Ref: event.PullRequest.Base.Ref,
-									SHA: event.PullRequest.Base.SHA,
-								},
-								Head: &v1alpha1.Commit{
-									Ref: event.PullRequest.Head.Ref,
-									SHA: event.PullRequest.Head.SHA,
-								},
-								Merge: &v1alpha1.Commit{
-									SHA: event.PullRequest.MergeCommitSHA,
-								},
+						}, actual)).NotTo(HaveOccurred())
+						Expect(actual.OwnerReferences).To(Equal(resourceSet.OwnerReferences))
+						Expect(actual.Spec).To(Equal(v1alpha1.ResourceSetSpec{
+							Resources: webhook.Spec.Resources,
+							Number:    event.GetNumber(),
+							Base: &v1alpha1.Commit{
+								Ref: event.PullRequest.Base.Ref,
+								SHA: event.PullRequest.Base.SHA,
+							},
+							Head: &v1alpha1.Commit{
+								Ref: event.PullRequest.Head.Ref,
+								SHA: event.PullRequest.Head.SHA,
+							},
+							Merge: &v1alpha1.Commit{
+								SHA: event.PullRequest.MergeCommitSHA,
 							},
 						}))
 					})

@@ -34,6 +34,7 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/prometheus/client_golang v0.9.0 // indirect
+	github.com/sergi/go-diff v1.0.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.3.0 // indirect
@@ -50,6 +51,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20190306001800-15615b16d372 // indirect
 	k8s.io/utils v0.0.0-20190308190857-21c4ce38f2a7
 	sigs.k8s.io/controller-runtime v0.1.8-0.20190408232706-742c72259062
-	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
+	sigs.k8s.io/testing_frameworks v0.1.1
 	sigs.k8s.io/yaml v1.1.0
 )

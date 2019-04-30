@@ -1,11 +1,14 @@
 package webhook
 
 import (
+	"context"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tommy351/pullup/internal/golden"
 	"github.com/tommy351/pullup/internal/testutil"
+	"github.com/tommy351/pullup/internal/yaml"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -20,11 +23,13 @@ var _ = Describe("Reconciler", func() {
 		result        reconcile.Result
 		client        *testutil.Client
 		err           error
+		mapper        *testutil.Map
 	)
 
 	loadTestData := func(name string) []runtime.Object {
-		data, err := testutil.DecodeYAMLFile(filepath.Join("testdata", name+".yml"))
+		data, err := yaml.DecodeFile(filepath.Join("testdata", name+".yml"))
 		Expect(err).NotTo(HaveOccurred())
+		data = testutil.SetRandomNamespace(mapper, data)
 		return data
 	}
 
@@ -32,6 +37,7 @@ var _ = Describe("Reconciler", func() {
 		reconciler = &Reconciler{
 			logger: log.NullLogger{},
 		}
+		mapper = testutil.NewMap()
 	})
 
 	JustBeforeEach(func() {
@@ -40,14 +46,14 @@ var _ = Describe("Reconciler", func() {
 		result, err = reconciler.Reconcile(reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "bar",
-				Namespace: "foo",
+				Namespace: mapper.Value("foo"),
 			},
 		})
 	})
 
 	When("webhook does not exist", func() {
 		BeforeEach(func() {
-			client = testutil.NewClient()
+			client = testutil.NewClient(env)
 			eventRecorder = record.NewFakeRecorder(0)
 		})
 
@@ -65,10 +71,18 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	When("patch success", func() {
+		var data []runtime.Object
+
 		BeforeEach(func() {
-			data := loadTestData("success")
-			client = testutil.NewClient(data...)
+			data = loadTestData("success")
+			client = testutil.NewClient(env, data...)
 			eventRecorder = record.NewFakeRecorder(len(data))
+		})
+
+		AfterEach(func() {
+			for _, obj := range data {
+				Expect(client.Delete(context.Background(), obj)).NotTo(HaveOccurred())
+			}
 		})
 
 		It("should not requeue", func() {
@@ -80,7 +94,8 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should match the golden file", func() {
-			Expect(client.Changed).To(testutil.MatchGolden("testdata/success.golden"))
+			changed := golden.PrepareObjects(testutil.RestoreNamespace(mapper, client.GetChangedObjects()))
+			Expect(changed).To(golden.Match(golden.Path("success")))
 		})
 
 		It("should record Patched events", func() {

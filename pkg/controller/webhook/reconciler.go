@@ -50,7 +50,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	ctx = log.NewContext(ctx, logger)
 
 	list := new(v1alpha1.ResourceSetList)
-	err := r.client.List(ctx, list, client.MatchingLabels(map[string]string{
+	err := r.client.List(ctx, list, client.InNamespace(hook.Namespace), client.MatchingLabels(map[string]string{
 		k8s.LabelWebhookName: hook.Name,
 	}))
 

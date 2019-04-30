@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
@@ -20,7 +20,7 @@ func RunSpecs(t *testing.T, desc string) {
 			panic(err)
 		}
 
-		path := filepath.Join(dir, fmt.Sprintf("junit_%d.xml", config.GinkgoConfig.ParallelNode))
+		path := filepath.Join(dir, fmt.Sprintf("junit-%d.xml", time.Now().UnixNano()))
 		specReporters = append(specReporters, reporters.NewJUnitReporter(path))
 	}
 

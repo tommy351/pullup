@@ -1,26 +1,38 @@
 # This is a golden file. DO NOT EDIT.
-/v1, Kind=Pod:
-  test/test-46:
-    apiVersion: v1
-    kind: Pod
-    metadata:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    creationTimestamp: "1970-01-01T00:00:00Z"
+    name: test-46
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceSet
       name: test-46
-      namespace: test
-      ownerReferences:
-      - apiVersion: pullup.dev/v1alpha1
-        blockOwnerDeletion: true
-        controller: true
-        kind: ResourceSet
-        name: test-46
-        uid: c37ee64f-5c69-4c53-8585-adc137d0acca
-    spec:
-      containers:
-      - env:
-        - name: A
-          value: a2
-        - name: B
-          value: b2
-        - name: C
-          value: c1
-        image: gcr.io/test/foo:v2
-        name: foo
+      uid: c37ee64f-5c69-4c53-8585-adc137d0acca
+    resourceVersion: "0"
+    uid: 00000000-0000-0000-0000-000000000000
+  spec:
+    selector:
+      matchLabels:
+        app: test
+    strategy: {}
+    template:
+      metadata:
+        labels:
+          app: test
+      spec:
+        containers:
+        - env:
+          - name: A
+            value: a2
+          - name: B
+            value: b2
+          - name: C
+            value: c1
+          image: gcr.io/test/foo:v2
+          name: foo
+          resources: {}
+  status: {}

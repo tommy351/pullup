@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/k8s"
 	"github.com/tommy351/pullup/pkg/log"
 	"github.com/tommy351/pullup/pkg/reducer"
 	"golang.org/x/xerrors"
@@ -82,6 +83,8 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	if err := r.client.Get(ctx, req.NamespacedName, set); err != nil {
 		return reconcile.Result{}, xerrors.Errorf("failed to get resource set: %w", err)
 	}
+
+	set.SetGroupVersionKind(k8s.Kind("ResourceSet"))
 
 	logger := r.logger.WithValues("resourceSet", set)
 	ctx = log.NewContext(ctx, logger)

@@ -22,9 +22,13 @@ metadata:
   resourceVersion: '209346008'
   selfLink: /api/v1/namespaces/test/pods/test
   uid: 91e0b71f-68c9-11e9-84bc-42010af0026c
-  generation: '209346008'
+  generation: 209346008
   annotations:
     deployment.kubernetes.io/revision: '209346008'
     kubectl.kubernetes.io/last-applied-configuration: '{}'
+spec:
+  containers:
+    - name: nginx
+      image: nginx
 status:
   phase: Running

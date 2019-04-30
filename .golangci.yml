@@ -6,7 +6,7 @@ linters:
 
 issues:
   exclude-rules:
-    - path: internal/testutil/random.go
+    - path: internal/random/sha.go
       text: "weak cryptographic primitive"
       linters:
         - gosec

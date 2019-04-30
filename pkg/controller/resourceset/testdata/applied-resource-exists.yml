@@ -12,18 +12,3 @@ spec:
       kind: Pod
       metadata:
         name: test
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: test-46
-  namespace: test
-  ownerReferences:
-    - apiVersion: pullup.dev/v1alpha1
-      kind: ResourceSet
-      name: test-46
-      uid: c37ee64f-5c69-4c53-8585-adc137d0acca
-      controller: true
-      blockOwnerDeletion: true
-status:
-  phase: Running

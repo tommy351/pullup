@@ -3,66 +3,56 @@ package testutil
 import (
 	"context"
 
-	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/internal/testenv"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-func NewScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	sb := runtime.NewSchemeBuilder(v1alpha1.AddToScheme)
-
-	if err := sb.AddToScheme(scheme); err != nil {
-		panic(err)
-	}
-
-	return scheme
-}
 
 type nameGetter interface {
 	GetNamespace() string
 	GetName() string
 }
 
+type objectMeta struct {
+	GVK  schema.GroupVersionKind
+	Name types.NamespacedName
+}
+
 type Client struct {
 	client.Client
 
-	Changed map[string]map[string]runtime.Object
-	Deleted map[string]map[string]runtime.Object
+	changed []objectMeta
 }
 
-func NewClient(objects ...runtime.Object) *Client {
+func NewClient(env testenv.Interface, objects ...runtime.Object) *Client {
+	c, err := env.NewClient(objects...)
+
+	if err != nil {
+		panic(err)
+	}
+
 	return &Client{
-		Client:  fake.NewFakeClientWithScheme(NewScheme(), objects...),
-		Changed: map[string]map[string]runtime.Object{},
-		Deleted: map[string]map[string]runtime.Object{},
+		Client: c,
 	}
-}
-
-func (c *Client) addToMap(m map[string]map[string]runtime.Object, obj runtime.Object) {
-	gvk := obj.GetObjectKind().GroupVersionKind().String()
-
-	if _, ok := c.Changed[gvk]; !ok {
-		m[gvk] = map[string]runtime.Object{}
-	}
-
-	name := obj.(nameGetter)
-	m[gvk][name.GetNamespace()+"/"+name.GetName()] = obj
 }
 
 func (c *Client) addChanged(obj runtime.Object) {
-	c.addToMap(c.Changed, obj)
+	name := obj.(nameGetter)
+	c.changed = append(c.changed, objectMeta{
+		GVK: obj.GetObjectKind().GroupVersionKind(),
+		Name: types.NamespacedName{
+			Namespace: name.GetNamespace(),
+			Name:      name.GetName(),
+		},
+	})
 }
 
 func (c *Client) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOptionFunc) error {
 	c.addChanged(obj)
 	return c.Client.Create(ctx, obj, opts...)
-}
-
-func (c *Client) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOptionFunc) error {
-	c.addToMap(c.Deleted, obj)
-	return c.Client.Delete(ctx, obj, opts...)
 }
 
 func (c *Client) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
@@ -73,4 +63,30 @@ func (c *Client) Update(ctx context.Context, obj runtime.Object, opts ...client.
 func (c *Client) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
 	c.addChanged(obj)
 	return c.Client.Patch(ctx, obj, patch, opts...)
+}
+
+func (c *Client) GetChangedObjects() []runtime.Object {
+	// nolint: prealloc
+	var objects []runtime.Object
+	objectMap := map[string]struct{}{}
+
+	for _, meta := range c.changed {
+		key := meta.GVK.String() + " " + meta.Name.String()
+
+		if _, ok := objectMap[key]; ok {
+			continue
+		}
+
+		obj := new(unstructured.Unstructured)
+		obj.SetGroupVersionKind(meta.GVK)
+
+		if err := c.Client.Get(context.Background(), meta.Name, obj); err != nil {
+			panic(err)
+		}
+
+		objects = append(objects, obj)
+		objectMap[key] = struct{}{}
+	}
+
+	return objects
 }

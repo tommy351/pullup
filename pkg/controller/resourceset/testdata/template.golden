@@ -1,22 +1,23 @@
 # This is a golden file. DO NOT EDIT.
-/v1, Kind=Pod:
-  test/test-46:
-    apiVersion: v1
-    kind: Pod
-    metadata:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "1970-01-01T00:00:00Z"
+    name: test-46
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceSet
       name: test-46
-      namespace: test
-      ownerReferences:
-      - apiVersion: pullup.dev/v1alpha1
-        blockOwnerDeletion: true
-        controller: true
-        kind: ResourceSet
-        name: test-46
-        uid: c37ee64f-5c69-4c53-8585-adc137d0acca
-    spec:
-      containers:
-      - env:
-        - name: PR_NUMBER
-          value: "46"
-        image: gcr.io/test/foo:aad2b388e813f3a3c90672332bdd2f9c5bac568c
-        name: test-46
+      uid: c37ee64f-5c69-4c53-8585-adc137d0acca
+    resourceVersion: "0"
+    uid: 00000000-0000-0000-0000-000000000000
+  spec:
+    containers:
+    - env:
+      - name: PR_NUMBER
+        value: "46"
+      image: gcr.io/test/foo:aad2b388e813f3a3c90672332bdd2f9c5bac568c
+      name: test-46

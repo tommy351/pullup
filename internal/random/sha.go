@@ -1,4 +1,4 @@
-package testutil
+package random
 
 import (
 	"crypto/rand"
@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 )
 
-func RandomSHA1() string {
+func SHA1() string {
 	buf := make([]byte, 16)
 
 	if _, err := rand.Read(buf); err != nil {

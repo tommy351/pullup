@@ -22,16 +22,16 @@ kind: Pod
 metadata:
   name: test
   namespace: test
+spec:
+  containers:
+    - name: nginx
+      image: nginx
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: test-46
+  name: test
   namespace: test
-  ownerReferences:
-    - apiVersion: pullup.dev/v1alpha1
-      kind: ResourceSet
-      name: test-46
-      uid: c37ee64f-5c69-4c53-8585-adc137d0acca
-      controller: true
-      blockOwnerDeletion: true
+spec:
+  ports:
+    - port: 80

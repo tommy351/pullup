@@ -1,16 +1,17 @@
-package testutil
+package yaml
 
 import (
 	"bytes"
 	"io"
 	"os"
 
+	"github.com/tommy351/pullup/internal/testutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func DecodeYAMLFile(path string) ([]runtime.Object, error) {
+func DecodeFile(path string) ([]runtime.Object, error) {
 	file, err := os.Open(path)
 
 	if err != nil {
@@ -25,16 +26,15 @@ func DecodeYAMLFile(path string) ([]runtime.Object, error) {
 		return nil, err
 	}
 
-	return DecodeYAMLObjects(file, int(stat.Size()))
+	return Decode(file, int(stat.Size()))
 }
 
-func DecodeYAMLObjects(input io.ReadCloser, bufferSize int) ([]runtime.Object, error) {
+func Decode(input io.ReadCloser, size int) ([]runtime.Object, error) {
 	var output []runtime.Object
-	scheme := NewScheme()
 	reader := yaml.NewDocumentDecoder(input)
 	defer reader.Close()
 
-	buf := make([]byte, bufferSize)
+	buf := make([]byte, size)
 
 	for {
 		n, err := reader.Read(buf)
@@ -56,7 +56,7 @@ func DecodeYAMLObjects(input io.ReadCloser, bufferSize int) ([]runtime.Object, e
 
 		// Try to convert the unstructured into typed struct
 		gvk := untyped.GroupVersionKind()
-		typed, err := scheme.New(gvk)
+		typed, err := testutil.Scheme.New(gvk)
 
 		if err != nil {
 			if runtime.IsNotRegisteredError(err) {
