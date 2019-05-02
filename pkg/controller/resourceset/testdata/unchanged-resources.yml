@@ -12,7 +12,3 @@ spec:
       kind: Pod
       metadata:
         name: test
-      spec:
-        containers:
-          - name: nginx
-            image: nginx:latest

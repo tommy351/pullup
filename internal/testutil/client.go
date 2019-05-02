@@ -65,6 +65,10 @@ func (c *Client) Patch(ctx context.Context, obj runtime.Object, patch client.Pat
 	return c.Client.Patch(ctx, obj, patch, opts...)
 }
 
+func (c *Client) Reset() {
+	c.changed = c.changed[:0]
+}
+
 func (c *Client) GetChangedObjects() []runtime.Object {
 	// nolint: prealloc
 	var objects []runtime.Object

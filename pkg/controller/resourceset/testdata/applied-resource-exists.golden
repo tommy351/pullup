@@ -16,7 +16,7 @@
     uid: 00000000-0000-0000-0000-000000000000
   spec:
     containers:
-    - image: nginx
+    - image: nginx:latest
       name: nginx
       resources: {}
   status: {}

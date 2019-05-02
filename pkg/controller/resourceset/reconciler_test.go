@@ -92,6 +92,7 @@ var _ = Describe("Reconciler", func() {
 		}
 
 		Expect(client.Create(context.Background(), object)).NotTo(HaveOccurred())
+		client.Reset()
 	}
 
 	testSuccess := func(name string) {
@@ -293,6 +294,31 @@ var _ = Describe("Reconciler", func() {
 		It("should record multiple events", func() {
 			Expect(<-eventRecorder.Events).To(HavePrefix("Normal Created Created resource v1 Pod: \"test-46\""))
 			Expect(<-eventRecorder.Events).To(HavePrefix("Normal Created Created resource v1 Service: \"test-46\""))
+		})
+	})
+
+	When("resources are not changed", func() {
+		testSuccess("unchanged-resources")
+
+		BeforeEach(func() {
+			createAppliedObject(&corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "nginx",
+							Image: "nginx",
+						},
+					},
+				},
+			})
+		})
+
+		It("should record Unchanged event", func() {
+			Expect(<-eventRecorder.Events).To(HavePrefix("Normal Unchanged Skipped resource v1 Pod: \"test-46\""))
+		})
+
+		It("should not change resources", func() {
+			Expect(client.GetChangedObjects()).To(BeEmpty())
 		})
 	})
 })

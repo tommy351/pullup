@@ -15,6 +15,7 @@ require (
 	github.com/go-logr/zapr v0.1.1
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
+	github.com/google/go-cmp v0.2.0
 	github.com/google/go-github/v24 v24.0.2-0.20190405195805-c22c8e3046a5
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/google/uuid v1.1.1

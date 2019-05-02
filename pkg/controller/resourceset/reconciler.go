@@ -31,6 +31,7 @@ const (
 	ReasonFailed          = "Failed"
 	ReasonInvalidResource = "InvalidResource"
 	ReasonResourceExists  = "ResourceExists"
+	ReasonUnchanged       = "Unchanged"
 )
 
 type applyResult struct {
@@ -253,6 +254,14 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	}
 
 	if applied != nil {
+		if equal(data, applied) {
+			logger.V(log.Debug).Info("Skipped resource")
+			return &applyResult{
+				Reason:  ReasonUnchanged,
+				Message: "Skipped resource " + getResourceName(data),
+			}
+		}
+
 		if err := r.client.Update(ctx, data); err != nil {
 			return &applyResult{
 				Error:   xerrors.Errorf("failed to update resource: %w", err),
