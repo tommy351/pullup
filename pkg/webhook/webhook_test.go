@@ -82,6 +82,7 @@ var _ = Describe("Server.Webhook", func() {
 					Name:      "test",
 					Namespace: namespace,
 				},
+				Spec: v1alpha1.WebhookSpec{},
 			})
 			req = newRequest(nil)
 		})

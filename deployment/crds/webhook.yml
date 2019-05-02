@@ -12,3 +12,20 @@ spec:
     kind: Webhook
   subresources:
     status: {}
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          properties:
+            github:
+              type: object
+              properties:
+                secret:
+                  type: string
+            resources:
+              type: array
+              minItems: 1
+              items:
+                type: object
