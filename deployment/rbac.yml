@@ -3,13 +3,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pullup
+  namespace: pullup
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: pullup
 rules:
-  # Don't modify pullup.dev group, otherwise the controller may not work.
   - apiGroups:
       - pullup.dev
     resources:
@@ -23,24 +23,6 @@ rules:
       - update
       - patch
       - delete
-  # Add resources you want to deploy here
-  - apiGroups:
-      - ""
-    resources:
-      - services
-    verbs:
-      - get
-      - create
-      - update
-  - apiGroups:
-      - extensions
-      - apps
-    resources:
-      - deployments
-    verbs:
-      - get
-      - create
-      - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -49,7 +31,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: pullup
-    namespace: default
+    namespace: pullup
 roleRef:
   kind: ClusterRole
   name: pullup

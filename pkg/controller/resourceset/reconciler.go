@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -61,20 +62,17 @@ func (a applyResult) record(recorder record.EventRecorder, obj runtime.Object, d
 }
 
 type Reconciler struct {
-	EventRecorder record.EventRecorder
-
-	client client.Client
-	logger logr.Logger
+	client   client.Client
+	logger   logr.Logger
+	recorder record.EventRecorder
 }
 
-func (r *Reconciler) InjectClient(c client.Client) error {
-	r.client = c
-	return nil
-}
-
-func (r *Reconciler) InjectLogger(l logr.Logger) error {
-	r.logger = l
-	return nil
+func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
+	return &Reconciler{
+		client:   mgr.GetClient(),
+		logger:   logger.WithName("controller").WithName("resourceset"),
+		recorder: mgr.GetEventRecorderFor("pullup"),
+	}
 }
 
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
@@ -94,13 +92,13 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		var obj unstructured.Unstructured
 
 		if err := json.Unmarshal(res, &obj); err != nil {
-			r.EventRecorder.Eventf(set, corev1.EventTypeWarning, ReasonInvalidResource, "Failed to unmarshal resource %d", i)
+			r.recorder.Eventf(set, corev1.EventTypeWarning, ReasonInvalidResource, "Failed to unmarshal resource %d", i)
 			return reconcile.Result{}, xerrors.Errorf("failed to unmarshal resource %d: %w", i, err)
 		}
 
 		logger := log.FromContext(ctx).WithValues("resource", obj)
 		result := r.applyResource(log.NewContext(ctx, logger), set, &obj)
-		result.record(r.EventRecorder, set, &obj)
+		result.record(r.recorder, set, &obj)
 
 		if err := result.Error; err != nil {
 			logger.Error(err, "Failed to apply resource")

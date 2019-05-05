@@ -20,11 +20,11 @@ spec:
         spec:
           type: object
           properties:
-            github:
-              type: object
-              properties:
-                secret:
-                  type: string
+            sources:
+              type: array
+              minItems: 1
+              items:
+                type: object
             resources:
               type: array
               minItems: 1

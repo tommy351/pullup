@@ -1,9 +1,8 @@
-package webhook
+package httputil
 
 import (
 	"net/http"
 
-	"github.com/dimfeld/httptreemux"
 	"golang.org/x/xerrors"
 )
 
@@ -15,8 +14,4 @@ func NewHandler(handler Handler) http.HandlerFunc {
 			panic(xerrors.Errorf("http handler error: %w", err))
 		}
 	}
-}
-
-func Params(r *http.Request) map[string]string {
-	return httptreemux.ContextParams(r.Context())
 }

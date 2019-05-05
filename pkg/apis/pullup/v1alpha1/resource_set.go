@@ -29,15 +29,14 @@ type ResourceSetList struct {
 type ResourceSetSpec struct {
 	Resources []json.RawMessage `json:"resources"`
 	Number    int               `json:"number"`
-	Base      *Commit           `json:"base,omitempty"`
-	Head      *Commit           `json:"head,omitempty"`
-	Merge     *Commit           `json:"merge,omitempty"`
+	Base      Commit            `json:"base"`
+	Head      Commit            `json:"head"`
 }
 
 type ResourceSetStatus struct {
 }
 
 type Commit struct {
-	Ref *string `json:"ref,omitempty"`
-	SHA *string `json:"sha,omitempty"`
+	Ref string `json:"ref,omitempty"`
+	SHA string `json:"sha,omitempty"`
 }

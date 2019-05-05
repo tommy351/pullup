@@ -2,26 +2,69 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pullup
+  name: pullup-controller
+  namespace: pullup
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: pullup
+      role: controller
   template:
     metadata:
       labels:
         app: pullup
+        role: controller
     spec:
       containers:
-        - name: pullup
-          image: tommy351/pullup
+        - name: pullup-controller
+          image: tommy351/pullup-controller
           ports:
-            - name: webhook
-              containerPort: 4000
+            - name: metrics
+              containerPort: 9100
           env:
             - name: KUBERNETES_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+      serviceAccountName: pullup
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullup-webhook
+  namespace: pullup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pullup
+      role: webhook
+  template:
+    metadata:
+      labels:
+        app: pullup
+        role: webhook
+    spec:
+      containers:
+        - name: pullup-webhook
+          image: tommy351/pullup-webhook
+          ports:
+            - name: webhook
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9100
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: webhook
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: webhook
       serviceAccountName: pullup

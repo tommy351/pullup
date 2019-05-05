@@ -42,7 +42,7 @@ var _ = Describe("Reconciler", func() {
 
 	JustBeforeEach(func() {
 		reconciler.client = client
-		reconciler.EventRecorder = eventRecorder
+		reconciler.recorder = eventRecorder
 		result, err = reconciler.Reconcile(reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "bar",

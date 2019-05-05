@@ -1,5 +1,5 @@
 /*
-Copyright The Kubernetes Authors.
+Copyright 2019 Jia-Huei Chen
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -73,5 +73,10 @@ var _ clientset.Interface = &Clientset{}
 
 // PullupV1alpha1 retrieves the PullupV1alpha1Client
 func (c *Clientset) PullupV1alpha1() pullupv1alpha1.PullupV1alpha1Interface {
+	return &fakepullupv1alpha1.FakePullupV1alpha1{Fake: &c.Fake}
+}
+
+// Pullup retrieves the PullupV1alpha1Client
+func (c *Clientset) Pullup() pullupv1alpha1.PullupV1alpha1Interface {
 	return &fakepullupv1alpha1.FakePullupV1alpha1{Fake: &c.Fake}
 }

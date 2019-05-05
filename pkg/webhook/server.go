@@ -1,46 +1,47 @@
 package webhook
 
 import (
-	"context"
 	"net/http"
 	"time"
 
-	"github.com/dimfeld/httptreemux"
 	"github.com/go-logr/logr"
+	"github.com/google/wire"
 	"github.com/justinas/alice"
+	"github.com/tommy351/pullup/pkg/httputil"
 	"github.com/tommy351/pullup/pkg/log"
 	"github.com/tommy351/pullup/pkg/middleware"
-	"golang.org/x/xerrors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/tommy351/pullup/pkg/webhook/github"
 )
+
+const healthCheckPath = "/healthz"
+
+// ServerSet provides handlers and the server.
+// nolint: gochecknoglobals
+var ServerSet = wire.NewSet(github.NewHandler, NewServer)
 
 type Config struct {
 	Address string `mapstructure:"address"`
 }
 
 type Server struct {
-	Config    Config
-	Namespace string
-
-	client client.Client
-	logger logr.Logger
+	address       string
+	logger        logr.Logger
+	githubHandler *github.Handler
 }
 
-func (s *Server) InjectClient(c client.Client) error {
-	s.client = c
-	return nil
-}
-
-func (s *Server) InjectLogger(l logr.Logger) error {
-	s.logger = l
-	return nil
+func NewServer(conf Config, logger logr.Logger, githubHandler *github.Handler) *Server {
+	return &Server{
+		address:       conf.Address,
+		logger:        logger.WithName("webhook"),
+		githubHandler: githubHandler,
+	}
 }
 
 func (s *Server) Start(stop <-chan struct{}) error {
 	chain := alice.New(
 		middleware.SetLogger(s.logger),
 		middleware.RequestLog(func(r *http.Request, status, size int, duration time.Duration) {
-			if r.RequestURI != "/" {
+			if r.RequestURI != healthCheckPath {
 				log.FromContext(r.Context()).V(log.Debug).Info("",
 					"requestMethod", r.Method,
 					"requestUrl", r.RequestURI,
@@ -52,60 +53,33 @@ func (s *Server) Start(stop <-chan struct{}) error {
 				)
 			}
 		}),
+		middleware.Recovery(func(w http.ResponseWriter, r *http.Request, err error) {
+			log.FromContext(r.Context()).Error(err, "Webhook server error",
+				"requestMethod", r.Method,
+				"requestUrl", r.RequestURI,
+			)
+			_ = httputil.String(w, http.StatusInternalServerError, "Internal server error")
+		}),
 	)
 
-	httpServer := http.Server{
-		Addr:    s.Config.Address,
-		Handler: chain.Then(s.newRouter()),
-	}
-
-	idleConnsClosed := make(chan struct{})
-
-	go func() {
-		<-stop
-
-		s.logger.Info("Shutting down webhook server")
-
-		if err := httpServer.Shutdown(context.TODO()); err != nil {
-			// Error from closing listeners, or context timeout
-			s.logger.Error(err, "failed to shut down the webhook server")
-		}
-
-		close(idleConnsClosed)
-	}()
-
-	s.logger.Info("Starting webhook server", "address", httpServer.Addr)
-	err := httpServer.ListenAndServe()
-
-	if err != nil && err != http.ErrServerClosed {
-		return err
-	}
-
-	<-idleConnsClosed
-	return nil
+	return httputil.RunServer(httputil.ServerOptions{
+		Name:            "webhook",
+		Address:         s.address,
+		Handler:         chain.Then(s.newRouter()),
+		ShutdownTimeout: time.Second * 5,
+		Stop:            stop,
+		Logger:          s.logger,
+	})
 }
 
-func (s *Server) newRouter() *httptreemux.ContextMux {
-	mux := httptreemux.NewContextMux()
+func (s *Server) newRouter() *http.ServeMux {
+	mux := http.NewServeMux()
 
-	mux.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
-		log.FromContext(r.Context()).Error(
-			xerrors.Errorf("http handler panicked: %w", err),
-			"HTTP handler panicked",
-		)
-
-		_ = String(w, http.StatusInternalServerError, "Internal server error")
-	}
-
-	mux.NotFoundHandler = NewHandler(func(w http.ResponseWriter, r *http.Request) error {
-		return String(w, http.StatusNotFound, "Not found")
-	})
-
-	mux.GET("/", NewHandler(func(w http.ResponseWriter, r *http.Request) error {
-		return String(w, http.StatusOK, "ok")
+	mux.Handle(healthCheckPath, httputil.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
+		return httputil.String(w, http.StatusOK, "ok")
 	}))
 
-	mux.POST("/webhooks/:name", NewHandler(s.Webhook))
+	mux.Handle("/webhooks/github", s.githubHandler)
 
 	return mux
 }

@@ -1,12 +1,11 @@
 package log
 
 import (
-	"context"
-	"os"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
+	"github.com/google/wire"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	crlog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -25,42 +24,52 @@ const (
 	FieldError = "error"
 )
 
+// LoggerSet provides everything required for a logger.
+// nolint: gochecknoglobals
+var LoggerSet = wire.NewSet(
+	NewEncoderConfig,
+	NewZapLevel,
+	NewSink,
+	NewEncoder,
+	NewZapLogger,
+	NewLogger,
+)
+
 type Config struct {
 	Level string `mapstructure:"level"`
 }
 
-type FlushLogger interface {
-	logr.Logger
-	Flush()
+func NewEncoderConfig() zapcore.EncoderConfig {
+	conf := zap.NewProductionEncoderConfig()
+	conf.TimeKey = "time"
+	conf.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	return conf
 }
 
-type zapFlushLogger struct {
-	logr.Logger
-	zapLogger *zap.Logger
-}
-
-func (z *zapFlushLogger) Flush() {
-	_ = z.zapLogger.Sync()
-}
-
-func New(conf *Config) FlushLogger {
-	encoderConf := zap.NewProductionEncoderConfig()
-	encoderConf.TimeKey = "time"
-	encoderConf.EncodeTime = zapcore.ISO8601TimeEncoder
-
-	sink := zapcore.AddSync(os.Stderr)
+func NewZapLevel(conf Config) (zap.AtomicLevel, error) {
 	level := zap.NewAtomicLevel()
 
 	if err := level.UnmarshalText([]byte(conf.Level)); err != nil {
-		panic(err)
+		return level, err
 	}
 
-	encoder := &zaplog.KubeAwareEncoder{
+	return level, nil
+}
+
+func NewEncoder(encoderConf zapcore.EncoderConfig, level zap.AtomicLevel) (zapcore.Encoder, error) {
+	return &zaplog.KubeAwareEncoder{
 		Encoder: zapcore.NewJSONEncoder(encoderConf),
 		Verbose: level.Enabled(zapcore.DebugLevel),
-	}
+	}, nil
+}
 
-	zapLogger := zap.New(
+func NewSink() (zapcore.WriteSyncer, func(), error) {
+	return zap.Open("stderr")
+}
+
+func NewZapLogger(encoder zapcore.Encoder, level zap.AtomicLevel, sink zapcore.WriteSyncer) (*zap.Logger, func()) {
+	logger := zap.New(
 		zapcore.NewCore(encoder, sink, level),
 		zap.WrapCore(func(core zapcore.Core) zapcore.Core {
 			return zapcore.NewSampler(core, time.Second, 100, 100)
@@ -69,34 +78,14 @@ func New(conf *Config) FlushLogger {
 		zap.AddCallerSkip(1),
 		zap.ErrorOutput(sink),
 	)
+
+	return logger, func() {
+		_ = logger.Sync()
+	}
+}
+
+func NewLogger(zapLogger *zap.Logger) logr.Logger {
 	logger := zapr.NewLogger(zapLogger)
-
 	crlog.SetLogger(logger)
-
-	return &zapFlushLogger{
-		Logger:    crlog.Log.WithName("pullup"),
-		zapLogger: zapLogger,
-	}
-}
-
-// nolint: gochecknoglobals
-var (
-	contextKey = &struct{}{}
-	nullLogger = crlog.NullLogger{}
-)
-
-func FromContext(ctx context.Context) logr.Logger {
-	logger := ctx.Value(contextKey)
-
-	if logger != nil {
-		if logger, ok := logger.(logr.Logger); ok {
-			return logger
-		}
-	}
-
-	return nullLogger
-}
-
-func NewContext(ctx context.Context, logger logr.Logger) context.Context {
-	return context.WithValue(ctx, contextKey, logger)
+	return crlog.Log.WithName("pullup")
 }

@@ -1,4 +1,4 @@
-package webhook
+package httputil
 
 import (
 	"net/http"

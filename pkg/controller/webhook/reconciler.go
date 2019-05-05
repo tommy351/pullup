@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -22,20 +23,17 @@ const (
 )
 
 type Reconciler struct {
-	EventRecorder record.EventRecorder
-
-	client client.Client
-	logger logr.Logger
+	client   client.Client
+	logger   logr.Logger
+	recorder record.EventRecorder
 }
 
-func (r *Reconciler) InjectClient(c client.Client) error {
-	r.client = c
-	return nil
-}
-
-func (r *Reconciler) InjectLogger(l logr.Logger) error {
-	r.logger = l
-	return nil
+func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
+	return &Reconciler{
+		client:   mgr.GetClient(),
+		logger:   logger.WithName("controller").WithName("webhook"),
+		recorder: mgr.GetEventRecorderFor("pullup"),
+	}
 }
 
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
@@ -62,11 +60,11 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		set := set
 
 		if err := r.patchResourceSet(ctx, hook, &set); err != nil {
-			r.EventRecorder.Eventf(hook, corev1.EventTypeWarning, ReasonPatchFailed, "Failed to patch resource set %q: %v", set.Name, err)
+			r.recorder.Eventf(hook, corev1.EventTypeWarning, ReasonPatchFailed, "Failed to patch resource set %q: %v", set.Name, err)
 			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to patch resource set: %w", err)
 		}
 
-		r.EventRecorder.Eventf(hook, corev1.EventTypeNormal, ReasonPatched, "Patched resource set %q", set.Name)
+		r.recorder.Eventf(hook, corev1.EventTypeNormal, ReasonPatched, "Patched resource set %q", set.Name)
 	}
 
 	return reconcile.Result{}, nil

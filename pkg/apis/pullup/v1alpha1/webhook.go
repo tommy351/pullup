@@ -27,12 +27,14 @@ type WebhookList struct {
 }
 
 type WebhookSpec struct {
-	Resources []json.RawMessage `json:"resources,omitempty"`
-	GitHub    *GitHubOptions    `json:"github,omitempty"`
+	Resources    []json.RawMessage   `json:"resources,omitempty"`
+	Repositories []WebhookRepository `json:"repositories"`
+	ResourceName string              `json:"resourceName"`
+}
+
+type WebhookRepository struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
 }
 
 type WebhookStatus struct{}
-
-type GitHubOptions struct {
-	Secret string `json:"secret,omitempty"`
-}

@@ -11,6 +11,8 @@
     resourceVersion: "0"
     uid: 00000000-0000-0000-0000-000000000000
   spec:
+    base: {}
+    head: {}
     number: 46
     resources:
     - apiVersion: v1
@@ -30,6 +32,8 @@
     resourceVersion: "0"
     uid: 00000000-0000-0000-0000-000000000000
   spec:
+    base: {}
+    head: {}
     number: 64
     resources:
     - apiVersion: v1

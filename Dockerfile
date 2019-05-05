@@ -1,3 +1,4 @@
 FROM gcr.io/distroless/base
-COPY pullup /
-CMD ["/pullup"]
+ARG BINARY_NAME
+COPY $BINARY_NAME /
+CMD $BINARY_NAME

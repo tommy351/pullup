@@ -10,7 +10,7 @@ before:
     - go mod download
 
 builds:
-  - binary: pullup
+  - binary: pullup-controller
     goos:
       - darwin
       - windows
@@ -19,7 +19,21 @@ builds:
       - amd64
     env:
       - CGO_ENABLED=0
-    main: ./cmd/pullup
+    main: ./cmd/controller
+    ldflags:
+      - -s -w -X github.com/tommy351/pullup/cmd.version={{.Version}} -X github.com/tommy351/pullup/cmd.commit={{.Commit}} -X github.com/tommy351/pullup/cmd.date={{.Date}}
+  - binary: pullup-webhook
+    goos:
+      - darwin
+      - windows
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/webhook
+    ldflags:
+      - -s -w -X github.com/tommy351/pullup/cmd.version={{.Version}} -X github.com/tommy351/pullup/cmd.commit={{.Commit}} -X github.com/tommy351/pullup/cmd.date={{.Date}}
 
 archive:
   format: tar.gz
@@ -40,8 +54,21 @@ changelog:
       - '^test:'
 
 dockers:
-  - image_templates:
-      - 'tommy351/{{ .ProjectName }}:{{ .Version }}'
-      - 'tommy351/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}'
-      - 'tommy351/{{ .ProjectName }}:{{ .Major }}'
-      - 'tommy351/{{ .ProjectName }}:latest'
+  - binary: pullup-controller
+    dockerfile: Dockerfile
+    image_templates:
+      - 'tommy351/pullup-controller:{{ .Version }}'
+      - 'tommy351/pullup-controller:{{ .Major }}.{{ .Minor }}'
+      - 'tommy351/pullup-controller:{{ .Major }}'
+      - 'tommy351/pullup-controller:latest'
+    build_flag_templates:
+      - --build-arg=BINARY_NAME=pullup-controller
+  - binary: pullup-webhook
+    dockerfile: Dockerfile
+    image_templates:
+      - 'tommy351/pullup-webhook:{{ .Version }}'
+      - 'tommy351/pullup-webhook:{{ .Major }}.{{ .Minor }}'
+      - 'tommy351/pullup-webhook:{{ .Major }}'
+      - 'tommy351/pullup-webhook:latest'
+    build_flag_templates:
+      - --build-arg=BINARY_NAME=pullup-webhook
