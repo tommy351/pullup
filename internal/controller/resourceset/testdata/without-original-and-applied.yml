@@ -1,0 +1,17 @@
+---
+apiVersion: pullup.dev/v1alpha1
+kind: ResourceSet
+metadata:
+  name: test-46
+  namespace: test
+spec:
+  number: 46
+  resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: test
+      spec:
+        containers:
+          - name: foo
+            image: gcr.io/test/foo

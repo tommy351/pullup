@@ -1,0 +1,29 @@
+---
+apiVersion: pullup.dev/v1alpha1
+kind: ResourceSet
+metadata:
+  name: test-46
+  namespace: test
+spec:
+  number: 46
+  resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-46
+  namespace: test
+  ownerReferences:
+    - apiVersion: pullup.dev/v1alpha1
+      kind: ResourceSet
+      name: test-46
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  containers:
+    - name: nginx
+      image: nginx

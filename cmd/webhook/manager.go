@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/tommy351/pullup/pkg/metrics"
-	"github.com/tommy351/pullup/pkg/webhook"
-	"github.com/tommy351/pullup/pkg/webhook/github"
+	"github.com/tommy351/pullup/internal/metrics"
+	"github.com/tommy351/pullup/internal/webhook"
+	"github.com/tommy351/pullup/internal/webhook/github"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

@@ -7,11 +7,11 @@ package main
 
 import (
 	"github.com/tommy351/pullup/cmd"
-	"github.com/tommy351/pullup/pkg/controller/resourceset"
-	"github.com/tommy351/pullup/pkg/controller/webhook"
-	"github.com/tommy351/pullup/pkg/k8s"
-	"github.com/tommy351/pullup/pkg/log"
-	"github.com/tommy351/pullup/pkg/metrics"
+	"github.com/tommy351/pullup/internal/controller/resourceset"
+	"github.com/tommy351/pullup/internal/controller/webhook"
+	"github.com/tommy351/pullup/internal/k8s"
+	"github.com/tommy351/pullup/internal/log"
+	"github.com/tommy351/pullup/internal/metrics"
 )
 
 // Injectors from wire.go:

@@ -8,8 +8,8 @@ import (
 	"github.com/google/wire"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tommy351/pullup/pkg/k8s"
-	"github.com/tommy351/pullup/pkg/log"
+	"github.com/tommy351/pullup/internal/k8s"
+	"github.com/tommy351/pullup/internal/log"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

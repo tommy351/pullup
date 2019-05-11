@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/tommy351/pullup/internal/controller/resourceset"
+	"github.com/tommy351/pullup/internal/controller/webhook"
+	"github.com/tommy351/pullup/internal/k8s"
+	"github.com/tommy351/pullup/internal/metrics"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"github.com/tommy351/pullup/pkg/controller/resourceset"
-	"github.com/tommy351/pullup/pkg/controller/webhook"
-	"github.com/tommy351/pullup/pkg/k8s"
-	"github.com/tommy351/pullup/pkg/metrics"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/builder"

@@ -1,7 +1,6 @@
 package golden
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,23 +9,36 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/sergi/go-diff/diffmatchpatch"
-	"sigs.k8s.io/yaml"
 )
 
-const header = "# This is a golden file. DO NOT EDIT.\n"
+type Options struct {
+	Serializer  Serializer
+	Transformer Transformer
+}
 
-func Match(path string) types.GomegaMatcher {
+func Match(path string, options Options) types.GomegaMatcher {
 	return &goldenMatcher{
-		path: path,
+		path:        path,
+		serializer:  options.Serializer,
+		transformer: options.Transformer,
 	}
 }
 
+func MatchObject(path string) types.GomegaMatcher {
+	return Match(path, Options{
+		Serializer:  &YAMLSerializer{},
+		Transformer: &ObjectTransformer{},
+	})
+}
+
 type goldenMatcher struct {
-	path string
+	path        string
+	serializer  Serializer
+	transformer Transformer
 }
 
 func (g *goldenMatcher) Match(actual interface{}) (bool, error) {
-	actualYAML, err := g.getActualYAML(actual)
+	actualContent, err := g.getActualContent(actual)
 
 	if err != nil {
 		return false, err
@@ -36,7 +48,7 @@ func (g *goldenMatcher) Match(actual interface{}) (bool, error) {
 	shouldUpdate, _ := strconv.ParseBool(os.Getenv("UPDATE_GOLDEN"))
 
 	if !shouldUpdate {
-		if expected, err = g.getExpectedYAML(); err != nil {
+		if expected, err = g.getExpectedContent(); err != nil {
 			if !os.IsNotExist(err) {
 				return false, err
 			}
@@ -46,45 +58,39 @@ func (g *goldenMatcher) Match(actual interface{}) (bool, error) {
 	}
 
 	if shouldUpdate {
-		if err := ioutil.WriteFile(g.path, append([]byte(header), actualYAML...), os.ModePerm); err != nil {
+		if err := ioutil.WriteFile(g.path, actualContent, os.ModePerm); err != nil {
 			return false, err
 		}
 
 		return true, nil
 	}
 
-	return gomega.MatchYAML(expected).Match(actualYAML)
+	return gomega.MatchYAML(expected).Match(actualContent)
 }
 
-func (g *goldenMatcher) getExpectedYAML() ([]byte, error) {
-	data, err := ioutil.ReadFile(g.path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.TrimPrefix(data, []byte(header)), nil
+func (g *goldenMatcher) getExpectedContent() ([]byte, error) {
+	return ioutil.ReadFile(g.path)
 }
 
-func (g *goldenMatcher) getActualYAML(actual interface{}) ([]byte, error) {
-	return yaml.Marshal(actual)
+func (g *goldenMatcher) getActualContent(actual interface{}) ([]byte, error) {
+	return g.serializer.Serialize(g.transformer.Transform(actual))
 }
 
 func (g *goldenMatcher) getMessage(actual interface{}, message string) string {
-	expected, err := g.getExpectedYAML()
+	expected, err := g.getExpectedContent()
 
 	if err != nil {
 		panic(err)
 	}
 
-	actualYAML, err := g.getActualYAML(actual)
+	actualContent, err := g.getActualContent(actual)
 
 	if err != nil {
 		panic(err)
 	}
 
 	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(string(expected), string(actualYAML), false)
+	diffs := dmp.DiffMain(string(expected), string(actualContent), false)
 
 	return fmt.Sprintf("Expected %s match golden file\n\x1b[0m%s", message, dmp.DiffPrettyText(diffs))
 }

@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tommy351/pullup/cmd"
-	"github.com/tommy351/pullup/pkg/webhook"
-	"github.com/tommy351/pullup/pkg/webhook/github"
+	"github.com/tommy351/pullup/internal/webhook"
+	"github.com/tommy351/pullup/internal/webhook/github"
 )
 
 type Config struct {
