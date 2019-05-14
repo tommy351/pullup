@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func LoadObjects(scheme *runtime.Scheme, path string) ([]runtime.Object, error) {
+func LoadDocuments(path string) ([]map[string]interface{}, error) {
 	file, err := os.Open(path)
 
 	if err != nil {
@@ -25,7 +25,7 @@ func LoadObjects(scheme *runtime.Scheme, path string) ([]runtime.Object, error) 
 		return nil, xerrors.Errorf("failed to get stat of file: %w", err)
 	}
 
-	var output []runtime.Object
+	var output []map[string]interface{}
 	reader := yaml.NewDocumentDecoder(file)
 	defer reader.Close()
 
@@ -48,13 +48,25 @@ func LoadObjects(scheme *runtime.Scheme, path string) ([]runtime.Object, error) 
 			return nil, xerrors.Errorf("failed to decode data to a map: %w", err)
 		}
 
-		obj, err := ToObject(scheme, data)
+		output = append(output, data)
+	}
 
-		if err != nil {
+	return output, nil
+}
+
+func LoadObjects(scheme *runtime.Scheme, path string) (output []runtime.Object, err error) {
+	docs, err := LoadDocuments(path)
+
+	if err != nil {
+		return nil, xerrors.Errorf("failed to load documents: %w", err)
+	}
+
+	output = make([]runtime.Object, len(docs))
+
+	for i, doc := range docs {
+		if output[i], err = ToObject(scheme, doc); err != nil {
 			return nil, xerrors.Errorf("failed to decode data to an object: %w", err)
 		}
-
-		output = append(output, obj)
 	}
 
 	return output, nil

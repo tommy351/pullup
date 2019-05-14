@@ -21,7 +21,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-const nameField = "spec.repositories.githubName"
+const (
+	nameField      = "spec.repositories.githubName"
+	repoTypeGitHub = "github"
+)
 
 type Config struct {
 	Secret string `mapstructure:"secret"`
@@ -38,7 +41,7 @@ func NewHandler(conf Config, mgr manager.Manager) (*Handler, error) {
 		var result []string
 
 		for _, repo := range obj.(*v1alpha1.Webhook).Spec.Repositories {
-			if repo.Type == "github" {
+			if repo.Type == repoTypeGitHub {
 				result = append(result, repo.Name)
 			}
 		}
@@ -102,6 +105,22 @@ func (h *Handler) parsePayload(r *http.Request) (interface{}, error) {
 }
 
 func (h *Handler) handlePullRequestEvent(ctx context.Context, event *github.PullRequestEvent, hook *v1alpha1.Webhook) error {
+	repo := extractWebhookRepository(hook, event.Repo.GetFullName())
+	logger := log.FromContext(ctx).WithValues(
+		"repoName", event.Repo.FullName,
+		"webhook", hook,
+	)
+
+	if repo == nil {
+		logger.V(log.Debug).Info("Repository does not exist in the webhook")
+		return nil
+	}
+
+	if branch := event.PullRequest.Base.GetRef(); !filterWebhook(&repo.Branch, branch) {
+		logger.V(log.Debug).Info("Skipped on this branch", "branch", branch)
+		return nil
+	}
+
 	switch event.GetAction() {
 	case "opened", "reopened", "synchronize":
 		return h.applyResourceSet(ctx, event, hook)
@@ -188,11 +207,25 @@ func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequ
 	}
 
 	for _, item := range list.Items {
+		item := item
+
 		if err := h.client.Delete(ctx, &item); err != nil {
 			return xerrors.Errorf("failed to delete resource set %q: %w", item.Name, err)
 		}
 
 		logger.V(log.Debug).Info("Deleted resource set", "name", item.Name)
+	}
+
+	return nil
+}
+
+func extractWebhookRepository(hook *v1alpha1.Webhook, name string) *v1alpha1.WebhookRepository {
+	for _, r := range hook.Spec.Repositories {
+		r := r
+
+		if r.Type == repoTypeGitHub && r.Name == name {
+			return &r
+		}
 	}
 
 	return nil
