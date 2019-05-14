@@ -1,8 +1,6 @@
 package webhook
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
@@ -73,16 +71,11 @@ var _ = Describe("Reconciler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			data = testutil.MapObjects(data, namespaceMap.SetObject)
-
-			for _, obj := range data {
-				Expect(testenv.GetClient().Create(context.Background(), obj)).To(Succeed())
-			}
+			Expect(testenv.CreateObjects(data)).To(Succeed())
 		})
 
 		AfterEach(func() {
-			for _, obj := range data {
-				Expect(testenv.GetClient().Delete(context.Background(), obj)).To(Succeed())
-			}
+			Expect(testenv.DeleteObjects(data)).To(Succeed())
 		})
 
 		It("should not requeue", func() {
@@ -102,6 +95,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should record patched events", func() {
+			mgr.WaitForSync()
 			events, err := testenv.ListEvents()
 			Expect(err).NotTo(HaveOccurred())
 

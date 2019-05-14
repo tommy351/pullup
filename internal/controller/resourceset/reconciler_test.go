@@ -1,7 +1,6 @@
 package resourceset
 
 import (
-	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -10,9 +9,7 @@ import (
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
 	"github.com/tommy351/pullup/internal/testutil"
-	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -28,64 +25,12 @@ var _ = Describe("Reconciler", func() {
 		namespaceMap *random.NamespaceMap
 	)
 
-	getResourceSet := func() (*v1alpha1.ResourceSet, error) {
-		rs := new(v1alpha1.ResourceSet)
-		err := testenv.GetClient().Get(context.Background(), types.NamespacedName{
-			Namespace: namespaceMap.GetRandom("test"),
-			Name:      "test-46",
-		}, rs)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return rs, err
-	}
-
-	setOwnerReferences := func(input runtime.Object) {
-		obj, err := meta.Accessor(input)
-
-		if err != nil {
-			return
-		}
-
-		refs := obj.GetOwnerReferences()
-
-		if len(refs) == 0 {
-			return
-		}
-
-		rs, err := getResourceSet()
-
-		if err != nil {
-			return
-		}
-
-		for i, ref := range refs {
-			if ref.APIVersion == "pullup.dev/v1alpha1" && ref.Kind == "ResourceSet" && ref.Name == rs.Name {
-				refs[i].UID = rs.UID
-			}
-		}
-	}
-
 	loadTestData := func(name string) []runtime.Object {
 		data, err := testutil.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
-
 		data = testutil.MapObjects(data, namespaceMap.SetObject)
-
-		for _, obj := range data {
-			setOwnerReferences(obj)
-			Expect(testenv.GetClient().Create(context.Background(), obj)).To(Succeed())
-		}
-
+		Expect(testenv.CreateObjects(data)).To(Succeed())
 		return data
-	}
-
-	deleteObjects := func(objects []runtime.Object) {
-		for _, obj := range objects {
-			Expect(testenv.GetClient().Delete(context.Background(), obj)).To(Succeed())
-		}
 	}
 
 	testSuccess := func(name string) {
@@ -96,7 +41,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		AfterEach(func() {
-			deleteObjects(data)
+			Expect(testenv.DeleteObjects(data)).To(Succeed())
 		})
 
 		It("should not requeue", func() {
@@ -213,7 +158,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		AfterEach(func() {
-			deleteObjects(data)
+			Expect(testenv.DeleteObjects(data)).To(Succeed())
 		})
 
 		It("should not requeue", func() {
