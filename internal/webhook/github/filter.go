@@ -8,18 +8,18 @@ import (
 )
 
 func filterWebhook(filter *v1alpha1.WebhookFilter, text string) bool {
-	if len(filter.Include) > 0 && !filterConditions(filter.Include, text) {
+	if len(filter.Include) > 0 && !filterByConditions(filter.Include, text) {
 		return false
 	}
 
-	if len(filter.Exclude) > 0 && filterConditions(filter.Exclude, text) {
+	if len(filter.Exclude) > 0 && filterByConditions(filter.Exclude, text) {
 		return false
 	}
 
 	return true
 }
 
-func filterConditions(conditions []string, text string) bool {
+func filterByConditions(conditions []string, text string) bool {
 	for _, c := range conditions {
 		if strings.HasPrefix(c, "/") && strings.HasSuffix(c, "/") {
 			if matched, _ := regexp.MatchString(c[1:len(c)-1], text); matched {

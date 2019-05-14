@@ -1,0 +1,16 @@
+---
+apiVersion: pullup.dev/v1alpha1
+kind: Webhook
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  repositories:
+    - type: github
+      name: foo/bar
+  resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: foo
+  resourceName: '{{ .Webhook.Name }}-{{ .Repo.Name }}-{{ .Spec.Number }}-{{ .Spec.Head.SHA }}'

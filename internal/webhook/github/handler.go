@@ -116,7 +116,7 @@ func (h *Handler) handlePullRequestEvent(ctx context.Context, event *github.Pull
 		return nil
 	}
 
-	if branch := event.PullRequest.Base.GetRef(); !filterWebhook(&repo.Branch, branch) {
+	if branch := event.PullRequest.Base.GetRef(); !filterWebhook(&repo.Branches, branch) {
 		logger.V(log.Debug).Info("Skipped on this branch", "branch", branch)
 		return nil
 	}
@@ -197,10 +197,12 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequestEvent, hook *v1alpha1.Webhook) error {
 	list := new(v1alpha1.ResourceSetList)
 	logger := log.FromContext(ctx).WithValues("webhook", hook)
-	err := h.client.List(ctx, list, client.InNamespace(hook.Namespace), client.MatchingLabels(map[string]string{
-		k8s.LabelWebhookName:       hook.Name,
-		k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
-	}))
+	err := h.client.List(ctx, list,
+		client.InNamespace(hook.Namespace),
+		client.MatchingLabels(map[string]string{
+			k8s.LabelWebhookName:       hook.Name,
+			k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
+		}))
 
 	if err != nil {
 		return xerrors.Errorf("failed to list resource sets: %w", err)

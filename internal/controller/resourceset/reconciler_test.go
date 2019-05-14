@@ -55,8 +55,8 @@ var _ = Describe("Reconciler", func() {
 
 	testGoldenFile := func(name string) {
 		It("should match the golden file", func() {
-			events := testenv.GetChanges(reconciler.client)
-			objects, err := testenv.GetChangedObjects(events)
+			changes := testenv.GetChanges(reconciler.client)
+			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
 			Expect(objects).To(golden.MatchObject(fmt.Sprintf("testdata/%s.golden", name)))

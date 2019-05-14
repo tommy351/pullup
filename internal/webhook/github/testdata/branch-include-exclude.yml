@@ -1,0 +1,20 @@
+---
+apiVersion: pullup.dev/v1alpha1
+kind: Webhook
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  repositories:
+    - type: github
+      name: foo/bar
+      branches:
+        include:
+          - /a[bc]/
+        exclude:
+          - ac
+  resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: foo

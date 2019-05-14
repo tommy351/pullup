@@ -12,24 +12,53 @@ import (
 	"github.com/google/go-github/v25/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tommy351/pullup/internal/golden"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
+	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// nolint: gochecknoglobals
+var (
+	fakeRepoOwner         = "foo"
+	fakeRepoName          = "bar"
+	fakeRepoFullName      = fmt.Sprintf("%s/%s", fakeRepoOwner, fakeRepoName)
+	fakePullRequestNumber = 46
+)
+
+func fakePullRequestEvent() *github.PullRequestEvent {
+	return &github.PullRequestEvent{
+		Number: &fakePullRequestNumber,
+		Repo: &github.Repository{
+			Name:     &fakeRepoName,
+			FullName: &fakeRepoFullName,
+			Owner:    &github.User{Login: &fakeRepoOwner},
+		},
+		PullRequest: &github.PullRequest{
+			Base: &github.PullRequestBranch{
+				Ref: pointer.StringPtr("base"),
+				SHA: pointer.StringPtr("b436f6eb3356504235c0c9a8e74605c820d8d9cc"),
+			},
+			Head: &github.PullRequestBranch{
+				Ref: pointer.StringPtr("test"),
+				SHA: pointer.StringPtr("0ce4cf0450de14c6555c563fa9d36be67e69aa2f"),
+			},
+		},
+	}
+}
 
 var _ = Describe("Handler", func() {
 	var (
-		handler   *Handler
-		req       *http.Request
-		recorder  *httptest.ResponseRecorder
-		namespace string
-		webhook   *v1alpha1.Webhook
-		mgr       *testenv.Manager
+		handler      *Handler
+		req          *http.Request
+		recorder     *httptest.ResponseRecorder
+		mgr          *testenv.Manager
+		namespaceMap *random.NamespaceMap
 	)
 
 	newRequest := func(event string, body interface{}) *http.Request {
@@ -41,6 +70,56 @@ var _ = Describe("Handler", func() {
 		return req
 	}
 
+	loadTestData := func(name string) []runtime.Object {
+		data, err := testutil.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
+		Expect(err).NotTo(HaveOccurred())
+		data = testutil.MapObjects(data, namespaceMap.SetObject)
+		Expect(testenv.CreateObjects(data)).To(Succeed())
+		mgr.WaitForSync()
+		return data
+	}
+
+	getChanges := func() []testenv.Change {
+		return testenv.GetChanges(handler.client)
+	}
+
+	testGolden := func(name string) {
+		It("should match the golden file", func() {
+			objects, err := testenv.GetChangedObjects(getChanges())
+			Expect(err).NotTo(HaveOccurred())
+			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
+			Expect(objects).To(golden.MatchObject(fmt.Sprintf("testdata/%s.golden", name)))
+		})
+	}
+
+	testSuccess := func(name string) {
+		var data []runtime.Object
+
+		BeforeEach(func() {
+			data = loadTestData(name)
+		})
+
+		AfterEach(func() {
+			Expect(testenv.DeleteObjects(data)).To(Succeed())
+		})
+
+		It("should respond 204", func() {
+			Expect(recorder.Code).To(Equal(http.StatusNoContent))
+		})
+	}
+
+	testApplySuccess := func() {
+		When("resource set exists", func() {
+			testSuccess("resource-set-exists")
+			testGolden("apply-success")
+		})
+
+		When("resource set does not exist", func() {
+			testSuccess("resource-set-not-exist")
+			testGolden("apply-success")
+		})
+	}
+
 	BeforeEach(func() {
 		var err error
 		mgr, err = testenv.NewManager()
@@ -50,29 +129,12 @@ var _ = Describe("Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(mgr.Initialize()).To(Succeed())
-
-		namespace = random.Namespace()
-		webhook = &v1alpha1.Webhook{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "foobar",
-			},
-			Spec: v1alpha1.WebhookSpec{
-				Resources: []json.RawMessage{[]byte("{}")},
-				Repositories: []v1alpha1.WebhookRepository{
-					{
-						Type: "github",
-						Name: "foo/bar",
-					},
-				},
-			},
-		}
-		Expect(testenv.GetClient().Create(context.Background(), webhook)).To(Succeed())
 		mgr.WaitForSync()
+
+		namespaceMap = random.NewNamespaceMap()
 	})
 
 	AfterEach(func() {
-		Expect(testenv.GetClient().Delete(context.Background(), webhook)).To(Succeed())
 		mgr.Stop()
 	})
 
@@ -92,189 +154,202 @@ var _ = Describe("Handler", func() {
 	})
 
 	When("event type is pull request", func() {
-		var event *github.PullRequestEvent
-
-		newPullRequestEvent := func(action string) *github.PullRequestEvent {
-			num := 46
-			return &github.PullRequestEvent{
-				Action: pointer.StringPtr(action),
-				Number: &num,
-				Repo: &github.Repository{
-					FullName: pointer.StringPtr("foo/bar"),
-				},
-				PullRequest: &github.PullRequest{
-					Base: &github.PullRequestBranch{
-						Ref: pointer.StringPtr("master"),
-						SHA: pointer.StringPtr(random.SHA1()),
-					},
-					Head: &github.PullRequestBranch{
-						Ref: pointer.StringPtr("test"),
-						SHA: pointer.StringPtr(random.SHA1()),
-					},
-					MergeCommitSHA: pointer.StringPtr(random.SHA1()),
-				},
-			}
-		}
-
-		testApply := func() {
-			testSuccess := func() {
-				It("should respond 204", func() {
-					Expect(recorder.Code).To(Equal(http.StatusNoContent))
-				})
-
-				It("should apply the resource set", func() {
-					obj := new(v1alpha1.ResourceSet)
-					err := testenv.GetClient().Get(context.Background(), types.NamespacedName{
-						Namespace: namespace,
-						Name:      fmt.Sprintf("%s-%d", webhook.Name, event.GetNumber()),
-					}, obj)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(obj.Labels).To(Equal(map[string]string{
-						k8s.LabelWebhookName:       webhook.Name,
-						k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
-					}))
-					Expect(obj.OwnerReferences).To(ConsistOf([]metav1.OwnerReference{
-						{
-							APIVersion:         v1alpha1.SchemeGroupVersion.String(),
-							Kind:               "Webhook",
-							Name:               webhook.Name,
-							UID:                webhook.UID,
-							Controller:         pointer.BoolPtr(true),
-							BlockOwnerDeletion: pointer.BoolPtr(true),
-						},
-					}))
-					Expect(obj.Spec).To(Equal(v1alpha1.ResourceSetSpec{
-						Resources: webhook.Spec.Resources,
-						Number:    event.GetNumber(),
-						Base: v1alpha1.Commit{
-							Ref: event.PullRequest.Base.GetRef(),
-							SHA: event.PullRequest.Base.GetSHA(),
-						},
-						Head: v1alpha1.Commit{
-							Ref: event.PullRequest.Head.GetRef(),
-							SHA: event.PullRequest.Head.GetSHA(),
-						},
-					}))
-				})
-			}
-
-			When("resource set exists", func() {
-				var rs *v1alpha1.ResourceSet
-
-				BeforeEach(func() {
-					rs = &v1alpha1.ResourceSet{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespace,
-							Name:      fmt.Sprintf("%s-%d", webhook.Name, event.GetNumber()),
-							Labels: map[string]string{
-								k8s.LabelWebhookName:       webhook.Name,
-								k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
-							},
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion:         v1alpha1.SchemeGroupVersion.String(),
-									Kind:               "Webhook",
-									Name:               webhook.Name,
-									UID:                webhook.UID,
-									Controller:         pointer.BoolPtr(true),
-									BlockOwnerDeletion: pointer.BoolPtr(true),
-								},
-							},
-						},
-					}
-					Expect(testenv.GetClient().Create(context.Background(), rs)).To(Succeed())
-				})
-
-				testSuccess()
-			})
-
-			When("resource set does not exist", func() {
-				testSuccess()
+		setRequest := func(action string) {
+			BeforeEach(func() {
+				event := fakePullRequestEvent()
+				event.Action = pointer.StringPtr(action)
+				req = newRequest("pull_request", event)
 			})
 		}
 
 		When("no matching webhooks", func() {
-			BeforeEach(func() {
-				event = newPullRequestEvent("opened")
-				event.Repo.FullName = pointer.StringPtr("bar/foo")
-				req = newRequest("pull_request", event)
-			})
+			setRequest("opened")
 
 			It("should respond 204", func() {
 				Expect(recorder.Code).To(Equal(http.StatusNoContent))
 			})
 
-			It("should do nothing", func() {
-				Expect(testenv.GetChanges(handler.client)).To(BeEmpty())
+			It("should not change anything", func() {
+				Expect(getChanges()).To(BeEmpty())
 			})
 		})
 
 		When("action = opened", func() {
-			BeforeEach(func() {
-				event = newPullRequestEvent("opened")
-				req = newRequest("pull_request", event)
-			})
-
-			testApply()
+			setRequest("opened")
+			testApplySuccess()
 		})
 
 		When("action = reopened", func() {
-			BeforeEach(func() {
-				event = newPullRequestEvent("reopened")
-				req = newRequest("pull_request", event)
-			})
-
-			testApply()
+			setRequest("reopened")
+			testApplySuccess()
 		})
 
 		When("action = synchronize", func() {
-			BeforeEach(func() {
-				event = newPullRequestEvent("synchronize")
-				req = newRequest("pull_request", event)
-			})
-
-			testApply()
+			setRequest("synchronize")
+			testApplySuccess()
 		})
 
 		When("action = closed", func() {
-			BeforeEach(func() {
-				event = newPullRequestEvent("closed")
-				req = newRequest("pull_request", event)
-			})
+			var data []runtime.Object
 
-			When("resource set exists", func() {
-				var rs *v1alpha1.ResourceSet
+			getResourceSetList := func(namespace string, webhookName string, prNumber int) []v1alpha1.ResourceSet {
+				list := new(v1alpha1.ResourceSetList)
+				err := testenv.GetClient().List(context.Background(), list,
+					client.InNamespace(namespaceMap.GetRandom(namespace)),
+					client.MatchingLabels(map[string]string{
+						k8s.LabelWebhookName:       webhookName,
+						k8s.LabelPullRequestNumber: strconv.Itoa(prNumber),
+					}))
+				Expect(err).NotTo(HaveOccurred())
+				return list.Items
+			}
 
-				BeforeEach(func() {
-					rs = &v1alpha1.ResourceSet{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespace,
-							Name:      fmt.Sprintf("%s-%d", webhook.Name, event.GetNumber()),
-							Labels: map[string]string{
-								k8s.LabelWebhookName:       webhook.Name,
-								k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
-							},
-						},
-					}
-					Expect(testenv.GetClient().Create(context.Background(), rs)).To(Succeed())
-				})
-
+			testDeleteSuccess := func() {
 				It("should respond 204", func() {
 					Expect(recorder.Code).To(Equal(http.StatusNoContent))
 				})
 
-				It("should delete the resource set", func() {
-					err := testenv.GetClient().Get(context.Background(), types.NamespacedName{
-						Namespace: rs.Namespace,
-						Name:      rs.Name,
-					}, new(v1alpha1.ResourceSet))
-					Expect(errors.IsNotFound(err)).To(BeTrue())
+				It("should delete related resource sets", func() {
+					Expect(getResourceSetList("test", "foobar", fakePullRequestNumber)).To(BeEmpty())
+				})
+			}
+
+			setRequest("closed")
+
+			AfterEach(func() {
+				Expect(testenv.DeleteObjects(data)).To(Succeed())
+			})
+
+			When("resource set exists", func() {
+				BeforeEach(func() {
+					data = loadTestData("resource-set-exists")
+				})
+
+				testDeleteSuccess()
+			})
+
+			When("multiple resource sets exist", func() {
+				BeforeEach(func() {
+					data = loadTestData("multiple-resource-set")
+				})
+
+				testDeleteSuccess()
+
+				It("should not delete resource sets in other namespaces", func() {
+					Expect(getResourceSetList("baz", "foobar", 46)).NotTo(BeEmpty())
+				})
+
+				It("should not delete resource sets of other pull requests", func() {
+					Expect(getResourceSetList("test", "foobar", 47)).NotTo(BeEmpty())
+				})
+
+				It("should not delete resource sets of other webhooks", func() {
+					Expect(getResourceSetList("test", "baz", 46)).NotTo(BeEmpty())
 				})
 			})
 
 			When("resource set does not exist", func() {
-				It("should respond 204", func() {
-					Expect(recorder.Code).To(Equal(http.StatusNoContent))
+				BeforeEach(func() {
+					data = loadTestData("resource-set-not-exist")
+				})
+
+				testDeleteSuccess()
+			})
+		})
+
+		When("resource name is set", func() {
+			name := "resource-name"
+
+			setRequest("opened")
+			testSuccess(name)
+			testGolden(name)
+		})
+
+		When("branch filter is set", func() {
+			setBranch := func(branch string) {
+				BeforeEach(func() {
+					event := fakePullRequestEvent()
+					event.Action = pointer.StringPtr("opened")
+					event.PullRequest.Base.Ref = pointer.StringPtr(branch)
+					req = newRequest("pull_request", event)
+				})
+			}
+
+			testTriggered := func() {
+				It("should change something", func() {
+					Expect(getChanges()).NotTo(BeEmpty())
+				})
+			}
+
+			testSkipped := func() {
+				It("should not change anything", func() {
+					Expect(getChanges()).To(BeEmpty())
+				})
+			}
+
+			When("only include is set", func() {
+				name := "branch-include"
+
+				When("exact match", func() {
+					setBranch("foo")
+					testSuccess(name)
+					testTriggered()
+				})
+
+				When("match by regex", func() {
+					setBranch("bar-5")
+					testSuccess(name)
+					testTriggered()
+				})
+
+				When("not match", func() {
+					setBranch("baz")
+					testSuccess(name)
+					testSkipped()
+				})
+			})
+
+			When("only exclude is set", func() {
+				name := "branch-exclude"
+
+				When("exact match", func() {
+					setBranch("foo")
+					testSuccess(name)
+					testSkipped()
+				})
+
+				When("match by regex", func() {
+					setBranch("bar-5")
+					testSuccess(name)
+					testSkipped()
+				})
+
+				When("not match", func() {
+					setBranch("baz")
+					testSuccess(name)
+					testTriggered()
+				})
+			})
+
+			When("both include and exclude are set", func() {
+				name := "branch-include-exclude"
+
+				When("match include", func() {
+					setBranch("ab")
+					testSuccess(name)
+					testTriggered()
+				})
+
+				When("match both include and exclude", func() {
+					setBranch("ac")
+					testSuccess(name)
+					testSkipped()
+				})
+
+				When("not match include", func() {
+					setBranch("a")
+					testSuccess(name)
+					testSkipped()
 				})
 			})
 		})

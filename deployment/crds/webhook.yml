@@ -19,6 +19,9 @@ spec:
       properties:
         spec:
           type: object
+          required:
+            - repositories
+            - resources
           properties:
             repositories:
               type: array
@@ -30,3 +33,5 @@ spec:
               minItems: 1
               items:
                 type: object
+            resourceName:
+              type: string

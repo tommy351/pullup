@@ -34,9 +34,9 @@ type WebhookSpec struct {
 }
 
 type WebhookRepository struct {
-	Type   string        `json:"type"`
-	Name   string        `json:"name"`
-	Branch WebhookFilter `json:"branch"`
+	Type     string        `json:"type"`
+	Name     string        `json:"name"`
+	Branches WebhookFilter `json:"branches"`
 }
 
 type WebhookFilter struct {

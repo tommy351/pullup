@@ -1,0 +1,32 @@
+---
+apiVersion: pullup.dev/v1alpha1
+kind: Webhook
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  repositories:
+    - type: github
+      name: foo/bar
+  resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: foo
+---
+apiVersion: pullup.dev/v1alpha1
+kind: ResourceSet
+metadata:
+  name: foobar-46
+  namespace: test
+  labels:
+    pull-request-number: '46'
+    webhook-name: foobar
+  ownerReferences:
+    - apiVersion: pullup.dev/v1alpha1
+      kind: Webhook
+      name: foobar
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  number: 46

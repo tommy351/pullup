@@ -1,0 +1,31 @@
+- apiVersion: pullup.dev/v1alpha1
+  kind: ResourceSet
+  metadata:
+    creationTimestamp: null
+    labels:
+      pull-request-number: "46"
+      webhook-name: foobar
+    name: foobar-bar-46-0ce4cf0450de14c6555c563fa9d36be67e69aa2f
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Webhook
+      name: foobar
+      uid: ""
+    selfLink: /apis/pullup.dev/v1alpha1/namespaces/test/resourcesets/foobar-bar-46-0ce4cf0450de14c6555c563fa9d36be67e69aa2f
+  spec:
+    base:
+      ref: base
+      sha: b436f6eb3356504235c0c9a8e74605c820d8d9cc
+    head:
+      ref: test
+      sha: 0ce4cf0450de14c6555c563fa9d36be67e69aa2f
+    number: 46
+    resources:
+    - apiVersion: v1
+      kind: Pod
+      metadata:
+        name: foo
+  status: {}
