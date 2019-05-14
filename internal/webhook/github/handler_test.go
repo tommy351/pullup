@@ -250,6 +250,10 @@ var _ = Describe("Handler", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: namespace,
 							Name:      fmt.Sprintf("%s-%d", webhook.Name, event.GetNumber()),
+							Labels: map[string]string{
+								k8s.LabelWebhookName:       webhook.Name,
+								k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
+							},
 						},
 					}
 					Expect(testenv.GetClient().Create(context.Background(), rs)).To(Succeed())

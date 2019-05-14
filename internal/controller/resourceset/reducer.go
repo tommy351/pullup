@@ -1,13 +1,10 @@
 package resourceset
 
 import (
-	"bytes"
-	"html/template"
-
-	"github.com/Masterminds/sprig"
 	"github.com/tommy351/pullup/internal/reducer"
 	"github.com/tommy351/pullup/internal/reducer/collection"
 	"github.com/tommy351/pullup/internal/reducer/merge"
+	"github.com/tommy351/pullup/internal/template"
 	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -87,19 +84,7 @@ func newTemplateReducer(data interface{}) reducer.Interface {
 			return value, nil
 		}
 
-		tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(s)
-
-		if err != nil {
-			return nil, xerrors.Errorf("failed to parse template: %w", err)
-		}
-
-		var buf bytes.Buffer
-
-		if err := tmpl.Execute(&buf, data); err != nil {
-			return nil, xerrors.Errorf("failed to execute template: %w", err)
-		}
-
-		return buf.String(), nil
+		return template.Render(s, data)
 	})
 }
 

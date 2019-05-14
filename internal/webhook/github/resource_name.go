@@ -1,48 +1,29 @@
 package github
 
 import (
-	"bytes"
-	"html/template"
-
-	"github.com/Masterminds/sprig"
 	"github.com/google/go-github/v25/github"
+	"github.com/tommy351/pullup/internal/template"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"golang.org/x/xerrors"
 )
 
-const defaultResourceName = "{{ .Name }}-{{ .Number }}"
+const defaultResourceName = "{{ .Webhook.Name }}-{{ .Spec.Number }}"
 
-type nameTemplateData struct {
-	Name      string
-	RepoOwner string
-	RepoName  string
-	Number    int
+type nameTemplate struct {
+	Webhook *v1alpha1.Webhook
+	Spec    *v1alpha1.ResourceSetSpec
+	Repo    *github.Repository
 }
 
-func getResourceName(event *github.PullRequestEvent, hook *v1alpha1.Webhook) (string, error) {
+func getResourceName(event *github.PullRequestEvent, hook *v1alpha1.Webhook, rs *v1alpha1.ResourceSet) (string, error) {
 	resourceName := hook.Spec.ResourceName
 
 	if resourceName == "" {
 		resourceName = defaultResourceName
 	}
 
-	tmpl, err := template.New("").Funcs(sprig.FuncMap()).Parse(resourceName)
-
-	if err != nil {
-		return "", xerrors.Errorf("failed to parse template: %w", err)
-	}
-
-	var buf bytes.Buffer
-	data := &nameTemplateData{
-		Name:      hook.Name,
-		RepoOwner: event.Repo.GetOwner().GetLogin(),
-		RepoName:  event.Repo.GetName(),
-		Number:    event.GetNumber(),
-	}
-
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", xerrors.Errorf("failed to execute template: %w", err)
-	}
-
-	return buf.String(), nil
+	return template.Render(resourceName, &nameTemplate{
+		Webhook: hook,
+		Spec:    &rs.Spec,
+		Repo:    event.Repo,
+	})
 }

@@ -102,75 +102,97 @@ func (h *Handler) parsePayload(r *http.Request) (interface{}, error) {
 }
 
 func (h *Handler) handlePullRequestEvent(ctx context.Context, event *github.PullRequestEvent, hook *v1alpha1.Webhook) error {
-	name, err := getResourceName(event, hook)
+	switch event.GetAction() {
+	case "opened", "reopened", "synchronize":
+		return h.applyResourceSet(ctx, event, hook)
 
-	if err != nil {
-		return xerrors.Errorf("failed to get resource name: %w", err)
+	case "closed":
+		return h.deleteResourceSets(ctx, event, hook)
 	}
 
+	return nil
+}
+
+func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullRequestEvent, hook *v1alpha1.Webhook) error {
+	logger := log.FromContext(ctx).WithValues("webhook", hook)
 	rs := &v1alpha1.ResourceSet{
 		TypeMeta: k8s.GVKToTypeMeta(k8s.Kind("ResourceSet")),
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: hook.Namespace,
-			Name:      name,
-		},
-	}
-	logger := log.FromContext(ctx).WithValues("resourceSet", rs)
-
-	switch event.GetAction() {
-	case "opened", "reopened", "synchronize":
-		rs.Labels = map[string]string{
-			k8s.LabelWebhookName:       hook.Name,
-			k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
-		}
-		rs.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion:         hook.APIVersion,
-				Kind:               hook.Kind,
-				Name:               hook.Name,
-				UID:                hook.UID,
-				Controller:         pointer.BoolPtr(true),
-				BlockOwnerDeletion: pointer.BoolPtr(true),
+			Labels: map[string]string{
+				k8s.LabelWebhookName:       hook.Name,
+				k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
 			},
-		}
-		rs.Spec = v1alpha1.ResourceSetSpec{
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         hook.APIVersion,
+					Kind:               hook.Kind,
+					Name:               hook.Name,
+					UID:                hook.UID,
+					Controller:         pointer.BoolPtr(true),
+					BlockOwnerDeletion: pointer.BoolPtr(true),
+				},
+			},
+		},
+		Spec: v1alpha1.ResourceSetSpec{
 			Resources: hook.Spec.Resources,
 			Number:    event.GetNumber(),
 			Base:      branchToCommit(event.PullRequest.Base),
 			Head:      branchToCommit(event.PullRequest.Head),
+		},
+	}
+
+	var err error
+
+	if rs.Name, err = getResourceName(event, hook, rs); err != nil {
+		return xerrors.Errorf("failed to generate resource name: %w", err)
+	}
+
+	if err := h.client.Create(ctx, rs); err == nil {
+		logger.V(log.Debug).Info("Created resource set")
+		return nil
+	} else if !errors.IsAlreadyExists(err) {
+		return xerrors.Errorf("failed to create resource set: %w", err)
+	}
+
+	patch, err := json.Marshal([]k8s.JSONPatch{
+		{
+			Op:    "replace",
+			Path:  "/spec",
+			Value: rs.Spec,
+		},
+	})
+
+	if err != nil {
+		return xerrors.Errorf("failed to marshal resource set spec: %w", err)
+	}
+
+	if err := h.client.Patch(ctx, rs, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
+		return xerrors.Errorf("failed to patch resource set: %w", err)
+	}
+
+	logger.V(log.Debug).Info("Updated resource set")
+	return nil
+}
+
+func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequestEvent, hook *v1alpha1.Webhook) error {
+	list := new(v1alpha1.ResourceSetList)
+	logger := log.FromContext(ctx).WithValues("webhook", hook)
+	err := h.client.List(ctx, list, client.InNamespace(hook.Namespace), client.MatchingLabels(map[string]string{
+		k8s.LabelWebhookName:       hook.Name,
+		k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
+	}))
+
+	if err != nil {
+		return xerrors.Errorf("failed to list resource sets: %w", err)
+	}
+
+	for _, item := range list.Items {
+		if err := h.client.Delete(ctx, &item); err != nil {
+			return xerrors.Errorf("failed to delete resource set %q: %w", item.Name, err)
 		}
 
-		if err := h.client.Create(ctx, rs); err == nil {
-			logger.V(log.Debug).Info("Created resource set")
-			return nil
-		} else if !errors.IsAlreadyExists(err) {
-			return xerrors.Errorf("failed to create resource set: %w", err)
-		}
-
-		patch, err := json.Marshal([]k8s.JSONPatch{
-			{
-				Op:    "replace",
-				Path:  "/spec",
-				Value: rs.Spec,
-			},
-		})
-
-		if err != nil {
-			return xerrors.Errorf("failed to marshal resource set spec: %w", err)
-		}
-
-		if err := h.client.Patch(ctx, rs, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
-			return xerrors.Errorf("failed to patch resource set: %w", err)
-		}
-
-		logger.V(log.Debug).Info("Updated resource set")
-
-	case "closed":
-		if err := h.client.Delete(ctx, rs); err != nil && !errors.IsNotFound(err) {
-			return xerrors.Errorf("failed to delete resource set %q: %w", name, err)
-		}
-
-		logger.V(log.Debug).Info("Deleted resource set")
+		logger.V(log.Debug).Info("Deleted resource set", "name", item.Name)
 	}
 
 	return nil
