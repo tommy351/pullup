@@ -7,6 +7,7 @@ import (
 )
 
 // +genclient
+// +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type Webhook struct {
@@ -33,8 +34,14 @@ type WebhookSpec struct {
 }
 
 type WebhookRepository struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
+	Type   string        `json:"type"`
+	Name   string        `json:"name"`
+	Branch WebhookFilter `json:"branch"`
+}
+
+type WebhookFilter struct {
+	Include []string `json:"include"`
+	Exclude []string `json:"exclude"`
 }
 
 type WebhookStatus struct{}

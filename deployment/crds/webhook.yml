@@ -20,7 +20,7 @@ spec:
         spec:
           type: object
           properties:
-            sources:
+            repositories:
               type: array
               minItems: 1
               items:
