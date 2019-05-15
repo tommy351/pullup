@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"golang.org/x/xerrors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,7 +43,12 @@ func GetChangedObjects(changes []Change) ([]runtime.Object, error) {
 		obj, err := scheme.New(event.GroupVersionKind)
 
 		if err != nil {
-			return nil, xerrors.Errorf("failed to create a new object: %w", err)
+			if !runtime.IsNotRegisteredError(err) {
+				return nil, xerrors.Errorf("failed to create a new object: %w", err)
+			}
+
+			obj = new(unstructured.Unstructured)
+			obj.GetObjectKind().SetGroupVersionKind(event.GroupVersionKind)
 		}
 
 		if err := client.Get(ctx, event.NamespacedName, obj); err != nil {

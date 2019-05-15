@@ -12,8 +12,7 @@ type Transformer interface {
 	Transform(interface{}) interface{}
 }
 
-type ObjectTransformer struct {
-}
+type ObjectTransformer struct{}
 
 func (o *ObjectTransformer) Transform(input interface{}) interface{} {
 	switch input := input.(type) {
@@ -42,8 +41,12 @@ func (*ObjectTransformer) setObject(obj runtime.Object) {
 	metaObj.SetResourceVersion("")
 
 	refs := metaObj.GetOwnerReferences()
+	newRefs := make([]metav1.OwnerReference, len(refs))
 
-	for i := range refs {
-		refs[i].UID = types.UID("")
+	for i, ref := range refs {
+		newRefs[i] = ref
+		newRefs[i].UID = types.UID("")
 	}
+
+	metaObj.SetOwnerReferences(newRefs)
 }

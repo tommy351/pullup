@@ -1,7 +1,6 @@
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
-    creationTimestamp: null
     generation: 2
     labels:
       app: test

@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,8 +21,11 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 	}
 
 	refs := metaObj.GetOwnerReferences()
+	newRefs := make([]metav1.OwnerReference, len(refs))
 
 	for i, ref := range refs {
+		newRefs[i] = ref
+
 		if ref.UID == "" {
 			gv, err := schema.ParseGroupVersion(ref.APIVersion)
 
@@ -51,10 +55,11 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 				return err
 			}
 
-			refs[i].UID = refMeta.GetUID()
+			newRefs[i].UID = refMeta.GetUID()
 		}
 	}
 
+	metaObj.SetOwnerReferences(newRefs)
 	return nil
 }
 
