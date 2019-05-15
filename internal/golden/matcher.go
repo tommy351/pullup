@@ -1,14 +1,13 @@
 package golden
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 
-	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 type Options struct {
@@ -65,7 +64,7 @@ func (g *goldenMatcher) Match(actual interface{}) (bool, error) {
 		return true, nil
 	}
 
-	return gomega.MatchYAML(expected).Match(actualContent)
+	return bytes.Equal(expected, actualContent), nil
 }
 
 func (g *goldenMatcher) getExpectedContent() ([]byte, error) {
@@ -89,10 +88,7 @@ func (g *goldenMatcher) getMessage(actual interface{}, message string) string {
 		panic(err)
 	}
 
-	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(string(expected), string(actualContent), false)
-
-	return fmt.Sprintf("Expected %s match golden file\n\x1b[0m%s", message, dmp.DiffPrettyText(diffs))
+	return fmt.Sprintf("Expected %s match the golden file %q\n%s", message, g.path, Diff(string(expected), string(actualContent)))
 }
 
 func (g *goldenMatcher) FailureMessage(actual interface{}) string {
