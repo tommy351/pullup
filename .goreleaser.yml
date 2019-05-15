@@ -10,7 +10,8 @@ before:
     - go mod download
 
 builds:
-  - binary: pullup-controller
+  - &build
+    binary: pullup-controller
     goos:
       - darwin
       - windows
@@ -21,19 +22,10 @@ builds:
       - CGO_ENABLED=0
     main: ./cmd/controller
     ldflags:
-      - -s -w -X github.com/tommy351/pullup/cmd.version={{.Version}} -X github.com/tommy351/pullup/cmd.commit={{.Commit}} -X github.com/tommy351/pullup/cmd.date={{.Date}}
-  - binary: pullup-webhook
-    goos:
-      - darwin
-      - windows
-      - linux
-    goarch:
-      - amd64
-    env:
-      - CGO_ENABLED=0
+      - -s -w -X github.com/tommy351/pullup/cmd.Version={{.Version}} -X github.com/tommy351/pullup/cmd.Commit={{.Commit}} -X github.com/tommy351/pullup/cmd.Date={{.Date}}
+  - <<: *build
+    binary: pullup-webhook
     main: ./cmd/webhook
-    ldflags:
-      - -s -w -X github.com/tommy351/pullup/cmd.version={{.Version}} -X github.com/tommy351/pullup/cmd.commit={{.Commit}} -X github.com/tommy351/pullup/cmd.date={{.Date}}
 
 archive:
   format: tar.gz
