@@ -54,7 +54,8 @@ changelog:
       - '^test:'
 
 dockers:
-  - binary: pullup-controller
+  - binaries:
+      - pullup-controller
     dockerfile: Dockerfile
     image_templates:
       - 'tommy351/pullup-controller:{{ .Version }}'
@@ -63,7 +64,8 @@ dockers:
       - 'tommy351/pullup-controller:latest'
     build_flag_templates:
       - --build-arg=BINARY_NAME=pullup-controller
-  - binary: pullup-webhook
+  - binaries:
+      - pullup-webhook
     dockerfile: Dockerfile
     image_templates:
       - 'tommy351/pullup-webhook:{{ .Version }}'
