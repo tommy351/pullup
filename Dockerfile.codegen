@@ -1,8 +1,0 @@
-FROM golang:1.12
-
-RUN go get github.com/golang/mock/mockgen \
-  github.com/google/wire/cmd/wire \
-  github.com/onsi/ginkgo/ginkgo
-
-RUN mkdir -p /go/src/k8s.io && \
-  git clone -b release-1.13 https://github.com/kubernetes/code-generator.git /go/src/k8s.io/code-generator
