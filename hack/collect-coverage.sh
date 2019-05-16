@@ -1,5 +1,5 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -euo pipefail
 
-find . -type f -name *.coverprofile -exec cat {} \; > coverage.txt
+find $(dirname "${BASH_SOURCE[0]}")/.. -type f -name *.coverprofile -exec cat {} \; > coverage.txt
