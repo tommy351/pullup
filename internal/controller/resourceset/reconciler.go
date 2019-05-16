@@ -6,16 +6,15 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/internal/reducer"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"golang.org/x/xerrors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -35,32 +34,6 @@ const (
 	ReasonUnchanged       = "Unchanged"
 )
 
-type applyResult struct {
-	Error   error
-	Reason  string
-	Message string
-	Requeue bool
-}
-
-func (a applyResult) record(recorder record.EventRecorder, obj runtime.Object, data *unstructured.Unstructured) {
-	eventType := corev1.EventTypeNormal
-	msg := a.Message
-
-	if err := a.Error; err != nil {
-		eventType = corev1.EventTypeWarning
-
-		if msg == "" {
-			msg = err.Error()
-		}
-	}
-
-	recorder.AnnotatedEventf(obj, map[string]string{
-		"apiVersion": data.GetAPIVersion(),
-		"kind":       data.GetKind(),
-		"name":       data.GetName(),
-	}, eventType, a.Reason, msg)
-}
-
 type Reconciler struct {
 	client   client.Client
 	logger   logr.Logger
@@ -71,7 +44,7 @@ func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 	return &Reconciler{
 		client:   mgr.GetClient(),
 		logger:   logger.WithName("controller").WithName("resourceset"),
-		recorder: mgr.GetEventRecorderFor("pullup"),
+		recorder: mgr.GetEventRecorderFor("pullup-controller"),
 	}
 }
 
@@ -89,21 +62,28 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	ctx = log.NewContext(ctx, logger)
 
 	for i, res := range set.Spec.Resources {
-		var obj unstructured.Unstructured
+		var (
+			obj    unstructured.Unstructured
+			result controller.Result
+		)
 
-		if err := json.Unmarshal(res, &obj); err != nil {
-			r.recorder.Eventf(set, corev1.EventTypeWarning, ReasonInvalidResource, "Failed to unmarshal resource %d", i)
-			return reconcile.Result{}, xerrors.Errorf("failed to unmarshal resource %d: %w", i, err)
+		if err := json.Unmarshal(res, &obj); err == nil {
+			result = r.applyResource(ctx, set, &obj)
+		} else {
+			result = controller.Result{
+				Error:  xerrors.Errorf("failed to unmarshal resource %d: %w", i, err),
+				Reason: ReasonInvalidResource,
+			}
 		}
 
-		logger := log.FromContext(ctx).WithValues("resource", obj)
-		result := r.applyResource(log.NewContext(ctx, logger), set, &obj)
-		result.record(r.recorder, set, &obj)
+		result.RecordEvent(r.recorder)
 
 		if err := result.Error; err != nil {
-			logger.Error(err, "Failed to apply resource")
+			logger.Error(err, result.GetMessage())
 			return reconcile.Result{Requeue: result.Requeue}, err
 		}
+
+		logger.Info(result.GetMessage())
 	}
 
 	return reconcile.Result{}, nil
@@ -121,12 +101,13 @@ func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersio
 	return obj, nil
 }
 
-func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, obj *unstructured.Unstructured) *applyResult {
+func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, obj *unstructured.Unstructured) controller.Result {
 	logger := log.FromContext(ctx)
 	gv, err := schema.ParseGroupVersion(obj.GetAPIVersion())
 
 	if err != nil {
-		return &applyResult{
+		return controller.Result{
+			Object: set,
 			Error:  xerrors.Errorf("invalid API version: %w", err),
 			Reason: ReasonInvalidResource,
 		}
@@ -141,7 +122,8 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
 
 	if err != nil {
-		return &applyResult{
+		return controller.Result{
+			Object: set,
 			Error:  xerrors.Errorf("failed to render template: %w", err),
 			Reason: ReasonInvalidResource,
 		}
@@ -153,7 +135,8 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	})
 
 	if err != nil && !errors.IsNotFound(err) {
-		return &applyResult{
+		return controller.Result{
+			Object:  set,
 			Error:   xerrors.Errorf("failed to get original resource: %w", err),
 			Reason:  ReasonFailed,
 			Requeue: true,
@@ -166,7 +149,8 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	})
 
 	if err != nil && !errors.IsNotFound(err) {
-		return &applyResult{
+		return controller.Result{
+			Object:  set,
 			Error:   xerrors.Errorf("failed to get last applied resource: %w", err),
 			Reason:  ReasonFailed,
 			Requeue: true,
@@ -174,7 +158,8 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	}
 
 	if applied != nil && !metav1.IsControlledBy(applied, set) {
-		return &applyResult{
+		return controller.Result{
+			Object: set,
 			Error:  xerrors.Errorf("resource already exists and is not managed by pullup: %s", getResourceName(applied)),
 			Reason: ReasonResourceExists,
 		}
@@ -239,7 +224,8 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	patch, err := reducers.Reduce(nil)
 
 	if err != nil {
-		return &applyResult{
+		return controller.Result{
+			Object: set,
 			Error:  xerrors.Errorf("failed to reduce patches: %w", err),
 			Reason: ReasonInvalidResource,
 		}
@@ -253,41 +239,42 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	if applied != nil {
 		if equal(data, applied) {
-			logger.V(log.Debug).Info("Skipped resource")
-			return &applyResult{
+			return controller.Result{
+				Object:  set,
 				Reason:  ReasonUnchanged,
-				Message: "Skipped resource " + getResourceName(data),
+				Message: fmt.Sprintf("Skipped resource %s", getResourceName(data)),
 			}
 		}
 
 		if err := r.client.Update(ctx, data); err != nil {
-			return &applyResult{
+			return controller.Result{
+				Object:  set,
 				Error:   xerrors.Errorf("failed to update resource: %w", err),
 				Reason:  ReasonUpdateFailed,
 				Requeue: true,
 			}
 		}
 
-		logger.V(log.Debug).Info("Updated resource")
-		return &applyResult{
+		return controller.Result{
+			Object:  set,
 			Reason:  ReasonUpdated,
-			Message: "Updated resource " + getResourceName(data),
+			Message: fmt.Sprintf("Updated resource %s", getResourceName(data)),
 		}
 	}
 
 	if err := r.client.Create(ctx, data); err != nil {
-		return &applyResult{
+		return controller.Result{
+			Object:  set,
 			Error:   xerrors.Errorf("failed to create resource: %w", err),
 			Reason:  ReasonCreateFailed,
 			Requeue: true,
 		}
 	}
 
-	logger.V(log.Debug).Info("Created resource")
-
-	return &applyResult{
+	return controller.Result{
+		Object:  set,
 		Reason:  ReasonCreated,
-		Message: "Created resource " + getResourceName(data),
+		Message: fmt.Sprintf("Created resource %s", getResourceName(data)),
 	}
 }
 

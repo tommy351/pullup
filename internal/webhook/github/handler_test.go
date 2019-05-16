@@ -12,12 +12,14 @@ import (
 	"github.com/google/go-github/v25/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 	"github.com/tommy351/pullup/internal/golden"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -92,6 +94,13 @@ var _ = Describe("Handler", func() {
 		})
 	}
 
+	expectEventsTo := func(matcher types.GomegaMatcher) {
+		mgr.WaitForSync()
+		events, err := testenv.ListEvents()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(testenv.MapEventData(events)).To(matcher)
+	}
+
 	testSuccess := func(name string) {
 		var data []runtime.Object
 
@@ -112,11 +121,27 @@ var _ = Describe("Handler", func() {
 		When("resource set exists", func() {
 			testSuccess("resource-set-exists")
 			testGolden("apply-success")
+
+			It("should record Updated event", func() {
+				expectEventsTo(ContainElement(testenv.EventData{
+					Type:    v1.EventTypeNormal,
+					Reason:  ReasonUpdated,
+					Message: "Updated resource set: foobar-46",
+				}))
+			})
 		})
 
 		When("resource set does not exist", func() {
 			testSuccess("resource-set-not-exist")
 			testGolden("apply-success")
+
+			It("should record Created event", func() {
+				expectEventsTo(ContainElement(testenv.EventData{
+					Type:    v1.EventTypeNormal,
+					Reason:  ReasonCreated,
+					Message: "Created resource set: foobar-46",
+				}))
+			})
 		})
 	}
 
@@ -226,6 +251,14 @@ var _ = Describe("Handler", func() {
 				})
 
 				testDeleteSuccess()
+
+				It("should record Deleted event", func() {
+					expectEventsTo(ContainElement(testenv.EventData{
+						Type:    v1.EventTypeNormal,
+						Reason:  ReasonDeleted,
+						Message: "Deleted resource sets: foobar-46",
+					}))
+				})
 			})
 
 			When("multiple resource sets exist", func() {
@@ -246,6 +279,14 @@ var _ = Describe("Handler", func() {
 				It("should not delete resource sets of other webhooks", func() {
 					Expect(getResourceSetList("test", "baz", 46)).NotTo(BeEmpty())
 				})
+
+				It("should record Deleted event", func() {
+					expectEventsTo(ContainElement(testenv.EventData{
+						Type:    v1.EventTypeNormal,
+						Reason:  ReasonDeleted,
+						Message: "Deleted resource sets: foobar-46-a, foobar-46-b",
+					}))
+				})
 			})
 
 			When("resource set does not exist", func() {
@@ -254,6 +295,14 @@ var _ = Describe("Handler", func() {
 				})
 
 				testDeleteSuccess()
+
+				It("should record Deleted event", func() {
+					expectEventsTo(ContainElement(testenv.EventData{
+						Type:    v1.EventTypeNormal,
+						Reason:  ReasonDeleted,
+						Message: "No matching resource sets to delete",
+					}))
+				})
 			})
 		})
 

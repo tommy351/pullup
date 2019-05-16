@@ -3,13 +3,14 @@ package webhook
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"golang.org/x/xerrors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,7 +33,7 @@ func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 	return &Reconciler{
 		client:   mgr.GetClient(),
 		logger:   logger.WithName("controller").WithName("webhook"),
-		recorder: mgr.GetEventRecorderFor("pullup"),
+		recorder: mgr.GetEventRecorderFor("pullup-controller"),
 	}
 }
 
@@ -58,21 +59,22 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 
 	for _, set := range list.Items {
 		set := set
+		result := r.patchResourceSet(ctx, hook, &set)
 
-		if err := r.patchResourceSet(ctx, hook, &set); err != nil {
-			r.recorder.Eventf(hook, corev1.EventTypeWarning, ReasonPatchFailed, "Failed to patch resource set %q: %v", set.Name, err)
-			return reconcile.Result{Requeue: true}, xerrors.Errorf("failed to patch resource set: %w", err)
+		result.RecordEvent(r.recorder)
+
+		if err := result.Error; err != nil {
+			logger.Error(err, result.GetMessage())
+			return reconcile.Result{Requeue: result.Requeue}, err
 		}
 
-		r.recorder.Eventf(hook, corev1.EventTypeNormal, ReasonPatched, "Patched resource set %q", set.Name)
+		logger.Info(result.GetMessage())
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) error {
-	logger := log.FromContext(ctx).WithValues("resourceSet", set)
-
+func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) controller.Result {
 	patch, err := json.Marshal([]k8s.JSONPatch{
 		{
 			Op:    "replace",
@@ -82,13 +84,25 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 	})
 
 	if err != nil {
-		return xerrors.Errorf("failed to marshal json patch: %w", err)
+		return controller.Result{
+			Object: webhook,
+			Error:  xerrors.Errorf("failed to marshal json patch: %w", err),
+			Reason: ReasonPatchFailed,
+		}
 	}
 
 	if err := r.client.Patch(ctx, set, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
-		return xerrors.Errorf("failed to patch the resource set: %w", err)
+		return controller.Result{
+			Object:  webhook,
+			Error:   xerrors.Errorf("failed to patch the resource set: %w", err),
+			Reason:  ReasonPatchFailed,
+			Requeue: true,
+		}
 	}
 
-	logger.V(log.Debug).Info("Patched resource set")
-	return nil
+	return controller.Result{
+		Object:  webhook,
+		Message: fmt.Sprintf("Patched resource set %q", set.Name),
+		Reason:  ReasonPatched,
+	}
 }
