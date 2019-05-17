@@ -8,16 +8,20 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: pullup
-      role: controller
+      app: controller
+      release: pullup
   template:
     metadata:
       labels:
-        app: pullup
-        role: controller
+        app: controller
+        release: pullup
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9100"
+        prometheus.io/scrape: "true"
     spec:
       containers:
-        - name: pullup-controller
+        - name: controller
           image: tommy351/pullup-controller
           ports:
             - name: metrics
@@ -38,16 +42,20 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: pullup
-      role: webhook
+      app: webhook
+      release: pullup
   template:
     metadata:
       labels:
-        app: pullup
-        role: webhook
+        app: webhook
+        release: pullup
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9100"
+        prometheus.io/scrape: "true"
     spec:
       containers:
-        - name: pullup-webhook
+        - name: webhook
           image: tommy351/pullup-webhook
           ports:
             - name: webhook

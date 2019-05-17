@@ -6,8 +6,8 @@ metadata:
   namespace: pullup
 spec:
   selector:
-    app: pullup
-    role: webhook
+    app: webhook
+    release: pullup
   ports:
     - port: 80
       targetPort: 8080
