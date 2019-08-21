@@ -80,7 +80,9 @@ func (h *Handler) handle(w http.ResponseWriter, r *http.Request) error {
 
 	if event, ok := payload.(*github.PullRequestEvent); ok {
 		list := new(v1alpha1.WebhookList)
-		err = h.client.List(r.Context(), list, client.MatchingField(nameField, event.Repo.GetFullName()))
+		err = h.client.List(r.Context(), list, client.MatchingFields(map[string]string{
+			nameField: event.Repo.GetFullName(),
+		}))
 
 		if err != nil {
 			return xerrors.Errorf("failed to find matching webhooks: %w", err)
