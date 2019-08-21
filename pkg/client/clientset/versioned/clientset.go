@@ -28,8 +28,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	PullupV1alpha1() pullupv1alpha1.PullupV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Pullup() pullupv1alpha1.PullupV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -41,12 +39,6 @@ type Clientset struct {
 
 // PullupV1alpha1 retrieves the PullupV1alpha1Client
 func (c *Clientset) PullupV1alpha1() pullupv1alpha1.PullupV1alpha1Interface {
-	return c.pullupV1alpha1
-}
-
-// Deprecated: Pullup retrieves the default version of PullupClient.
-// Please explicitly pick a version.
-func (c *Clientset) Pullup() pullupv1alpha1.PullupV1alpha1Interface {
 	return c.pullupV1alpha1
 }
 

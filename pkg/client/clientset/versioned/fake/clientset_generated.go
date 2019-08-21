@@ -75,8 +75,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) PullupV1alpha1() pullupv1alpha1.PullupV1alpha1Interface {
 	return &fakepullupv1alpha1.FakePullupV1alpha1{Fake: &c.Fake}
 }
-
-// Pullup retrieves the PullupV1alpha1Client
-func (c *Clientset) Pullup() pullupv1alpha1.PullupV1alpha1Interface {
-	return &fakepullupv1alpha1.FakePullupV1alpha1{Fake: &c.Fake}
-}

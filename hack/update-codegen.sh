@@ -26,3 +26,6 @@ go get github.com/google/wire/cmd/wire
 
 echo "Generate Go files"
 go generate ./...
+
+echo "Removing unused modules"
+go mod tidy
