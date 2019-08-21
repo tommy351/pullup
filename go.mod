@@ -23,7 +23,7 @@ require (
 	github.com/google/go-github/v25 v25.0.2
 	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/google/wire v0.2.2
+	github.com/google/wire v0.3.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190509032623-7892efa714f1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
@@ -71,7 +71,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0-20190511064136-65be33f408e6 // indirect
 	k8s.io/apimachinery v0.0.0-20190511063452-5b67e417bf61
 	k8s.io/client-go v11.0.0+incompatible
-	k8s.io/code-generator v0.0.0-20190511023357-639c964206c2 // indirect
+	k8s.io/code-generator v0.0.0-20190820100531-4a676795660b // indirect
 	k8s.io/kube-openapi v0.0.0-20190510232812-a01b7d5d6c22 // indirect
 	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
 	sigs.k8s.io/controller-runtime v0.2.0-alpha.0
