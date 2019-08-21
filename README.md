@@ -23,7 +23,7 @@ kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/crds/
 kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/crds/resource-set.yml
 ```
 
-Create a new service account and RBAC if it is enabled on your Kubernetes cluster. This enables Pullup to access Pullup resources.
+Create a new service account and RBAC if it is enabled on your Kubernetes cluster. This enables Pullup to access Pullup resources and the leader election.
 
 ```sh
 kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/rbac.yml
