@@ -43,7 +43,7 @@ func (r *recorderWriter) append(changeType string, obj runtime.Object) {
 	})
 }
 
-func (r *recorderWriter) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOptionFunc) error {
+func (r *recorderWriter) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
 	if err := r.writer.Create(ctx, obj, opts...); err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (r *recorderWriter) Create(ctx context.Context, obj runtime.Object, opts ..
 	return nil
 }
 
-func (r *recorderWriter) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOptionFunc) error {
+func (r *recorderWriter) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
 	if err := r.writer.Delete(ctx, obj, opts...); err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (r *recorderWriter) Delete(ctx context.Context, obj runtime.Object, opts ..
 	return nil
 }
 
-func (r *recorderWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOptionFunc) error {
+func (r *recorderWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
 	if err := r.writer.Update(ctx, obj, opts...); err != nil {
 		return err
 	}
@@ -70,12 +70,21 @@ func (r *recorderWriter) Update(ctx context.Context, obj runtime.Object, opts ..
 	return nil
 }
 
-func (r *recorderWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOptionFunc) error {
+func (r *recorderWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
 	if err := r.writer.Patch(ctx, obj, patch, opts...); err != nil {
 		return err
 	}
 
 	r.append("patch", obj)
+	return nil
+}
+
+func (r *recorderWriter) DeleteAllOf(ctx context.Context, obj runtime.Object, opts ...client.DeleteAllOfOption) error {
+	if err := r.writer.DeleteAllOf(ctx, obj, opts...); err != nil {
+		return err
+	}
+
+	r.append("delete", obj)
 	return nil
 }
 

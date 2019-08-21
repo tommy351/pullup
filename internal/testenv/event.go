@@ -13,7 +13,7 @@ type EventData struct {
 	Message string
 }
 
-func ListEvents(options ...client.ListOptionFunc) ([]corev1.Event, error) {
+func ListEvents(options ...client.ListOption) ([]corev1.Event, error) {
 	list := new(corev1.EventList)
 
 	if err := GetClient().List(context.Background(), list, options...); err != nil {
