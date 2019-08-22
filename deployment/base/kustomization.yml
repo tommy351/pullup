@@ -1,6 +1,6 @@
 resources:
-  - crd-webhook.yml
-  - crd-resourceset.yml
+  - ../crds/webhook.yml
+  - ../crds/resourceset.yml
   - service-account.yml
   - rbac.yml
   - deployment-controller.yml
