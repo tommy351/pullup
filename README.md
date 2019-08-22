@@ -1,4 +1,4 @@
-# pullup
+# Pullup
 
 [![GitHub release](https://img.shields.io/github/release/tommy351/pullup.svg)](https://github.com/tommy351/pullup/releases) [![CircleCI](https://circleci.com/gh/tommy351/pullup/tree/master.svg?style=svg)](https://circleci.com/gh/tommy351/pullup/tree/master) [![codecov](https://codecov.io/gh/tommy351/pullup/branch/master/graph/badge.svg)](https://codecov.io/gh/tommy351/pullup)
 
@@ -10,40 +10,27 @@ Pullup requires Kubernetes 1.7 and later which supports Custom Resource Definiti
 
 ## Installation
 
-First, create a new namespace.
+Install Pullup CRDs and components in `pullup` namespace.
 
 ```sh
-kubectl create namespace pullup
+# Install the latest version
+kubectl apply -f https://github.com/tommy351/pullup/releases/latest/download/pullup-deployment.yml
+
+# Install a specific version
+kubectl apply -f https://github.com/tommy351/pullup/releases/download/v0.3.3/pullup-deployment.yml
 ```
 
-Install CRDs.
+The YAML file is generated with [kustomize](https://github.com/kubernetes-sigs/kustomize). You can see source files in [deployment](deployment) folder. It contains:
 
-```sh
-kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/crds/webhook.yml
-kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/crds/resource-set.yml
-```
-
-Create a new service account and RBAC if it is enabled on your Kubernetes cluster.
-
-```sh
-kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/rbac.yml
-```
-
-Create deployments. This will create two deployments. One is the controller that monitoring resource changes and the other is a HTTP server receiving GitHub events.
-
-```sh
-kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/deployment.yml
-```
-
-Create a new service exposing the webhook server. You may need to change the service type based on your need.
-
-```sh
-kubectl apply -f https://github.com/tommy351/pullup/blob/master/deployment/service.yml
-```
+- Pullup custom resource definitions (CRD).
+- A Service account.
+- RBAC for accessing Pullup CRD, writing events and the leader election.
+- Deployments of the controller and the webhook.
+- A service exposing the webhook server.
 
 ## RBAC
 
-Besides the RBAC settings you have installed in the previous section, you also have to grant access of the resources that you defined in webhooks. If your Kubernetes cluster is not RBAC enabled, you can skip this section.
+After Pullup is installed, you have to grant access of the resources that you defined in webhooks. If your Kubernetes cluster is not RBAC enabled, you can skip this section.
 
 You have to create `Role` and `RoleBinding` (or `ClusterRole` and `ClusterRoleBinding` for all namespaces), set `verbs` to `["get", "create", "update"]` for each kind of resources and bind the role to the pullup service account.
 
