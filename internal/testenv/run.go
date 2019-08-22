@@ -27,7 +27,7 @@ func RunSpecsInEnvironment(t *testing.T, desc string) {
 		},
 		CRDInstallOptions: envtest.CRDInstallOptions{
 			Paths: []string{
-				filepath.Join(ProjectDir(), "deployment", "crds"),
+				filepath.Join(ProjectDir(), "deployment", "base", "crds"),
 			},
 		},
 	}
