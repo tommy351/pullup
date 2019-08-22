@@ -48,9 +48,11 @@ jobs:
       - run: curl -sL https://git.io/goreleaser | bash
       - run:
           name: Upload the deployment file
-          command: ./hack/generate-versioned-deployment.sh $(echo $CIRCLE_TAG | sed 's/^v//') | go run ./hack/publish-deployment
+          command: |
+            ./hack/generate-versioned-deployment.sh $(echo $CIRCLE_TAG | sed 's/^v//') > $ASSET_PATH
+            go run ./hack/publish-deployment
           environment:
-            ASSET_NAME: pullup-deployment.yml
+            ASSET_PATH: ./dist/pullup-deployment.yml
 
 workflows:
   version: 2
