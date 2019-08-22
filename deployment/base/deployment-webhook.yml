@@ -1,43 +1,7 @@
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pullup-controller
-  namespace: pullup
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: controller
-      release: pullup
-  template:
-    metadata:
-      labels:
-        app: controller
-        release: pullup
-      annotations:
-        prometheus.io/path: /metrics
-        prometheus.io/port: "9100"
-        prometheus.io/scrape: "true"
-    spec:
-      containers:
-        - name: controller
-          image: tommy351/pullup-controller
-          ports:
-            - name: metrics
-              containerPort: 9100
-          env:
-            - name: KUBERNETES_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-      serviceAccountName: pullup
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pullup-webhook
-  namespace: pullup
 spec:
   replicas: 1
   selector:
