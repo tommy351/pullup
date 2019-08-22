@@ -24,19 +24,17 @@ builds:
     main: ./cmd/controller
     ldflags:
       - -s -w -X github.com/tommy351/pullup/cmd.Version={{.Version}} -X github.com/tommy351/pullup/cmd.Commit={{.Commit}} -X github.com/tommy351/pullup/cmd.Date={{.Date}}
-    hooks:
-      post: ./hack/generate-versioned-deployment.sh {{ .Version }}
   - <<: *build
     id: pullup-webhook
     binary: pullup-webhook
     main: ./cmd/webhook
 
-archive:
-  format: tar.gz
-  name_template: '{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-  format_overrides:
-    - goos: windows
-      format: zip
+archives:
+  - format: tar.gz
+    name_template: '{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format_overrides:
+      - goos: windows
+        format: zip
 
 checksum:
   name_template: '{{ .ProjectName }}-checksums.txt'
