@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+export GO111MODULE="on"
+
 go get k8s.io/code-generator/cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." ; pwd)"
