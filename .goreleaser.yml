@@ -23,6 +23,8 @@ builds:
     main: ./cmd/controller
     ldflags:
       - -s -w -X github.com/tommy351/pullup/cmd.Version={{.Version}} -X github.com/tommy351/pullup/cmd.Commit={{.Commit}} -X github.com/tommy351/pullup/cmd.Date={{.Date}}
+    hooks:
+      post: ./hack/generate-versioned-deployment.sh {{ .Version }}
   - <<: *build
     binary: pullup-webhook
     main: ./cmd/webhook
