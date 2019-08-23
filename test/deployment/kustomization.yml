@@ -3,5 +3,18 @@ bases:
 
 resources:
   - namespace.yml
+  - job-e2e.yml
+
+patches:
+  - path: patch-webhook.yml
+    target:
+      kind: Deployment
+      name: pullup-webhook
 
 namespace: pullup-test
+
+images:
+  - name: tommy351/pullup-controller
+    newName: pullup-controller
+  - name: tommy351/pullup-webhook
+    newName: pullup-webhook

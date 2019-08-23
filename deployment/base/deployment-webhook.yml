@@ -21,6 +21,7 @@ spec:
       containers:
         - name: webhook
           image: tommy351/pullup-webhook
+          imagePullPolicy: IfNotPresent
           ports:
             - name: webhook
               containerPort: 8080

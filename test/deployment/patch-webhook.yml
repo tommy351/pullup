@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pullup-webhook
+spec:
+  template:
+    spec:
+      containers:
+        - name: webhook
+          ports:
+            - name: webhook
+              containerPort: 4000
+            - $patch: delete
+              containerPort: 8080
+          env:
+            - name: WEBHOOK_ADDRESS
+              value: :4000
