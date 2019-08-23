@@ -34,6 +34,28 @@ jobs:
       - store_test_results:
           path: reports/junit
       - run: bash <(curl -s https://codecov.io/bash)
+  test_e2e:
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - run:
+          name: Update environment
+          command: |
+            echo 'export GOROOT=/usr/local/go' >> $BASH_ENV
+            echo 'export PATH=$GOROOT/bin:$PATH' >> $BASH_ENV
+            sudo ln -s /home/circleci/.go_workspace /go
+      - run:
+          name: Update to Go 1.12
+          working_directory: /tmp
+          command: |
+            wget https://dl.google.com/go/go1.12.linux-amd64.tar.gz
+            sudo rm -rf /usr/local/go
+            sudo tar -C /usr/local -xzf go1.12.linux-amd64.tar.gz
+      - checkout
+      - go_get
+      - run: hack/download-test-assets.sh
+      - run: test/scripts/build-images.sh
+      - run: test/scripts/kind/run.sh
   release:
     docker:
       - image: circleci/golang:1.12
@@ -66,10 +88,15 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - test_e2e:
+          filters:
+            tags:
+              only: /.*/
       - release:
           requires:
             - lint
             - test_go
+            - test_e2e
           filters:
             branches:
               ignore: /.*/

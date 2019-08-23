@@ -28,10 +28,12 @@ dest_dir="${1:-"${test_framework_dir}/assets/bin"}"
 etcd_dest="${dest_dir}/etcd"
 kubectl_dest="${dest_dir}/kubectl"
 kube_apiserver_dest="${dest_dir}/kube-apiserver"
+kind_dest="${dest_dir}/kind"
+kustomize_dest="${dest_dir}/kustomize"
 
 echo "About to download a couple of binaries. This might take a while..."
 
-mkdir -p $dest_dir
+mkdir -p "$dest_dir"
 curl $quiet "${BASE_URL}/etcd-${os}-${arch}" --output "$etcd_dest"
 curl $quiet "${BASE_URL}/kube-apiserver-${os}-${arch}" --output "$kube_apiserver_dest"
 
@@ -39,7 +41,13 @@ kubectl_version="$(curl $quiet https://storage.googleapis.com/kubernetes-release
 kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/${os_lowercase}/amd64/kubectl"
 curl $quiet "$kubectl_url" --output "$kubectl_dest"
 
-chmod +x "$etcd_dest" "$kubectl_dest" "$kube_apiserver_dest"
+kind_version=v0.5.1
+curl $quiet -L "https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${os_lowercase}-amd64" --output "$kind_dest"
+
+kustomize_version=v3.1.0
+curl $quiet -L "https://github.com/kubernetes-sigs/kustomize/releases/download/${kustomize_version}/kustomize_$(echo -n $kustomize_version | sed 's/^v//')_${os_lowercase}_amd64" --output "$kustomize_dest"
+
+chmod +x "$etcd_dest" "$kubectl_dest" "$kube_apiserver_dest" "$kind_dest" "$kustomize_dest"
 
 echo    "# destination:"
 echo    "#   ${dest_dir}"
@@ -47,3 +55,5 @@ echo    "# versions:"
 echo -n "#   etcd:            "; "$etcd_dest" --version | head -n 1
 echo -n "#   kube-apiserver:  "; "$kube_apiserver_dest" --version
 echo -n "#   kubectl:         "; "$kubectl_dest" version --client --short
+echo -n "#   kind:            "; "$kind_dest" --version
+echo -n "#   kustomize:       "; "$kustomize_dest" version

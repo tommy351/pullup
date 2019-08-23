@@ -1,0 +1,7 @@
+bases:
+  - ../../deployment/base
+
+resources:
+  - namespace.yml
+
+namespace: pullup-test
