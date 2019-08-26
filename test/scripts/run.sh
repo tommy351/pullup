@@ -25,7 +25,8 @@ do
   kubectl wait -n "$NAMESPACE" --for=condition=available --timeout=60s "$deploy"
 done
 
+# Print job logs
+kubectl logs -n "$NAMESPACE" -f job/test-pullup-e2e
+
 # Wait until the job completed
-go run "${PROJECT_ROOT}/test/scripts/wait-for-job" \
-  --job test-pullup-e2e \
-  --namespace "$NAMESPACE"
+kubectl wait -n "$NAMESPACE" --for=condition=complete --timeout=5s job/test-pullup-e2e

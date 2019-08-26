@@ -16,19 +16,16 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+// nolint: gochecknoglobals
 var (
 	webhookHost = os.Getenv("WEBHOOK_SERVICE_NAME")
 	webhookName = os.Getenv("WEBHOOK_NAME")
-)
-
-var backoff = wait.Backoff{
-	Duration: time.Second,
-	Factor:   2,
-	Jitter:   0.1,
-	Steps:    10,
-}
-
-var (
+	backoff     = wait.Backoff{
+		Duration: time.Second,
+		Factor:   2,
+		Jitter:   0.1,
+		Steps:    10,
+	}
 	logger *zap.Logger
 	event  *github.PullRequestEvent
 )
@@ -59,8 +56,16 @@ func main() {
 func waitUntilWebhookReady() error {
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		res, err := http.Get(fmt.Sprintf("http://%s/healthz", webhookHost))
-		logger.Warn("Webhook is not ready yet", zap.Error(err))
-		return res != nil && res.StatusCode == http.StatusOK, nil
+
+		if err != nil {
+			logger.Warn("Webhook is not ready yet", zap.Error(err))
+			return false, nil
+		}
+
+		// nolint: errcheck
+		defer res.Body.Close()
+
+		return res.StatusCode == http.StatusOK, nil
 	})
 
 	if err != nil {
@@ -122,6 +127,8 @@ func triggerWebhook() error {
 		return xerrors.Errorf("failed to send the request: %w", err)
 	}
 
+	defer res.Body.Close()
+
 	if res.StatusCode != http.StatusNoContent {
 		return xerrors.Errorf("http response error: %d", res.StatusCode)
 	}
@@ -135,9 +142,16 @@ func validateService() error {
 
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		res, err := http.Get(fmt.Sprintf("http://%s/test", name))
-		logger.Warn("Service is not ready yet", zap.Error(err))
 
-		if res != nil && res.StatusCode == http.StatusOK {
+		if err != nil {
+			logger.Warn("Service is not ready yet", zap.Error(err))
+			return false, nil
+		}
+
+		// nolint: errcheck
+		defer res.Body.Close()
+
+		if res.StatusCode == http.StatusOK {
 			if v := res.Header.Get("X-Resource-Name"); v != name {
 				return false, xerrors.Errorf("expected header X-Resource-Name to be %s, got %q", name, v)
 			}
