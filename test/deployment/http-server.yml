@@ -1,0 +1,40 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-server
+spec:
+  selector:
+    matchLabels:
+      app: http-server
+  template:
+    metadata:
+      labels:
+        app: http-server
+    spec:
+      containers:
+        - name: http-server
+          image: pullup-http-server
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          livenessProbe:
+            httpGet:
+              port: http
+              path: /
+          readinessProbe:
+            httpGet:
+              port: http
+              path: /
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-server
+spec:
+  selector:
+    app: http-server
+  ports:
+    - port: 80
+      targetPort: http

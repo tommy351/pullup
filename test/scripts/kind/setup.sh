@@ -4,7 +4,7 @@ set -euo pipefail
 
 source $(dirname ${BASH_SOURCE[0]})/base.sh
 
-TEST_IMAGES=(pullup-controller pullup-webhook pullup-test-e2e)
+TEST_IMAGES=(pullup-controller pullup-webhook pullup-e2e pullup-http-server)
 
 # Create kind cluster if not exists
 if ! kind get clusters | grep -lq "$KIND_CLUSTER_NAME"

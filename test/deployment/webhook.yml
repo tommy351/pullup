@@ -1,0 +1,33 @@
+apiVersion: pullup.dev/v1alpha1
+kind: Webhook
+metadata:
+  name: http-server
+spec:
+  repositories:
+    - name: foo/bar
+      type: github
+  resources:
+    - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: $(HTTP_SERVER_DEPLOYMENT_NAME)
+      spec:
+        selector:
+          matchLabels:
+            app: '{{ .Name }}'
+        template:
+          metadata:
+            labels:
+              app: '{{ .Name }}'
+          spec:
+            containers:
+              - env:
+                  - name: RESOURCE_NAME
+                    value: '{{ .Name }}'
+    - apiVersion: v1
+      kind: Service
+      metadata:
+        name: $(HTTP_SERVER_SERVICE_NAME)
+      spec:
+        selector:
+          app: '{{ .Name }}'

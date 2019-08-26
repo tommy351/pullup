@@ -22,4 +22,5 @@ function build_image {
 mkdir -p "$BIN_DIR"
 build_image pullup-controller "${CMD_DIR}/controller"
 build_image pullup-webhook "${CMD_DIR}/webhook"
-build_image pullup-test-e2e "${PROJECT_ROOT}/test/e2e"
+build_image pullup-e2e "${PROJECT_ROOT}/test/e2e"
+build_image pullup-http-server "${PROJECT_ROOT}/test/http-server"

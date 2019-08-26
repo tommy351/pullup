@@ -1,13 +1,18 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: pullup-test-e2e
+  name: pullup-e2e
 spec:
   backoffLimit: 0
   template:
     spec:
       restartPolicy: Never
       containers:
-        - name: pullup-test-e2e
-          image: pullup-test-e2e
+        - name: pullup-e2e
+          image: pullup-e2e
           imagePullPolicy: IfNotPresent
+          env:
+            - name: WEBHOOK_SERVICE_NAME
+              value: $(WEBHOOK_SERVICE_NAME)
+            - name: WEBHOOK_NAME
+              value: $(WEBHOOK_NAME)
