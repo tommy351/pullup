@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v29/github"
 	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"

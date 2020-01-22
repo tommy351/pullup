@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v29/github"
 	"github.com/tommy351/pullup/internal/httputil"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"

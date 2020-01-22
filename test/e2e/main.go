@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v29/github"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"

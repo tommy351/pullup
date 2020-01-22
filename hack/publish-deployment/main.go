@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v29/github"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )

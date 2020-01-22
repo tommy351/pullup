@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v29/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"

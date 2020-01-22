@@ -13,7 +13,7 @@ require (
 	github.com/go-logr/zapr v0.1.1
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/google/go-cmp v0.3.1
-	github.com/google/go-github/v25 v25.1.3
+	github.com/google/go-github/v29 v29.0.2
 	github.com/google/uuid v1.1.1
 	github.com/google/wire v0.4.0
 	github.com/googleapis/gnostic v0.3.1 // indirect
