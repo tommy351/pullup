@@ -15,7 +15,7 @@ require (
 	github.com/google/go-cmp v0.3.1
 	github.com/google/go-github/v25 v25.1.3
 	github.com/google/uuid v1.1.1
-	github.com/google/wire v0.3.0
+	github.com/google/wire v0.4.0
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gophercloud/gophercloud v0.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
