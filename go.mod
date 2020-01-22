@@ -1,6 +1,6 @@
 module github.com/tommy351/pullup
 
-go 1.12
+go 1.13
 
 require (
 	cloud.google.com/go v0.44.3 // indirect
@@ -24,7 +24,6 @@ require (
 	github.com/justinas/alice v0.0.0-20171023064455-03f45bd4b7da
 	github.com/logrusorgru/aurora v0.0.0-20190803045625-94edacc10f9b
 	github.com/magiconair/properties v1.8.1 // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.9.0
 	github.com/onsi/gomega v1.6.0
 	github.com/pborman/uuid v1.2.0 // indirect
