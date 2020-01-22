@@ -14,18 +14,18 @@ commands:
 jobs:
   lint:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.13
     steps:
       - checkout
       - go_get
       - run:
           name: Install golangci-lint
-          command: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.15.0
+          command: curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s v1.23.1
       - run: ./bin/golangci-lint run
       - run: ./hack/verify-codegen.sh
   test_go:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.13
     steps:
       - checkout
       - go_get
@@ -45,12 +45,12 @@ jobs:
             echo 'export PATH=$GOROOT/bin:$PATH' >> $BASH_ENV
             sudo ln -s /home/circleci/.go_workspace /go
       - run:
-          name: Update to Go 1.12
+          name: Update to Go 1.13
           working_directory: /tmp
           command: |
-            wget https://dl.google.com/go/go1.12.linux-amd64.tar.gz
+            wget https://dl.google.com/go/go1.13.linux-amd64.tar.gz
             sudo rm -rf /usr/local/go
-            sudo tar -C /usr/local -xzf go1.12.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.13.linux-amd64.tar.gz
       - checkout
       - go_get
       - run: hack/download-test-assets.sh
@@ -58,7 +58,7 @@ jobs:
       - run: test/scripts/kind/run.sh
   release:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.13
     steps:
       - checkout
       - setup_remote_docker

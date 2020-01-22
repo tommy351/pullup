@@ -3,6 +3,11 @@ linters:
   disable:
     - lll
     - interfacer
+    - gomnd
+    - godox
+    - dogsled
+    - funlen
+    - wsl
   fast: false
 
 issues:
@@ -11,3 +16,7 @@ issues:
       text: "weak cryptographic primitive"
       linters:
         - gosec
+
+run:
+  skip-dirs:
+    - pkg/client
