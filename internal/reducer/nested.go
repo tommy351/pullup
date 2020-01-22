@@ -1,13 +1,13 @@
 package reducer
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
-var ErrNotMap = xerrors.New("expected a map")
+var ErrNotMap = errors.New("expected a map")
 
 func assertMapKind(v reflect.Value) error {
 	if v.Kind() == reflect.Map {
@@ -46,7 +46,7 @@ func ReduceNested(keys []string, reducer Interface) Interface {
 		newValue, err := reducer.Reduce(orig)
 
 		if err != nil {
-			return nil, xerrors.Errorf("reduce error at key %s: %w", strings.Join(keys, "."), err)
+			return nil, fmt.Errorf("reduce error at key %s: %w", strings.Join(keys, "."), err)
 		}
 
 		parent.SetMapIndex(reflect.ValueOf(keys[len(keys)-1]), reflect.ValueOf(newValue))

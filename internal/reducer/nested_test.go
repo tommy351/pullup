@@ -1,9 +1,10 @@
 package reducer
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/xerrors"
 )
 
 var _ = Describe("ReduceNested", func() {
@@ -74,7 +75,7 @@ var _ = Describe("ReduceNested", func() {
 		})
 
 		When("reducer returns an error", func() {
-			reduceErr := xerrors.New("reduce error")
+			reduceErr := errors.New("reduce error")
 
 			BeforeEach(func() {
 				reducer = ReduceNested([]string{"a", "b", "c"}, Func(func(value interface{}) (interface{}, error) {
@@ -88,7 +89,7 @@ var _ = Describe("ReduceNested", func() {
 
 			It("should return the error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(xerrors.Is(err, reduceErr)).To(BeTrue())
+				Expect(errors.Is(err, reduceErr)).To(BeTrue())
 			})
 		})
 	})
@@ -111,7 +112,7 @@ var _ = Describe("ReduceNested", func() {
 
 		It("should return the error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(xerrors.Is(err, ErrNotMap)).To(BeTrue())
+			Expect(errors.Is(err, ErrNotMap)).To(BeTrue())
 		})
 	})
 })

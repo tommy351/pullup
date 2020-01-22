@@ -1,11 +1,12 @@
 package resourceset
 
 import (
+	"errors"
+
 	"github.com/tommy351/pullup/internal/reducer"
 	"github.com/tommy351/pullup/internal/reducer/collection"
 	"github.com/tommy351/pullup/internal/reducer/merge"
 	"github.com/tommy351/pullup/internal/template"
-	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -25,7 +26,7 @@ func deleteKeys(keys []string) reducer.Interface {
 		output, err := filter.Reduce(input)
 
 		if err != nil {
-			if !xerrors.Is(err, reducer.ErrNotMap) {
+			if !errors.Is(err, reducer.ErrNotMap) {
 				return nil, err
 			}
 

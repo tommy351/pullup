@@ -1,9 +1,8 @@
 package merge
 
 import (
+	"fmt"
 	"reflect"
-
-	"golang.org/x/xerrors"
 )
 
 func (m *Merger) mergeMap(input, source reflect.Value) (interface{}, error) {
@@ -31,7 +30,7 @@ func (m *Merger) mergeMap(input, source reflect.Value) (interface{}, error) {
 			newValue, err := m.Func(inputValue.Interface(), iter.Value().Interface())
 
 			if err != nil {
-				return nil, xerrors.Errorf("merge error at key %v: %w", iter.Key().Interface(), err)
+				return nil, fmt.Errorf("merge error at key %v: %w", iter.Key().Interface(), err)
 			}
 
 			output.SetMapIndex(iter.Key(), reflect.ValueOf(newValue))

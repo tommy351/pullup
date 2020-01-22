@@ -1,9 +1,10 @@
 package reducer
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/xerrors"
 )
 
 var _ = Describe("Func", func() {
@@ -36,7 +37,7 @@ var _ = Describe("Func", func() {
 	})
 
 	When("func returns an error", func() {
-		reduceErr := xerrors.New("reduce err")
+		reduceErr := errors.New("reduce err")
 
 		BeforeEach(func() {
 			reducer = Func(func(_ interface{}) (interface{}, error) {
@@ -50,7 +51,7 @@ var _ = Describe("Func", func() {
 
 		It("should return the error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(xerrors.Is(err, reduceErr)).To(BeTrue())
+			Expect(errors.Is(err, reduceErr)).To(BeTrue())
 		})
 	})
 })
@@ -86,7 +87,7 @@ var _ = Describe("Reducers", func() {
 	})
 
 	When("func returns an error", func() {
-		reduceErr := xerrors.New("reduce err")
+		reduceErr := errors.New("reduce err")
 
 		BeforeEach(func() {
 			reducer = Reducers{
@@ -102,7 +103,7 @@ var _ = Describe("Reducers", func() {
 
 		It("should return the error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(xerrors.Is(err, reduceErr)).To(BeTrue())
+			Expect(errors.Is(err, reduceErr)).To(BeTrue())
 		})
 	})
 })

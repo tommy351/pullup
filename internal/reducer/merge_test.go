@@ -1,9 +1,10 @@
 package reducer
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/xerrors"
 )
 
 var _ = Describe("Merge", func() {
@@ -63,7 +64,7 @@ var _ = Describe("MergeWith", func() {
 	})
 
 	When("func returns an error", func() {
-		mergeErr := xerrors.New("merge err")
+		mergeErr := errors.New("merge err")
 
 		BeforeEach(func() {
 			reducer = MergeWith(nil, func(input, source interface{}) (interface{}, error) {
@@ -77,7 +78,7 @@ var _ = Describe("MergeWith", func() {
 
 		It("should have no errors", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(xerrors.Is(err, mergeErr)).To(BeTrue())
+			Expect(errors.Is(err, mergeErr)).To(BeTrue())
 		})
 	})
 })

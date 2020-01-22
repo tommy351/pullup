@@ -1,7 +1,8 @@
 package reducer
 
 import (
-	"golang.org/x/xerrors"
+	"errors"
+	"fmt"
 )
 
 func DeepMapValue(fn MapFunc) Interface {
@@ -17,11 +18,11 @@ func DeepMapValue(fn MapFunc) Interface {
 		reducedValue, err := reducer.Reduce(newValue)
 
 		if err != nil {
-			if xerrors.Is(err, ErrNotArrayOrMap) {
+			if errors.Is(err, ErrNotArrayOrMap) {
 				return newValue, nil
 			}
 
-			return nil, xerrors.Errorf("deep map error: %w", err)
+			return nil, fmt.Errorf("deep map error: %w", err)
 		}
 
 		return reducedValue, nil

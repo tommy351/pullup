@@ -1,13 +1,13 @@
 package github
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/google/go-github/v25/github"
 	"github.com/tommy351/pullup/internal/httputil"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,7 +54,7 @@ func NewHandler(conf Config, mgr manager.Manager) (*Handler, error) {
 	})
 
 	if err != nil {
-		return nil, xerrors.Errorf("failed to index field: %w", err)
+		return nil, fmt.Errorf("failed to index field: %w", err)
 	}
 
 	h := &Handler{
@@ -85,7 +85,7 @@ func (h *Handler) handle(w http.ResponseWriter, r *http.Request) error {
 		}))
 
 		if err != nil {
-			return xerrors.Errorf("failed to find matching webhooks: %w", err)
+			return fmt.Errorf("failed to find matching webhooks: %w", err)
 		}
 
 		for _, hook := range list.Items {
@@ -93,7 +93,7 @@ func (h *Handler) handle(w http.ResponseWriter, r *http.Request) error {
 			hook.SetGroupVersionKind(k8s.Kind("Webhook"))
 
 			if err := h.handlePullRequestEvent(r.Context(), event, &hook); err != nil {
-				return xerrors.Errorf("failed to handle pull request event: %w", err)
+				return fmt.Errorf("failed to handle pull request event: %w", err)
 			}
 		}
 	}

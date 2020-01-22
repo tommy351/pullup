@@ -1,9 +1,9 @@
 package merge
 
 import (
+	"fmt"
 	"reflect"
 
-	"golang.org/x/xerrors"
 	"k8s.io/utils/integer"
 )
 
@@ -25,7 +25,7 @@ func (m *Merger) mergeArray(input, source reflect.Value) (interface{}, error) {
 				newValue, err := m.Func(input.Index(i).Interface(), source.Index(i).Interface())
 
 				if err != nil {
-					return nil, xerrors.Errorf("merge error at index %d: %w", i, err)
+					return nil, fmt.Errorf("merge error at index %d: %w", i, err)
 				}
 
 				output.Index(i).Set(reflect.ValueOf(newValue))

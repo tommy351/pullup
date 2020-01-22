@@ -1,10 +1,10 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/justinas/alice"
-	"golang.org/x/xerrors"
 )
 
 func Recovery(handler func(w http.ResponseWriter, r *http.Request, err error)) alice.Constructor {
@@ -15,7 +15,7 @@ func Recovery(handler func(w http.ResponseWriter, r *http.Request, err error)) a
 					if e, ok := err.(error); ok {
 						handler(w, r, e)
 					} else {
-						handler(w, r, xerrors.Errorf("recovered from panic: %w", err))
+						handler(w, r, fmt.Errorf("recovered from panic: %+v", err))
 					}
 				}
 			}()

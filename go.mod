@@ -41,7 +41,6 @@ require (
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
-	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
 	k8s.io/api v0.0.0-20190820101039-d651a1528133
 	k8s.io/apiextensions-apiserver v0.0.0-20190820104113-47893d27d7f7 // indirect
 	k8s.io/apimachinery v0.0.0-20190820100751-ac02f8882ef6

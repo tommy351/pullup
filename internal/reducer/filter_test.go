@@ -1,9 +1,10 @@
 package reducer
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/xerrors"
 )
 
 var _ = Describe("FilterKey", func() {
@@ -28,7 +29,7 @@ var _ = Describe("FilterKey", func() {
 	}
 
 	expectFuncError := func() {
-		filterErr := xerrors.New("filter error")
+		filterErr := errors.New("filter error")
 
 		BeforeEach(func() {
 			reducer = FilterKey(func(_ interface{}) (bool, error) {
@@ -42,7 +43,7 @@ var _ = Describe("FilterKey", func() {
 
 		It("should return the error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(xerrors.Is(err, filterErr)).To(BeTrue())
+			Expect(errors.Is(err, filterErr)).To(BeTrue())
 		})
 	}
 
@@ -81,7 +82,7 @@ var _ = Describe("FilterKey", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(xerrors.Is(err, ErrNotMap)).To(BeTrue())
+				Expect(errors.Is(err, ErrNotMap)).To(BeTrue())
 			})
 		}
 

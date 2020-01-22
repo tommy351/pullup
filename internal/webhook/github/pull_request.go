@@ -12,7 +12,6 @@ import (
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -93,7 +92,7 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 	if rs.Name, err = getResourceName(event, hook, rs); err != nil {
 		return controller.Result{
 			Object: hook,
-			Error:  xerrors.Errorf("failed to generate resource name: %w", err),
+			Error:  fmt.Errorf("failed to generate resource name: %w", err),
 			Reason: ReasonInvalidWebhook,
 		}
 	}
@@ -107,7 +106,7 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 	} else if !errors.IsAlreadyExists(err) {
 		return controller.Result{
 			Object: hook,
-			Error:  xerrors.Errorf("failed to create resource set: %w", err),
+			Error:  fmt.Errorf("failed to create resource set: %w", err),
 			Reason: ReasonCreateFailed,
 		}
 	}
@@ -123,7 +122,7 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 	if err != nil {
 		return controller.Result{
 			Object: hook,
-			Error:  xerrors.Errorf("failed to marshal resource set spec: %w", err),
+			Error:  fmt.Errorf("failed to marshal resource set spec: %w", err),
 			Reason: ReasonUpdateFailed,
 		}
 	}
@@ -131,7 +130,7 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 	if err := h.client.Patch(ctx, rs, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
 		return controller.Result{
 			Object: hook,
-			Error:  xerrors.Errorf("failed to patch resource set: %w", err),
+			Error:  fmt.Errorf("failed to patch resource set: %w", err),
 			Reason: ReasonUpdateFailed,
 		}
 	}
@@ -155,7 +154,7 @@ func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequ
 	if err != nil {
 		return controller.Result{
 			Object: hook,
-			Error:  xerrors.Errorf("failed to list resource sets: %w", err),
+			Error:  fmt.Errorf("failed to list resource sets: %w", err),
 			Reason: ReasonDeleteFailed,
 		}
 	}
@@ -176,7 +175,7 @@ func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequ
 		if err := h.client.Delete(ctx, &item); err != nil && !errors.IsNotFound(err) {
 			return controller.Result{
 				Object: hook,
-				Error:  xerrors.Errorf("failed to delete resource set: %w", err),
+				Error:  fmt.Errorf("failed to delete resource set: %w", err),
 				Reason: ReasonDeleteFailed,
 			}
 		}

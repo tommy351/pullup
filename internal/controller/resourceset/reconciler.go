@@ -11,7 +11,6 @@ import (
 	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/internal/reducer"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
-	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -53,7 +52,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	ctx := context.Background()
 
 	if err := r.client.Get(ctx, req.NamespacedName, set); err != nil {
-		return reconcile.Result{}, xerrors.Errorf("failed to get resource set: %w", err)
+		return reconcile.Result{}, fmt.Errorf("failed to get resource set: %w", err)
 	}
 
 	set.SetGroupVersionKind(k8s.Kind("ResourceSet"))
@@ -71,7 +70,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 			result = r.applyResource(ctx, set, &obj)
 		} else {
 			result = controller.Result{
-				Error:  xerrors.Errorf("failed to unmarshal resource %d: %w", i, err),
+				Error:  fmt.Errorf("failed to unmarshal resource %d: %w", i, err),
 				Reason: ReasonInvalidResource,
 			}
 		}
@@ -108,7 +107,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if err != nil {
 		return controller.Result{
 			Object: set,
-			Error:  xerrors.Errorf("invalid API version: %w", err),
+			Error:  fmt.Errorf("invalid API version: %w", err),
 			Reason: ReasonInvalidResource,
 		}
 	}
@@ -124,7 +123,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if err != nil {
 		return controller.Result{
 			Object: set,
-			Error:  xerrors.Errorf("failed to render template: %w", err),
+			Error:  fmt.Errorf("failed to render template: %w", err),
 			Reason: ReasonInvalidResource,
 		}
 	}
@@ -137,7 +136,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.Result{
 			Object:  set,
-			Error:   xerrors.Errorf("failed to get original resource: %w", err),
+			Error:   fmt.Errorf("failed to get original resource: %w", err),
 			Reason:  ReasonFailed,
 			Requeue: true,
 		}
@@ -151,7 +150,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.Result{
 			Object:  set,
-			Error:   xerrors.Errorf("failed to get last applied resource: %w", err),
+			Error:   fmt.Errorf("failed to get last applied resource: %w", err),
 			Reason:  ReasonFailed,
 			Requeue: true,
 		}
@@ -160,7 +159,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if applied != nil && !metav1.IsControlledBy(applied, set) {
 		return controller.Result{
 			Object: set,
-			Error:  xerrors.Errorf("resource already exists and is not managed by pullup: %s", getResourceName(applied)),
+			Error:  fmt.Errorf("resource already exists and is not managed by pullup: %s", getResourceName(applied)),
 			Reason: ReasonResourceExists,
 		}
 	}
@@ -226,7 +225,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if err != nil {
 		return controller.Result{
 			Object: set,
-			Error:  xerrors.Errorf("failed to reduce patches: %w", err),
+			Error:  fmt.Errorf("failed to reduce patches: %w", err),
 			Reason: ReasonInvalidResource,
 		}
 	}
@@ -249,7 +248,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		if err := r.client.Update(ctx, data); err != nil {
 			return controller.Result{
 				Object:  set,
-				Error:   xerrors.Errorf("failed to update resource: %w", err),
+				Error:   fmt.Errorf("failed to update resource: %w", err),
 				Reason:  ReasonUpdateFailed,
 				Requeue: true,
 			}
@@ -265,7 +264,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if err := r.client.Create(ctx, data); err != nil {
 		return controller.Result{
 			Object:  set,
-			Error:   xerrors.Errorf("failed to create resource: %w", err),
+			Error:   fmt.Errorf("failed to create resource: %w", err),
 			Reason:  ReasonCreateFailed,
 			Requeue: true,
 		}

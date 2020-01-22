@@ -1,7 +1,7 @@
 package reducer
 
 import (
-	"golang.org/x/xerrors"
+	"fmt"
 )
 
 type Interface interface {
@@ -22,7 +22,7 @@ func (r Reducers) Reduce(input interface{}) (interface{}, error) {
 
 	for i, v := range r {
 		if output, err = v.Reduce(output); err != nil {
-			return nil, xerrors.Errorf("reducer #%d returns an error: %w", i, err)
+			return nil, fmt.Errorf("reducer #%d returns an error: %w", i, err)
 		}
 	}
 

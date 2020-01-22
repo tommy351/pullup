@@ -1,9 +1,10 @@
 package reducer
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/xerrors"
 )
 
 var _ = Describe("MapValue", func() {
@@ -28,7 +29,7 @@ var _ = Describe("MapValue", func() {
 	}
 
 	expectFuncError := func() {
-		mapErr := xerrors.New("map error")
+		mapErr := errors.New("map error")
 
 		BeforeEach(func() {
 			reducer = MapValue(func(_ interface{}) (interface{}, error) {
@@ -42,7 +43,7 @@ var _ = Describe("MapValue", func() {
 
 		It("should return the error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(xerrors.Is(err, mapErr)).To(BeTrue())
+			Expect(errors.Is(err, mapErr)).To(BeTrue())
 		})
 	}
 
@@ -102,7 +103,7 @@ var _ = Describe("MapValue", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(xerrors.Is(err, ErrNotArrayOrMap)).To(BeTrue())
+				Expect(errors.Is(err, ErrNotArrayOrMap)).To(BeTrue())
 			})
 		}
 

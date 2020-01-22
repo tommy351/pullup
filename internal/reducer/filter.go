@@ -1,9 +1,8 @@
 package reducer
 
 import (
+	"fmt"
 	"reflect"
-
-	"golang.org/x/xerrors"
 )
 
 type FilterFunc func(interface{}) (bool, error)
@@ -24,7 +23,7 @@ func FilterKey(fn FilterFunc) Interface {
 			ok, err := fn(key)
 
 			if err != nil {
-				return nil, xerrors.Errorf("filter error at key %v: %w", key, err)
+				return nil, fmt.Errorf("filter error at key %v: %w", key, err)
 			}
 
 			if ok {

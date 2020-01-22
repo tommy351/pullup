@@ -1,9 +1,10 @@
 package reducer
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/xerrors"
 )
 
 var _ = Describe("DeepMapValue", func() {
@@ -24,7 +25,7 @@ var _ = Describe("DeepMapValue", func() {
 	}
 
 	expectFuncError := func() {
-		mapErr := xerrors.New("map error")
+		mapErr := errors.New("map error")
 
 		BeforeEach(func() {
 			reducer = DeepMapValue(func(_ interface{}) (interface{}, error) {
@@ -38,7 +39,7 @@ var _ = Describe("DeepMapValue", func() {
 
 		It("should return the error", func() {
 			Expect(err).To(HaveOccurred())
-			Expect(xerrors.Is(err, mapErr)).To(BeTrue())
+			Expect(errors.Is(err, mapErr)).To(BeTrue())
 		})
 	}
 

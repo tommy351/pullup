@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-github/v25/github"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"golang.org/x/xerrors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/pointer"
 )
@@ -69,7 +68,7 @@ func waitUntilWebhookReady() error {
 	})
 
 	if err != nil {
-		return xerrors.Errorf("webhook is not ready: %w", err)
+		return fmt.Errorf("webhook is not ready: %w", err)
 	}
 
 	logger.Info("Webhook is ready")
@@ -108,13 +107,13 @@ func triggerWebhook() error {
 	var buf bytes.Buffer
 
 	if err := json.NewEncoder(&buf).Encode(event); err != nil {
-		return xerrors.Errorf("failed to encode the body: %w", err)
+		return fmt.Errorf("failed to encode the body: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s/webhooks/github", webhookHost), &buf)
 
 	if err != nil {
-		return xerrors.Errorf("failed to build the request: %w", err)
+		return fmt.Errorf("failed to build the request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -124,13 +123,13 @@ func triggerWebhook() error {
 	res, err := http.DefaultClient.Do(req)
 
 	if err != nil {
-		return xerrors.Errorf("failed to send the request: %w", err)
+		return fmt.Errorf("failed to send the request: %w", err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusNoContent {
-		return xerrors.Errorf("http response error: %d", res.StatusCode)
+		return fmt.Errorf("http response error: %d", res.StatusCode)
 	}
 
 	logger.Info("Webhook is triggered")
@@ -153,7 +152,7 @@ func validateService() error {
 
 		if res.StatusCode == http.StatusOK {
 			if v := res.Header.Get("X-Resource-Name"); v != name {
-				return false, xerrors.Errorf("expected header X-Resource-Name to be %s, got %q", name, v)
+				return false, fmt.Errorf("expected header X-Resource-Name to be %s, got %q", name, v)
 			}
 
 			return true, nil
@@ -163,7 +162,7 @@ func validateService() error {
 	})
 
 	if err != nil {
-		return xerrors.Errorf("invalid service: %w", err)
+		return fmt.Errorf("invalid service: %w", err)
 	}
 
 	logger.Info("Service is valid")
