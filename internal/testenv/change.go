@@ -3,6 +3,7 @@ package testenv
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +31,13 @@ func GetChanges(c interface{}) []Change {
 		recorder = c.Writer.(Recorder)
 	}
 
-	return recorder.Changes()
+	changes := recorder.Changes()
+
+	sort.SliceStable(changes, func(i, j int) bool {
+		return changes[i].NamespacedName.String() < changes[j].NamespacedName.String()
+	})
+
+	return changes
 }
 
 func GetChangedObjects(changes []Change) ([]runtime.Object, error) {

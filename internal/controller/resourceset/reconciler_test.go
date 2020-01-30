@@ -65,13 +65,8 @@ var _ = Describe("Reconciler", func() {
 
 	testEvent := func(expected ...testenv.EventData) {
 		It("should record event", func() {
-			mgr.WaitForSync()
-
-			events, err := testenv.ListEvents()
-			Expect(err).NotTo(HaveOccurred())
-
 			for _, e := range expected {
-				Expect(testenv.MapEventData(events)).To(ContainElement(e))
+				Expect(mgr.WaitForEvent(e)).To(BeTrue())
 			}
 		})
 	}
@@ -83,7 +78,6 @@ var _ = Describe("Reconciler", func() {
 
 		reconciler = NewReconciler(mgr, log.NullLogger{})
 		Expect(mgr.Initialize()).To(Succeed())
-		mgr.WaitForSync()
 
 		namespaceMap = random.NewNamespaceMap()
 	})

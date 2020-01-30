@@ -30,7 +30,6 @@ var _ = Describe("Reconciler", func() {
 
 		reconciler = NewReconciler(mgr, log.NullLogger{})
 		Expect(mgr.Initialize()).To(Succeed())
-		mgr.WaitForSync()
 
 		namespaceMap = random.NewNamespaceMap()
 	})
@@ -95,22 +94,17 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should record patched events", func() {
-			mgr.WaitForSync()
-			events, err := testenv.ListEvents()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(mgr.WaitForEvent(testenv.EventData{
+				Type:    corev1.EventTypeNormal,
+				Reason:  ReasonPatched,
+				Message: `Patched resource set "bar-46"`,
+			})).To(BeTrue())
 
-			Expect(testenv.MapEventData(events)).To(SatisfyAll(
-				ContainElement(testenv.EventData{
-					Type:    corev1.EventTypeNormal,
-					Reason:  ReasonPatched,
-					Message: `Patched resource set "bar-46"`,
-				}),
-				ContainElement(testenv.EventData{
-					Type:    corev1.EventTypeNormal,
-					Reason:  ReasonPatched,
-					Message: `Patched resource set "bar-64"`,
-				}),
-			))
+			Expect(mgr.WaitForEvent(testenv.EventData{
+				Type:    corev1.EventTypeNormal,
+				Reason:  ReasonPatched,
+				Message: `Patched resource set "bar-64"`,
+			})).To(BeTrue())
 		})
 	})
 })

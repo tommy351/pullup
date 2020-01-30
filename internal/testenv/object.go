@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 )
 
 func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
@@ -63,6 +64,24 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
 
+func waitForObject(ctx context.Context, obj runtime.Object) error {
+	client := GetClient()
+	metaObj, err := meta.Accessor(obj)
+
+	if err != nil {
+		return err
+	}
+
+	key := types.NamespacedName{
+		Namespace: metaObj.GetNamespace(),
+		Name:      metaObj.GetName(),
+	}
+
+	return retry.OnError(retry.DefaultRetry, errors.IsNotFound, func() error {
+		return client.Get(ctx, key, obj.DeepCopyObject())
+	})
+}
+
 func CreateObjects(objects []runtime.Object) error {
 	ctx := context.Background()
 	client := GetClient()
@@ -73,6 +92,10 @@ func CreateObjects(objects []runtime.Object) error {
 		}
 
 		if err := client.Create(ctx, obj); err != nil {
+			return err
+		}
+
+		if err := waitForObject(ctx, obj); err != nil {
 			return err
 		}
 	}

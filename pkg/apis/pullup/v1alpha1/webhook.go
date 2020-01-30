@@ -45,3 +45,8 @@ type WebhookFilter struct {
 }
 
 type WebhookStatus struct{}
+
+// nolint: gochecknoinits
+func init() {
+	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
+}

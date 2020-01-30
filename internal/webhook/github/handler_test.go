@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-github/v29/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/types"
 	"github.com/tommy351/pullup/internal/golden"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
@@ -65,7 +64,7 @@ var _ = Describe("Handler", func() {
 
 	newRequest := func(event string, body interface{}) *http.Request {
 		var buf bytes.Buffer
-		Expect(json.NewEncoder(&buf).Encode(body)).NotTo(HaveOccurred())
+		Expect(json.NewEncoder(&buf).Encode(body)).To(Succeed())
 		req := httptest.NewRequest(http.MethodPost, "/", &buf)
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Github-Event", event)
@@ -77,7 +76,6 @@ var _ = Describe("Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		data = testutil.MapObjects(data, namespaceMap.SetObject)
 		Expect(testenv.CreateObjects(data)).To(Succeed())
-		mgr.WaitForSync()
 		return data
 	}
 
@@ -92,13 +90,6 @@ var _ = Describe("Handler", func() {
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
 			Expect(objects).To(golden.MatchObject(fmt.Sprintf("testdata/%s.golden", name)))
 		})
-	}
-
-	expectEventsTo := func(matcher types.GomegaMatcher) {
-		mgr.WaitForSync()
-		events, err := testenv.ListEvents()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(testenv.MapEventData(events)).To(matcher)
 	}
 
 	testSuccess := func(name string) {
@@ -123,11 +114,11 @@ var _ = Describe("Handler", func() {
 			testGolden("apply-success")
 
 			It("should record Updated event", func() {
-				expectEventsTo(ContainElement(testenv.EventData{
+				Expect(mgr.WaitForEvent(testenv.EventData{
 					Type:    v1.EventTypeNormal,
 					Reason:  ReasonUpdated,
 					Message: "Updated resource set: foobar-46",
-				}))
+				})).To(BeTrue())
 			})
 		})
 
@@ -136,11 +127,11 @@ var _ = Describe("Handler", func() {
 			testGolden("apply-success")
 
 			It("should record Created event", func() {
-				expectEventsTo(ContainElement(testenv.EventData{
+				Expect(mgr.WaitForEvent(testenv.EventData{
 					Type:    v1.EventTypeNormal,
 					Reason:  ReasonCreated,
 					Message: "Created resource set: foobar-46",
-				}))
+				})).To(BeTrue())
 			})
 		})
 	}
@@ -154,18 +145,17 @@ var _ = Describe("Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(mgr.Initialize()).To(Succeed())
-		mgr.WaitForSync()
 
 		namespaceMap = random.NewNamespaceMap()
-	})
-
-	AfterEach(func() {
-		mgr.Stop()
 	})
 
 	JustBeforeEach(func() {
 		recorder = httptest.NewRecorder()
 		handler.ServeHTTP(recorder, req)
+	})
+
+	AfterEach(func() {
+		mgr.Stop()
 	})
 
 	When("payload is invalid", func() {
@@ -253,11 +243,11 @@ var _ = Describe("Handler", func() {
 				testDeleteSuccess()
 
 				It("should record Deleted event", func() {
-					expectEventsTo(ContainElement(testenv.EventData{
+					Expect(mgr.WaitForEvent(testenv.EventData{
 						Type:    v1.EventTypeNormal,
 						Reason:  ReasonDeleted,
-						Message: "Deleted resource sets: foobar-46",
-					}))
+						Message: "Deleted resource sets",
+					})).To(BeTrue())
 				})
 			})
 
@@ -281,11 +271,11 @@ var _ = Describe("Handler", func() {
 				})
 
 				It("should record Deleted event", func() {
-					expectEventsTo(ContainElement(testenv.EventData{
+					Expect(mgr.WaitForEvent(testenv.EventData{
 						Type:    v1.EventTypeNormal,
 						Reason:  ReasonDeleted,
-						Message: "Deleted resource sets: foobar-46-a, foobar-46-b",
-					}))
+						Message: "Deleted resource sets",
+					})).To(BeTrue())
 				})
 			})
 
@@ -297,11 +287,11 @@ var _ = Describe("Handler", func() {
 				testDeleteSuccess()
 
 				It("should record Deleted event", func() {
-					expectEventsTo(ContainElement(testenv.EventData{
+					Expect(mgr.WaitForEvent(testenv.EventData{
 						Type:    v1.EventTypeNormal,
 						Reason:  ReasonDeleted,
-						Message: "No matching resource sets to delete",
-					}))
+						Message: "Deleted resource sets",
+					})).To(BeTrue())
 				})
 			})
 		})

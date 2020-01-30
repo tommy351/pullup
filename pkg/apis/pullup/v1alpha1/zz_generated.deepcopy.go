@@ -74,7 +74,7 @@ func (in *ResourceSet) DeepCopyObject() runtime.Object {
 func (in *ResourceSetList) DeepCopyInto(out *ResourceSetList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ResourceSet, len(*in))
@@ -206,7 +206,7 @@ func (in *WebhookFilter) DeepCopy() *WebhookFilter {
 func (in *WebhookList) DeepCopyInto(out *WebhookList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Webhook, len(*in))

@@ -1,6 +1,9 @@
 package testenv
 
 import (
+	"time"
+
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -8,21 +11,29 @@ import (
 type Manager struct {
 	manager.Manager
 
-	stopCh chan struct{}
+	EventBroadcaster record.EventBroadcaster
+
+	stopCh       chan struct{}
+	eventWatcher *EventWatcher
 }
 
 func (m *Manager) Initialize() (err error) {
 	m.stopCh = make(chan struct{})
+	m.eventWatcher = NewEventWatcher()
 
 	go func() {
 		err = m.Manager.Start(m.stopCh)
 	}()
 
+	m.WaitForSync()
+	m.EventBroadcaster.StartEventWatcher(m.eventWatcher.WatchEvent)
 	return
 }
 
 func (m *Manager) Stop() {
 	close(m.stopCh)
+	m.EventBroadcaster.Shutdown()
+	m.eventWatcher.Shutdown()
 }
 
 func (m *Manager) WaitForSync() {
@@ -40,4 +51,8 @@ func (m *Manager) GetClient() client.Client {
 			scheme: m.Manager.GetScheme(),
 		},
 	}
+}
+
+func (m *Manager) WaitForEvent(expected interface{}) bool {
+	return m.eventWatcher.WaitForEventTimeout(expected, time.Second)
 }

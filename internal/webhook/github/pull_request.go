@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/google/go-github/v29/github"
 	"github.com/tommy351/pullup/internal/controller"
@@ -143,8 +142,7 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 }
 
 func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequestEvent, hook *v1alpha1.Webhook) controller.Result {
-	list := new(v1alpha1.ResourceSetList)
-	err := h.client.List(ctx, list,
+	err := h.client.DeleteAllOf(ctx, &v1alpha1.ResourceSet{},
 		client.InNamespace(hook.Namespace),
 		client.MatchingLabels(map[string]string{
 			k8s.LabelWebhookName:       hook.Name,
@@ -154,38 +152,14 @@ func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequ
 	if err != nil {
 		return controller.Result{
 			Object: hook,
-			Error:  fmt.Errorf("failed to list resource sets: %w", err),
+			Error:  fmt.Errorf("failed to delete resource set: %w", err),
 			Reason: ReasonDeleteFailed,
 		}
 	}
 
-	if len(list.Items) == 0 {
-		return controller.Result{
-			Object:  hook,
-			Message: "No matching resource sets to delete",
-			Reason:  ReasonDeleted,
-		}
-	}
-
-	deleted := make([]string, len(list.Items))
-
-	for i, item := range list.Items {
-		item := item
-
-		if err := h.client.Delete(ctx, &item); err != nil && !errors.IsNotFound(err) {
-			return controller.Result{
-				Object: hook,
-				Error:  fmt.Errorf("failed to delete resource set: %w", err),
-				Reason: ReasonDeleteFailed,
-			}
-		}
-
-		deleted[i] = item.Name
-	}
-
 	return controller.Result{
 		Object:  hook,
-		Message: fmt.Sprintf("Deleted resource sets: %s", strings.Join(deleted, ", ")),
+		Message: "Deleted resource sets",
 		Reason:  ReasonDeleted,
 	}
 }

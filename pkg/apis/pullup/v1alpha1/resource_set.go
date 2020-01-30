@@ -40,3 +40,8 @@ type Commit struct {
 	Ref string `json:"ref,omitempty"`
 	SHA string `json:"sha,omitempty"`
 }
+
+// nolint: gochecknoinits
+func init() {
+	SchemeBuilder.Register(&ResourceSet{}, &ResourceSetList{})
+}
