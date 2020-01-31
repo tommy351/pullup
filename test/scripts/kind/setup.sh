@@ -12,9 +12,6 @@ then
   kind create cluster --name "$KIND_CLUSTER_NAME"
 fi
 
-# Set KUBECONFIG for kubectl
-export KUBECONFIG=$(kind get kubeconfig-path --name "$KIND_CLUSTER_NAME")
-
 # Load images
 for img in "${TEST_IMAGES[@]}"
 do
