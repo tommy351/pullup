@@ -1,33 +1,32 @@
 package v1alpha1
 
 import (
-	"encoding/json"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 type ResourceSet struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Status ResourceSetStatus `json:"status"`
-	Spec   ResourceSetSpec   `json:"spec"`
+	Status ResourceSetStatus `json:"status,omitempty"`
+	Spec   ResourceSetSpec   `json:"spec,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 type ResourceSetList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []ResourceSet `json:"items"`
 }
 
 type ResourceSetSpec struct {
-	Resources []json.RawMessage `json:"resources"`
+	Resources []WebhookResource `json:"resources"`
 	Number    int               `json:"number"`
 	Base      Commit            `json:"base"`
 	Head      Commit            `json:"head"`

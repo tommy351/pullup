@@ -2,7 +2,6 @@ package resourceset
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -60,21 +59,9 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	logger := r.logger.WithValues("resourceSet", set)
 	ctx = log.NewContext(ctx, logger)
 
-	for i, res := range set.Spec.Resources {
-		var (
-			obj    unstructured.Unstructured
-			result controller.Result
-		)
-
-		if err := json.Unmarshal(res, &obj); err == nil {
-			result = r.applyResource(ctx, set, &obj)
-		} else {
-			result = controller.Result{
-				Error:  fmt.Errorf("failed to unmarshal resource %d: %w", i, err),
-				Reason: ReasonInvalidResource,
-			}
-		}
-
+	for _, res := range set.Spec.Resources {
+		res := res
+		result := r.applyResource(ctx, set, &res)
 		result.RecordEvent(r.recorder)
 
 		if err := result.Error; err != nil {
@@ -100,9 +87,9 @@ func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersio
 	return obj, nil
 }
 
-func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, obj *unstructured.Unstructured) controller.Result {
+func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, res *v1alpha1.WebhookResource) controller.Result {
 	logger := log.FromContext(ctx)
-	gv, err := schema.ParseGroupVersion(obj.GetAPIVersion())
+	gv, err := schema.ParseGroupVersion(res.GetAPIVersion())
 
 	if err != nil {
 		return controller.Result{
@@ -115,10 +102,10 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	gvk := schema.GroupVersionKind{
 		Group:   gv.Group,
 		Version: gv.Version,
-		Kind:    obj.GetKind(),
+		Kind:    res.GetKind(),
 	}
 
-	renderedObj, err := newTemplateReducer(set).Reduce(obj.Object)
+	renderedObj, err := newTemplateReducer(set).Reduce(res.Object)
 
 	if err != nil {
 		return controller.Result{
@@ -130,7 +117,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	original, err := r.getUnstructured(ctx, gvk, types.NamespacedName{
 		Namespace: set.Namespace,
-		Name:      obj.GetName(),
+		Name:      res.GetName(),
 	})
 
 	if err != nil && !errors.IsNotFound(err) {

@@ -20,7 +20,7 @@ metadata:
   name: foobar-46
   namespace: test
   labels:
-    pull-request-number: '46'
+    pull-request-number: "46"
     webhook-name: foobar
   ownerReferences:
     - apiVersion: pullup.dev/v1alpha1
@@ -30,3 +30,4 @@ metadata:
       blockOwnerDeletion: true
 spec:
   number: 46
+  resources: []

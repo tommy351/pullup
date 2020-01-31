@@ -20,7 +20,7 @@ metadata:
   name: foobar-46-a
   namespace: test
   labels:
-    pull-request-number: '46'
+    pull-request-number: "46"
     webhook-name: foobar
   ownerReferences:
     - apiVersion: pullup.dev/v1alpha1
@@ -30,6 +30,7 @@ metadata:
       blockOwnerDeletion: true
 spec:
   number: 46
+  resources: []
 ---
 apiVersion: pullup.dev/v1alpha1
 kind: ResourceSet
@@ -37,7 +38,7 @@ metadata:
   name: foobar-46-b
   namespace: test
   labels:
-    pull-request-number: '46'
+    pull-request-number: "46"
     webhook-name: foobar
   ownerReferences:
     - apiVersion: pullup.dev/v1alpha1
@@ -47,6 +48,7 @@ metadata:
       blockOwnerDeletion: true
 spec:
   number: 46
+  resources: []
 ---
 # Different PR number
 apiVersion: pullup.dev/v1alpha1
@@ -55,10 +57,11 @@ metadata:
   name: foobar-47
   namespace: test
   labels:
-    pull-request-number: '47'
+    pull-request-number: "47"
     webhook-name: foobar
 spec:
   number: 47
+  resources: []
 ---
 # Different namespace
 apiVersion: pullup.dev/v1alpha1
@@ -67,10 +70,11 @@ metadata:
   name: foobar-46
   namespace: baz
   labels:
-    pull-request-number: '46'
+    pull-request-number: "46"
     webhook-name: foobar
 spec:
   number: 46
+  resources: []
 ---
 # Different webhook
 apiVersion: pullup.dev/v1alpha1
@@ -79,7 +83,8 @@ metadata:
   name: baz-46
   namespace: test
   labels:
-    pull-request-number: '46'
+    pull-request-number: "46"
     webhook-name: baz
 spec:
   number: 46
+  resources: []
