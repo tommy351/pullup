@@ -41,7 +41,7 @@ kubectl_version="$(curl $quiet https://storage.googleapis.com/kubernetes-release
 kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/${os_lowercase}/amd64/kubectl"
 curl $quiet "$kubectl_url" --output "$kubectl_dest"
 
-kind_version=v0.5.1
+kind_version=v0.7.0
 curl $quiet -L "https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${os_lowercase}-amd64" --output "$kind_dest"
 
 kustomize_version=v3.1.0
