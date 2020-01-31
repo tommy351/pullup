@@ -3,6 +3,7 @@ package testenv
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/pointer"
 )
 
 func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
@@ -82,20 +84,64 @@ func waitForObject(ctx context.Context, obj runtime.Object) error {
 	})
 }
 
-func CreateObjects(objects []runtime.Object) error {
-	ctx := context.Background()
-	client := GetClient()
+func createAndWaitObject(ctx context.Context, obj runtime.Object) error {
+	if err := GetClient().Create(ctx, obj); err != nil {
+		if errors.IsAlreadyExists(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	return waitForObject(ctx, obj)
+}
+
+func createNamespace(ctx context.Context, namespace string) error {
+	objects := []runtime.Object{
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		},
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "default",
+				Namespace: namespace,
+			},
+			AutomountServiceAccountToken: pointer.BoolPtr(false),
+		},
+	}
 
 	for _, obj := range objects {
+		if err := createAndWaitObject(ctx, obj); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CreateObjects(objects []runtime.Object) error {
+	ctx := context.Background()
+
+	for _, obj := range objects {
+		metaObj, err := meta.Accessor(obj)
+
+		if err != nil {
+			return err
+		}
+
+		if ns := metaObj.GetNamespace(); ns != "" {
+			if err := createNamespace(ctx, ns); err != nil {
+				return err
+			}
+		}
+
 		if err := setOwnerReferences(ctx, obj); err != nil {
 			return err
 		}
 
-		if err := client.Create(ctx, obj); err != nil {
-			return err
-		}
-
-		if err := waitForObject(ctx, obj); err != nil {
+		if err := createAndWaitObject(ctx, obj); err != nil {
 			return err
 		}
 	}

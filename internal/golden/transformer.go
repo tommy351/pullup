@@ -39,6 +39,7 @@ func (*ObjectTransformer) setObject(obj runtime.Object) {
 	metaObj.SetCreationTimestamp(metav1.Time{})
 	metaObj.SetUID(types.UID(""))
 	metaObj.SetResourceVersion("")
+	metaObj.SetGeneration(0)
 
 	refs := metaObj.GetOwnerReferences()
 	newRefs := make([]metav1.OwnerReference, len(refs))
