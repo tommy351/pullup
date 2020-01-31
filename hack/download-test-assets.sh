@@ -15,14 +15,9 @@ logEnd() {
 }
 trap 'logEnd $?' EXIT
 
-# Use BASE_URL=https://my/binaries/url ./scripts/download-binaries to download
-# from a different bucket
-: "${BASE_URL:="https://storage.googleapis.com/k8s-c10s-test-binaries"}"
-
 test_framework_dir="$(cd "$(dirname "$0")/.." ; pwd)"
 os="$(uname -s)"
 os_lowercase="$(echo "$os" | tr '[:upper:]' '[:lower:]' )"
-arch="$(uname -m)"
 
 dest_dir="${1:-"${test_framework_dir}/assets/bin"}"
 etcd_dest="${dest_dir}/etcd"
@@ -34,12 +29,9 @@ kustomize_dest="${dest_dir}/kustomize"
 echo "About to download a couple of binaries. This might take a while..."
 
 mkdir -p "$dest_dir"
-curl $quiet "${BASE_URL}/etcd-${os}-${arch}" --output "$etcd_dest"
-curl $quiet "${BASE_URL}/kube-apiserver-${os}-${arch}" --output "$kube_apiserver_dest"
 
-kubectl_version="$(curl $quiet https://storage.googleapis.com/kubernetes-release/release/stable.txt)"
-kubectl_url="https://storage.googleapis.com/kubernetes-release/release/${kubectl_version}/bin/${os_lowercase}/amd64/kubectl"
-curl $quiet "$kubectl_url" --output "$kubectl_dest"
+k8s_version=1.16.4
+curl $quiet -L "https://go.kubebuilder.io/test-tools/${k8s_version}/${os_lowercase}/amd64" | tar --strip-components=2 -xz -C "$dest_dir" kubebuilder/bin
 
 kind_version=v0.7.0
 curl $quiet -L "https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${os_lowercase}-amd64" --output "$kind_dest"
