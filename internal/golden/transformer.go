@@ -8,24 +8,20 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type Transformer interface {
-	Transform(interface{}) interface{}
-}
-
 type ObjectTransformer struct{}
 
-func (o *ObjectTransformer) Transform(input interface{}) interface{} {
+func (o *ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 	switch input := input.(type) {
 	case runtime.Object:
 		output := input.DeepCopyObject()
 		o.setObject(output)
-		return output
+		return output, nil
 
 	case []runtime.Object:
-		return testutil.MapObjects(input, o.setObject)
+		return testutil.MapObjects(input, o.setObject), nil
 
 	default:
-		return input
+		return input, nil
 	}
 }
 

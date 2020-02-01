@@ -90,7 +90,7 @@ var _ = Describe("Reconciler", func() {
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
-			Expect(objects).To(golden.MatchObject("testdata/success.golden"))
+			Expect(objects).To(golden.Match())
 		})
 
 		It("should record patched events", func() {

@@ -53,13 +53,13 @@ var _ = Describe("Reconciler", func() {
 		})
 	}
 
-	testGoldenFile := func(name string) {
+	testGoldenFile := func() {
 		It("should match the golden file", func() {
 			changes := testenv.GetChanges(reconciler.client)
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
-			Expect(objects).To(golden.MatchObject(fmt.Sprintf("testdata/%s.golden", name)))
+			Expect(objects).To(golden.Match())
 		})
 	}
 
@@ -113,7 +113,7 @@ var _ = Describe("Reconciler", func() {
 		name := "original-resource-exists"
 
 		testSuccess(name)
-		testGoldenFile(name)
+		testGoldenFile()
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeNormal,
 			Reason:  ReasonCreated,
@@ -129,7 +129,7 @@ var _ = Describe("Reconciler", func() {
 		name := "applied-resource-exists"
 
 		testSuccess(name)
-		testGoldenFile(name)
+		testGoldenFile()
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeNormal,
 			Reason:  ReasonUpdated,
@@ -141,7 +141,7 @@ var _ = Describe("Reconciler", func() {
 		name := "without-original-and-applied"
 
 		testSuccess(name)
-		testGoldenFile(name)
+		testGoldenFile()
 	})
 
 	When("resource is not controlled", func() {
@@ -174,28 +174,28 @@ var _ = Describe("Reconciler", func() {
 		name := "common-array"
 
 		testSuccess(name)
-		testGoldenFile(name)
+		testGoldenFile()
 	})
 
 	When("resource contain named arrays", func() {
 		name := "named-array"
 
 		testSuccess(name)
-		testGoldenFile(name)
+		testGoldenFile()
 	})
 
 	When("resource contain template", func() {
 		name := "template"
 
 		testSuccess(name)
-		testGoldenFile(name)
+		testGoldenFile()
 	})
 
 	When("resource set contains multiple resources", func() {
 		name := "multi-resources"
 
 		testSuccess(name)
-		testGoldenFile(name)
+		testGoldenFile()
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeNormal,
 			Reason:  ReasonCreated,

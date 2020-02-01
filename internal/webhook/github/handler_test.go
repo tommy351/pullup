@@ -83,12 +83,12 @@ var _ = Describe("Handler", func() {
 		return testenv.GetChanges(handler.client)
 	}
 
-	testGolden := func(name string) {
+	testGolden := func() {
 		It("should match the golden file", func() {
 			objects, err := testenv.GetChangedObjects(getChanges())
 			Expect(err).NotTo(HaveOccurred())
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
-			Expect(objects).To(golden.MatchObject(fmt.Sprintf("testdata/%s.golden", name)))
+			Expect(objects).To(golden.Match())
 		})
 	}
 
@@ -111,7 +111,7 @@ var _ = Describe("Handler", func() {
 	testApplySuccess := func() {
 		When("resource set exists", func() {
 			testSuccess("resource-set-exists")
-			testGolden("apply-success")
+			testGolden()
 
 			It("should record Updated event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
@@ -124,7 +124,7 @@ var _ = Describe("Handler", func() {
 
 		When("resource set does not exist", func() {
 			testSuccess("resource-set-not-exist")
-			testGolden("apply-success")
+			testGolden()
 
 			It("should record Created event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
@@ -301,7 +301,7 @@ var _ = Describe("Handler", func() {
 
 			setRequest("opened")
 			testSuccess(name)
-			testGolden(name)
+			testGolden()
 		})
 
 		When("branch filter is set", func() {
