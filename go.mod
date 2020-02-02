@@ -35,7 +35,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.6.2
-	github.com/tommy351/goldga v0.1.0
+	github.com/tommy351/goldga v0.2.0
 	github.com/zenazn/goji v0.9.0
 	go.uber.org/atomic v1.5.1 // indirect
 	go.uber.org/multierr v1.4.0 // indirect
