@@ -4,6 +4,8 @@ release:
   github:
     owner: tommy351
     name: pullup
+  extra_files:
+    - glob: ./dist/pullup-deployment.yml
 
 before:
   hooks:
