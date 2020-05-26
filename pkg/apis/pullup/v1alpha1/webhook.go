@@ -48,6 +48,7 @@ type WebhookFilter struct {
 
 type WebhookStatus struct{}
 
+// +kubebuilder:validation:XEmbeddedResource
 // +kubebuilder:validation:XPreserveUnknownFields
 
 type WebhookResource struct {

@@ -3,6 +3,7 @@
 /vendor/
 /dist/
 *.coverprofile
+*.test
 /coverage.txt
 /assets/bin/
 /reports/
