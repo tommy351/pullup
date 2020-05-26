@@ -20,6 +20,7 @@ func NewControllerManager(restConf *rest.Config, scheme *runtime.Scheme, conf k8
 	return manager.New(restConf, manager.Options{
 		Scheme:                  scheme,
 		LeaderElection:          true,
+		LeaderElectionID:        "pullup-controller-lock",
 		LeaderElectionNamespace: conf.Namespace,
 	})
 }

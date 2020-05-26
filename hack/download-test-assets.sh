@@ -33,7 +33,7 @@ mkdir -p "$dest_dir"
 k8s_version=1.16.4
 curl $quiet -L "https://go.kubebuilder.io/test-tools/${k8s_version}/${os_lowercase}/amd64" | tar --strip-components=2 -xz -C "$dest_dir" kubebuilder/bin
 
-kind_version=v0.7.0
+kind_version=v0.8.1
 curl $quiet -L "https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${os_lowercase}-amd64" --output "$kind_dest"
 
 kustomize_version=v3.1.0
