@@ -76,7 +76,9 @@ jobs:
             curl -L https://github.com/git-chglog/git-chglog/releases/download/0.9.1/git-chglog_linux_amd64 > $(go env GOPATH)/bin/git-chglog
       - run:
           name: Generate versioned deployment file
-          command: ./hack/generate-versioned-deployment.sh $(echo $CIRCLE_TAG | sed 's/^v//') > ./dist/pullup-deployment.yml
+          command: |
+            mkdir -p assets/dist
+            ./hack/generate-versioned-deployment.sh $(echo $CIRCLE_TAG | sed 's/^v//') > ./assets/dist/pullup-deployment.yml
       - run:
           name: Release
           command: curl -sL https://git.io/goreleaser | bash -s -- --release-notes <(git-chglog $CIRCLE_TAG)

@@ -5,7 +5,7 @@ release:
     owner: tommy351
     name: pullup
   extra_files:
-    - glob: ./dist/pullup-deployment.yml
+    - glob: ./assets/dist/pullup-deployment.yml
 
 before:
   hooks:
