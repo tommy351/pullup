@@ -64,9 +64,6 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               type: array
           required:
-          - base
-          - head
-          - number
           - resources
           type: object
         status:

@@ -27,16 +27,21 @@ type ResourceSetList struct {
 
 type ResourceSetSpec struct {
 	Resources []WebhookResource `json:"resources"`
-	Number    int               `json:"number"`
-	Base      Commit            `json:"base"`
-	Head      Commit            `json:"head"`
+	// +optional
+	Number int `json:"number"`
+	// +optional
+	Base Commit `json:"base"`
+	// +optional
+	Head Commit `json:"head"`
 }
 
 type ResourceSetStatus struct {
 }
 
 type Commit struct {
+	// +optional
 	Ref string `json:"ref,omitempty"`
+	// +optional
 	SHA string `json:"sha,omitempty"`
 }
 
