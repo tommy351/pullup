@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var webhooksResource = schema.GroupVersionResource{Group: "pullup.dev", Version:
 var webhooksKind = schema.GroupVersionKind{Group: "pullup.dev", Version: "v1alpha1", Kind: "Webhook"}
 
 // Get takes name of the webhook, and returns the corresponding webhook object, and an error if there is any.
-func (c *FakeWebhooks) Get(name string, options v1.GetOptions) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(webhooksResource, c.ns, name), &v1alpha1.Webhook{})
 
@@ -50,7 +52,7 @@ func (c *FakeWebhooks) Get(name string, options v1.GetOptions) (result *v1alpha1
 }
 
 // List takes label and field selectors, and returns the list of Webhooks that match those selectors.
-func (c *FakeWebhooks) List(opts v1.ListOptions) (result *v1alpha1.WebhookList, err error) {
+func (c *FakeWebhooks) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.WebhookList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(webhooksResource, webhooksKind, c.ns, opts), &v1alpha1.WebhookList{})
 
@@ -72,14 +74,14 @@ func (c *FakeWebhooks) List(opts v1.ListOptions) (result *v1alpha1.WebhookList, 
 }
 
 // Watch returns a watch.Interface that watches the requested webhooks.
-func (c *FakeWebhooks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeWebhooks) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(webhooksResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a webhook and creates it.  Returns the server's representation of the webhook, and an error, if there is any.
-func (c *FakeWebhooks) Create(webhook *v1alpha1.Webhook) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Create(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.CreateOptions) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(webhooksResource, c.ns, webhook), &v1alpha1.Webhook{})
 
@@ -90,7 +92,7 @@ func (c *FakeWebhooks) Create(webhook *v1alpha1.Webhook) (result *v1alpha1.Webho
 }
 
 // Update takes the representation of a webhook and updates it. Returns the server's representation of the webhook, and an error, if there is any.
-func (c *FakeWebhooks) Update(webhook *v1alpha1.Webhook) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Update(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.UpdateOptions) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(webhooksResource, c.ns, webhook), &v1alpha1.Webhook{})
 
@@ -102,7 +104,7 @@ func (c *FakeWebhooks) Update(webhook *v1alpha1.Webhook) (result *v1alpha1.Webho
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeWebhooks) UpdateStatus(webhook *v1alpha1.Webhook) (*v1alpha1.Webhook, error) {
+func (c *FakeWebhooks) UpdateStatus(ctx context.Context, webhook *v1alpha1.Webhook, opts v1.UpdateOptions) (*v1alpha1.Webhook, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(webhooksResource, "status", c.ns, webhook), &v1alpha1.Webhook{})
 
@@ -113,7 +115,7 @@ func (c *FakeWebhooks) UpdateStatus(webhook *v1alpha1.Webhook) (*v1alpha1.Webhoo
 }
 
 // Delete takes name of the webhook and deletes it. Returns an error if one occurs.
-func (c *FakeWebhooks) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeWebhooks) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(webhooksResource, c.ns, name), &v1alpha1.Webhook{})
 
@@ -121,15 +123,15 @@ func (c *FakeWebhooks) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeWebhooks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(webhooksResource, c.ns, listOptions)
+func (c *FakeWebhooks) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(webhooksResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.WebhookList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched webhook.
-func (c *FakeWebhooks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Webhook, err error) {
+func (c *FakeWebhooks) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Webhook, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(webhooksResource, c.ns, name, pt, data, subresources...), &v1alpha1.Webhook{})
 

@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	pullupv1alpha1 "github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
@@ -61,13 +62,13 @@ func NewFilteredResourceSetInformer(client versioned.Interface, namespace string
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.PullupV1alpha1().ResourceSets(namespace).List(options)
+				return client.PullupV1alpha1().ResourceSets(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.PullupV1alpha1().ResourceSets(namespace).Watch(options)
+				return client.PullupV1alpha1().ResourceSets(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&pullupv1alpha1.ResourceSet{},

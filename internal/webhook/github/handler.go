@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -41,7 +42,7 @@ type Handler struct {
 }
 
 func NewHandler(conf Config, mgr manager.Manager) (*Handler, error) {
-	err := mgr.GetFieldIndexer().IndexField(&v1alpha1.Webhook{}, nameField, func(obj runtime.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1alpha1.Webhook{}, nameField, func(obj runtime.Object) []string {
 		var result []string
 
 		for _, repo := range obj.(*v1alpha1.Webhook).Spec.Repositories {
