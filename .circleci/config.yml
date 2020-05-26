@@ -74,6 +74,7 @@ jobs:
           command: |
             mkdir -p $(go env GOPATH)/bin
             curl -L https://github.com/git-chglog/git-chglog/releases/download/0.9.1/git-chglog_linux_amd64 > $(go env GOPATH)/bin/git-chglog
+            chmod +x $(go env GOPATH)/bin/git-chglog
       - run:
           name: Generate versioned deployment file
           command: |
