@@ -13,7 +13,6 @@ require (
 	github.com/go-logr/zapr v0.1.1
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/golang/protobuf v1.3.3 // indirect
 	github.com/google/go-cmp v0.4.0
 	github.com/google/go-github/v29 v29.0.2
 	github.com/google/gofuzz v1.1.0 // indirect
@@ -26,8 +25,8 @@ require (
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/justinas/alice v1.2.0
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.8.1
+	github.com/onsi/ginkgo v1.12.2
+	github.com/onsi/gomega v1.10.1
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.4.0
@@ -46,14 +45,12 @@ require (
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	golang.org/x/tools v0.0.0-20200131000851-b4207ef49307 // indirect
 	gopkg.in/ini.v1 v1.51.1 // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 	k8s.io/api v0.17.2
-	k8s.io/apiextensions-apiserver v0.17.2 // indirect
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.2
 	k8s.io/kube-openapi v0.0.0-20200130172213-cdac1c71ff9f // indirect
 	k8s.io/utils v0.0.0-20200124190032-861946025e34
-	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/controller-runtime v0.5.2
 	sigs.k8s.io/testing_frameworks v0.1.2
 	sigs.k8s.io/yaml v1.1.0
 )
