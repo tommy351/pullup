@@ -11,10 +11,14 @@ commands:
             - /go/pkg/mod
           key: go-mod-{{ checksum "go.sum" }}
 
-jobs:
-  lint:
+executors:
+  golang:
     docker:
       - image: circleci/golang:1.13
+
+jobs:
+  lint:
+    executor: golang
     steps:
       - checkout
       - go_get
@@ -24,8 +28,7 @@ jobs:
       - run: ./bin/golangci-lint run
       - run: ./hack/verify-codegen.sh
   test_go:
-    docker:
-      - image: circleci/golang:1.13
+    executor: golang
     steps:
       - checkout
       - go_get
@@ -57,8 +60,7 @@ jobs:
       - run: test/scripts/build-images.sh
       - run: test/scripts/kind/run.sh
   release:
-    docker:
-      - image: circleci/golang:1.13
+    executor: golang
     steps:
       - checkout
       - setup_remote_docker
