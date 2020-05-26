@@ -90,7 +90,7 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 		}
 	}
 
-	if err := r.client.Patch(ctx, set, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
+	if err := r.client.Patch(ctx, set, client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return controller.Result{
 			Object:  webhook,
 			Error:   fmt.Errorf("failed to patch the resource set: %w", err),

@@ -126,7 +126,7 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 		}
 	}
 
-	if err := h.client.Patch(ctx, rs, client.ConstantPatch(types.JSONPatchType, patch)); err != nil {
+	if err := h.client.Patch(ctx, rs, client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return controller.Result{
 			Object: hook,
 			Error:  fmt.Errorf("failed to patch resource set: %w", err),
