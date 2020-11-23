@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,7 +13,6 @@ import (
 
 func LoadDocuments(path string) ([]map[string]interface{}, error) {
 	file, err := os.Open(path)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
@@ -20,7 +20,6 @@ func LoadDocuments(path string) ([]map[string]interface{}, error) {
 	defer file.Close()
 
 	stat, err := file.Stat()
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stat of file: %w", err)
 	}
@@ -33,8 +32,7 @@ func LoadDocuments(path string) ([]map[string]interface{}, error) {
 
 	for {
 		n, err := reader.Read(buf)
-
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 
@@ -56,7 +54,6 @@ func LoadDocuments(path string) ([]map[string]interface{}, error) {
 
 func LoadObjects(scheme *runtime.Scheme, path string) (output []runtime.Object, err error) {
 	docs, err := LoadDocuments(path)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to load documents: %w", err)
 	}

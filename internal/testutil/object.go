@@ -10,7 +10,6 @@ import (
 
 func ToObject(scheme *runtime.Scheme, data interface{}) (runtime.Object, error) {
 	buf, err := json.Marshal(data)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal input data: %w", err)
 	}
@@ -23,7 +22,6 @@ func ToObject(scheme *runtime.Scheme, data interface{}) (runtime.Object, error) 
 
 	gvk := un.GetObjectKind().GroupVersionKind()
 	typed, err := scheme.New(gvk)
-
 	if err != nil {
 		if runtime.IsNotRegisteredError(err) {
 			return &un, nil

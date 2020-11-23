@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v32/github"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -54,24 +55,28 @@ func main() {
 
 func waitUntilWebhookReady() error {
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		res, err := http.Get(fmt.Sprintf("http://%s/healthz", webhookHost))
+		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s/healthz", webhookHost), nil)
+		if err != nil {
+			return false, fmt.Errorf("failed to create a request: %w", err)
+		}
 
+		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			logger.Warn("Webhook is not ready yet", zap.Error(err))
+
 			return false, nil
 		}
 
-		// nolint: errcheck
 		defer res.Body.Close()
 
 		return res.StatusCode == http.StatusOK, nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("webhook is not ready: %w", err)
 	}
 
 	logger.Info("Webhook is ready")
+
 	return nil
 }
 
@@ -110,8 +115,7 @@ func triggerWebhook() error {
 		return fmt.Errorf("failed to encode the body: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s/webhooks/github", webhookHost), &buf)
-
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, fmt.Sprintf("http://%s/webhooks/github", webhookHost), &buf)
 	if err != nil {
 		return fmt.Errorf("failed to build the request: %w", err)
 	}
@@ -121,7 +125,6 @@ func triggerWebhook() error {
 	req.Header.Set("X-GitHub-Event", "pull_request")
 
 	res, err := http.DefaultClient.Do(req)
-
 	if err != nil {
 		return fmt.Errorf("failed to send the request: %w", err)
 	}
@@ -129,10 +132,12 @@ func triggerWebhook() error {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusNoContent {
+		// nolint: goerr113
 		return fmt.Errorf("http response error: %d", res.StatusCode)
 	}
 
 	logger.Info("Webhook is triggered")
+
 	return nil
 }
 
@@ -140,18 +145,23 @@ func validateService() error {
 	name := fmt.Sprintf("%s-%d", webhookName, event.GetNumber())
 
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		res, err := http.Get(fmt.Sprintf("http://%s/test", name))
+		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s/test", name), nil)
+		if err != nil {
+			return false, fmt.Errorf("failed to create a request: %w", err)
+		}
 
+		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			logger.Warn("Service is not ready yet", zap.Error(err))
+
 			return false, nil
 		}
 
-		// nolint: errcheck
 		defer res.Body.Close()
 
 		if res.StatusCode == http.StatusOK {
 			if v := res.Header.Get("X-Resource-Name"); v != name {
+				// nolint: goerr113
 				return false, fmt.Errorf("expected header X-Resource-Name to be %s, got %q", name, v)
 			}
 
@@ -160,11 +170,11 @@ func validateService() error {
 
 		return false, nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("invalid service: %w", err)
 	}
 
 	logger.Info("Service is valid")
+
 	return nil
 }

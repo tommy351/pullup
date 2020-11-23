@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v32/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
@@ -68,6 +68,7 @@ var _ = Describe("Handler", func() {
 		req := httptest.NewRequest(http.MethodPost, "/", &buf)
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Github-Event", event)
+
 		return req
 	}
 
@@ -76,6 +77,7 @@ var _ = Describe("Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		data = testutil.MapObjects(data, namespaceMap.SetObject)
 		Expect(testenv.CreateObjects(data)).To(Succeed())
+
 		return data
 	}
 
@@ -216,6 +218,7 @@ var _ = Describe("Handler", func() {
 						k8s.LabelPullRequestNumber: strconv.Itoa(prNumber),
 					}))
 				Expect(err).NotTo(HaveOccurred())
+
 				return list.Items
 			}
 

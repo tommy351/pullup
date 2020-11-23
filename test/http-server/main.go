@@ -12,7 +12,6 @@ func main() {
 		// nolint: errcheck
 		w.Write([]byte("ok"))
 	}))
-
 	if err != nil {
 		panic(err)
 	}

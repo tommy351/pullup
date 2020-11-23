@@ -29,6 +29,7 @@ var _ = Describe("FilterKey", func() {
 	}
 
 	expectFuncError := func() {
+		// nolint: goerr113
 		filterErr := errors.New("filter error")
 
 		BeforeEach(func() {

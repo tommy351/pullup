@@ -27,6 +27,7 @@ func (m *Manager) Initialize() (err error) {
 
 	m.WaitForSync()
 	m.EventBroadcaster.StartEventWatcher(m.eventWatcher.WatchEvent)
+
 	return
 }
 

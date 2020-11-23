@@ -2,6 +2,7 @@ package testenv
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,7 +19,6 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 	client := GetClient()
 	scheme := GetScheme()
 	metaObj, err := meta.Accessor(obj)
-
 	if err != nil {
 		return nil
 	}
@@ -31,16 +31,14 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 
 		if ref.UID == "" {
 			gv, err := schema.ParseGroupVersion(ref.APIVersion)
-
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to parse the API version: %w", err)
 			}
 
 			gvk := gv.WithKind(ref.Kind)
 			refObj, err := scheme.New(gvk)
-
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to create the scheme: %w", err)
 			}
 
 			key := types.NamespacedName{
@@ -49,13 +47,12 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 			}
 
 			if err := client.Get(ctx, key, refObj); err != nil {
-				return err
+				return fmt.Errorf("failed to get the resource: %w", err)
 			}
 
 			refMeta, err := meta.Accessor(refObj)
-
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get the accessor: %w", err)
 			}
 
 			newRefs[i].UID = refMeta.GetUID()
@@ -63,15 +60,15 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 	}
 
 	metaObj.SetOwnerReferences(newRefs)
+
 	return nil
 }
 
 func waitForObject(ctx context.Context, obj runtime.Object) error {
 	client := GetClient()
 	metaObj, err := meta.Accessor(obj)
-
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get the accessor: %w", err)
 	}
 
 	key := types.NamespacedName{
@@ -90,7 +87,7 @@ func createAndWaitObject(ctx context.Context, obj runtime.Object) error {
 			return nil
 		}
 
-		return err
+		return fmt.Errorf("failed to create the object: %w", err)
 	}
 
 	return waitForObject(ctx, obj)
@@ -126,9 +123,8 @@ func CreateObjects(objects []runtime.Object) error {
 
 	for _, obj := range objects {
 		metaObj, err := meta.Accessor(obj)
-
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get the accessor: %w", err)
 		}
 
 		if ns := metaObj.GetNamespace(); ns != "" {
@@ -156,7 +152,7 @@ func DeleteObjects(objects []runtime.Object) error {
 	for _, obj := range objects {
 		if err := client.Delete(ctx, obj); err != nil {
 			if !errors.IsNotFound(err) {
-				return err
+				return fmt.Errorf("failed to delete the resource: %w", err)
 			}
 		}
 	}

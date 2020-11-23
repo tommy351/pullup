@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v32/github"
 	"github.com/tommy351/pullup/internal/httputil"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
@@ -53,7 +53,6 @@ func NewHandler(conf Config, mgr manager.Manager) (*Handler, error) {
 
 		return result
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to index field: %w", err)
 	}
@@ -65,6 +64,7 @@ func NewHandler(conf Config, mgr manager.Manager) (*Handler, error) {
 	}
 
 	h.handler = httputil.NewHandler(h.handle)
+
 	return h, nil
 }
 
@@ -74,7 +74,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handle(w http.ResponseWriter, r *http.Request) error {
 	payload, err := h.parsePayload(r)
-
 	if err != nil {
 		return httputil.String(w, http.StatusBadRequest, "Invalid request")
 	}
@@ -104,9 +103,8 @@ func (h *Handler) handle(w http.ResponseWriter, r *http.Request) error {
 
 func (h *Handler) parsePayload(r *http.Request) (interface{}, error) {
 	payload, err := github.ValidatePayload(r, []byte(h.secret))
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid github payload: %w", err)
 	}
 
 	return github.ParseWebHook(github.WebHookType(r), payload)

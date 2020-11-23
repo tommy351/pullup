@@ -48,7 +48,6 @@ func GetChangedObjects(changes []Change) ([]runtime.Object, error) {
 
 	for i, event := range changes {
 		obj, err := scheme.New(event.GroupVersionKind)
-
 		if err != nil {
 			if !runtime.IsNotRegisteredError(err) {
 				return nil, fmt.Errorf("failed to create a new object: %w", err)

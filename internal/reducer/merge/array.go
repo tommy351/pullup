@@ -23,7 +23,6 @@ func (m *Merger) mergeArray(input, source reflect.Value) (interface{}, error) {
 		for i := 0; i < source.Len(); i++ {
 			if i < input.Len() {
 				newValue, err := m.Func(input.Index(i).Interface(), source.Index(i).Interface())
-
 				if err != nil {
 					return nil, fmt.Errorf("merge error at index %d: %w", i, err)
 				}

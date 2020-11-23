@@ -1,6 +1,8 @@
 package testenv
 
 import (
+	"fmt"
+
 	"github.com/tommy351/pullup/internal/k8s"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -67,9 +69,8 @@ func (e *Environment) NewManager() (*Manager, error) {
 		Scheme:           e.scheme,
 		EventBroadcaster: broadcaster,
 	})
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create a manager: %w", err)
 	}
 
 	return &Manager{

@@ -64,6 +64,7 @@ var _ = Describe("MergeWith", func() {
 	})
 
 	When("func returns an error", func() {
+		// nolint: goerr113
 		mergeErr := errors.New("merge err")
 
 		BeforeEach(func() {

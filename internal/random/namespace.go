@@ -48,7 +48,7 @@ func (r *NamespaceMap) GetOriginal(random string) string {
 func (r *NamespaceMap) setNamespace(obj corev1.Object, newNamespace string) {
 	oldNamespace := obj.GetNamespace()
 	obj.SetNamespace(newNamespace)
-	obj.SetSelfLink(strings.Replace(obj.GetSelfLink(), oldNamespace, newNamespace, -1))
+	obj.SetSelfLink(strings.ReplaceAll(obj.GetSelfLink(), oldNamespace, newNamespace))
 }
 
 func (r *NamespaceMap) SetObject(input runtime.Object) {

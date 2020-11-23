@@ -75,6 +75,7 @@ var _ = Describe("ReduceNested", func() {
 		})
 
 		When("reducer returns an error", func() {
+			// nolint: goerr113
 			reduceErr := errors.New("reduce error")
 
 			BeforeEach(func() {

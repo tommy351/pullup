@@ -15,6 +15,7 @@ func (o *ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 	case runtime.Object:
 		output := input.DeepCopyObject()
 		o.setObject(output)
+
 		return output, nil
 
 	case []runtime.Object:
@@ -27,7 +28,6 @@ func (o *ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 
 func (*ObjectTransformer) setObject(obj runtime.Object) {
 	metaObj, err := meta.Accessor(obj)
-
 	if err != nil {
 		return
 	}

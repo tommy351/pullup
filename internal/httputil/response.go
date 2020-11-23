@@ -17,5 +17,6 @@ func String(w http.ResponseWriter, status int, data string) error {
 
 func NoContent(w http.ResponseWriter) error {
 	w.WriteHeader(http.StatusNoContent)
+
 	return nil
 }

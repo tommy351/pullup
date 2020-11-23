@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v32/github"
 	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
@@ -28,11 +28,13 @@ func (h *Handler) handlePullRequestEvent(ctx context.Context, event *github.Pull
 
 	if repo == nil {
 		logger.V(log.Debug).Info("Repository does not exist in the webhook")
+
 		return nil
 	}
 
 	if branch := event.PullRequest.Base.GetRef(); !filterWebhook(&repo.Branches, branch) {
 		logger.V(log.Debug).Info("Skipped on this branch", "branch", branch)
+
 		return nil
 	}
 
@@ -51,10 +53,12 @@ func (h *Handler) handlePullRequestEvent(ctx context.Context, event *github.Pull
 
 	if err := result.Error; err != nil {
 		logger.Error(err, result.GetMessage())
+
 		return err
 	}
 
 	logger.Info(result.GetMessage())
+
 	return nil
 }
 
@@ -117,7 +121,6 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 			Value: rs.Spec,
 		},
 	})
-
 	if err != nil {
 		return controller.Result{
 			Object: hook,
@@ -148,7 +151,6 @@ func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequ
 			k8s.LabelWebhookName:       hook.Name,
 			k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
 		}))
-
 	if err != nil {
 		return controller.Result{
 			Object: hook,

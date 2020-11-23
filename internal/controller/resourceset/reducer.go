@@ -2,6 +2,7 @@ package resourceset
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/tommy351/pullup/internal/reducer"
 	"github.com/tommy351/pullup/internal/reducer/collection"
@@ -19,15 +20,15 @@ func deleteKeys(keys []string) reducer.Interface {
 
 	filter := reducer.FilterKey(func(key interface{}) (bool, error) {
 		_, ok := dict[key]
+
 		return !ok, nil
 	})
 
 	return reducer.Func(func(input interface{}) (interface{}, error) {
 		output, err := filter.Reduce(input)
-
 		if err != nil {
 			if !errors.Is(err, reducer.ErrNotMap) {
-				return nil, err
+				return nil, fmt.Errorf("reduce error: %w", err)
 			}
 
 			return input, nil
@@ -59,13 +60,13 @@ func mergeResource(data interface{}) reducer.Interface {
 
 			if !ok {
 				inputArr.Set(iter.Key(), iter.Value())
+
 				continue
 			}
 
 			newValue, err := merger.Merge(inputValue, iter.Value())
-
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("merge error: %w", err)
 			}
 
 			inputArr.Set(iter.Key(), newValue)

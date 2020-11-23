@@ -51,7 +51,6 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	err := r.client.List(ctx, list, client.InNamespace(hook.Namespace), client.MatchingLabels(map[string]string{
 		k8s.LabelWebhookName: hook.Name,
 	}))
-
 	if err != nil {
 		return reconcile.Result{Requeue: true}, fmt.Errorf("failed to list resource sets: %w", err)
 	}
@@ -64,6 +63,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 
 		if err := result.Error; err != nil {
 			logger.Error(err, result.GetMessage())
+
 			return reconcile.Result{Requeue: result.Requeue}, err
 		}
 
@@ -81,7 +81,6 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 			Value: webhook.Spec.Resources,
 		},
 	})
-
 	if err != nil {
 		return controller.Result{
 			Object: webhook,

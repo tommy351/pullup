@@ -37,6 +37,7 @@ var _ = Describe("Func", func() {
 	})
 
 	When("func returns an error", func() {
+		// nolint: goerr113
 		reduceErr := errors.New("reduce err")
 
 		BeforeEach(func() {
@@ -87,6 +88,7 @@ var _ = Describe("Reducers", func() {
 	})
 
 	When("func returns an error", func() {
+		// nolint: goerr113
 		reduceErr := errors.New("reduce err")
 
 		BeforeEach(func() {

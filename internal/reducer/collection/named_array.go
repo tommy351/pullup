@@ -121,6 +121,7 @@ type NamedArrayIterator struct {
 
 func (n *NamedArrayIterator) Next() bool {
 	n.current++
+
 	return n.current < len(n.arr)
 }
 

@@ -15,6 +15,7 @@ var (
 func makeAny() Func {
 	merger := new(Merger)
 	merger.Func = merger.Merge
+
 	return merger.Func
 }
 

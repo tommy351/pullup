@@ -2,6 +2,7 @@ package httputil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -44,10 +45,11 @@ func RunServer(options ServerOptions) error {
 
 	options.Logger.Info(fmt.Sprintf("Starting %s server", options.Name), "address", server.Addr)
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return err
+	if err := server.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("failed to start the server: %w", err)
 	}
 
 	<-idleConnsClosed
+
 	return nil
 }
