@@ -6,7 +6,7 @@ export GO111MODULE="on"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." ; pwd)"
 
-go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0
+go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 
 echo "Generate CRD"
 controller-gen \
@@ -15,7 +15,7 @@ controller-gen \
   paths="${PROJECT_ROOT}/pkg/apis/..." \
   output:crd:artifacts:config="${PROJECT_ROOT}/deployment/base/crds"
 
-go get k8s.io/code-generator/cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}@v0.18.2
+go get k8s.io/code-generator/cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}@v0.19.4
 
 TMP_DIR=$(mktemp -d)
 

@@ -26,8 +26,10 @@ import (
 )
 
 // WebhookLister helps list Webhooks.
+// All objects returned here must be treated as read-only.
 type WebhookLister interface {
 	// List lists all Webhooks in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.Webhook, err error)
 	// Webhooks returns an object that can list and get Webhooks.
 	Webhooks(namespace string) WebhookNamespaceLister
@@ -58,10 +60,13 @@ func (s *webhookLister) Webhooks(namespace string) WebhookNamespaceLister {
 }
 
 // WebhookNamespaceLister helps list and get Webhooks.
+// All objects returned here must be treated as read-only.
 type WebhookNamespaceLister interface {
 	// List lists all Webhooks in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.Webhook, err error)
 	// Get retrieves the Webhook from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.Webhook, error)
 	WebhookNamespaceListerExpansion
 }
