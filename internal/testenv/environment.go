@@ -10,11 +10,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/testing_frameworks/integration"
 )
 
 type Environment struct {
-	ControlPlane      *integration.ControlPlane
+	ControlPlane      *envtest.ControlPlane
 	CRDInstallOptions envtest.CRDInstallOptions
 
 	config *rest.Config

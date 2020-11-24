@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/testing_frameworks/integration"
 )
 
 // Env is a global environment for testing.
@@ -17,11 +16,11 @@ var Env *Environment
 
 func RunSpecsInEnvironment(t *testing.T, desc string) {
 	Env = &Environment{
-		ControlPlane: &integration.ControlPlane{
-			APIServer: &integration.APIServer{
+		ControlPlane: &envtest.ControlPlane{
+			APIServer: &envtest.APIServer{
 				Path: AssetBinPath("kube-apiserver"),
 			},
-			Etcd: &integration.Etcd{
+			Etcd: &envtest.Etcd{
 				Path: AssetBinPath("etcd"),
 			},
 		},
