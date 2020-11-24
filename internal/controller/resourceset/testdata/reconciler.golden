@@ -25,12 +25,11 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
     securityContext: {}
-    serviceAccount: default
-    serviceAccountName: default
     terminationGracePeriodSeconds: 30
     tolerations:
     - effect: NoExecute
@@ -70,12 +69,11 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
     securityContext: {}
-    serviceAccount: default
-    serviceAccountName: default
     terminationGracePeriodSeconds: 30
     tolerations:
     - effect: NoExecute
@@ -115,12 +113,11 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
     securityContext: {}
-    serviceAccount: default
-    serviceAccountName: default
     terminationGracePeriodSeconds: 30
     tolerations:
     - effect: NoExecute
@@ -266,12 +263,11 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
     securityContext: {}
-    serviceAccount: default
-    serviceAccountName: default
     terminationGracePeriodSeconds: 30
     tolerations:
     - effect: NoExecute
@@ -311,12 +307,11 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
     securityContext: {}
-    serviceAccount: default
-    serviceAccountName: default
     terminationGracePeriodSeconds: 30
     tolerations:
     - effect: NoExecute

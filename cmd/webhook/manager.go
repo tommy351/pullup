@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/tommy351/pullup/internal/metrics"
 	"github.com/tommy351/pullup/internal/webhook"
 	"github.com/tommy351/pullup/internal/webhook/github"
@@ -29,11 +31,11 @@ func NewControllerManager(restConf *rest.Config, scheme *runtime.Scheme) (manage
 
 func NewManager(mgr manager.Manager, webhookServer *webhook.Server, metricsServer *metrics.Server) (*Manager, error) {
 	if err := mgr.Add(webhookServer); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to register the webhook server: %w", err)
 	}
 
 	if err := mgr.Add(metricsServer); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to register the metrics server: %w", err)
 	}
 
 	return &Manager{Manager: mgr}, nil

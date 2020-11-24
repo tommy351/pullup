@@ -6,8 +6,8 @@ import (
 
 func Match() *goldga.Matcher {
 	matcher := goldga.Match()
-	matcher.Serializer = &YAMLSerializer{}
-	matcher.Transformer = &ObjectTransformer{}
+	matcher.Serializer = YAMLSerializer{}
+	matcher.Transformer = ObjectTransformer{}
 
 	return matcher
 }

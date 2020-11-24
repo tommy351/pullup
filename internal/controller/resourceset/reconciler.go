@@ -32,6 +32,14 @@ const (
 	ReasonUnchanged       = "Unchanged"
 )
 
+type NotManagedByPullupError struct {
+	Resource *unstructured.Unstructured
+}
+
+func (n NotManagedByPullupError) Error() string {
+	return fmt.Sprintf("resource already exists and is not managed by pullup: %s", getResourceName(n.Resource))
+}
+
 type Reconciler struct {
 	client   client.Client
 	logger   logr.Logger
@@ -66,6 +74,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 
 		if err := result.Error; err != nil {
 			logger.Error(err, result.GetMessage())
+
 			return reconcile.Result{Requeue: result.Requeue}, err
 		}
 
@@ -79,9 +88,8 @@ func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersio
 	obj := new(unstructured.Unstructured)
 	obj.SetGroupVersionKind(gvk)
 	err := r.client.Get(ctx, key, obj)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get the resource: %w", err)
 	}
 
 	return obj, nil
@@ -90,7 +98,6 @@ func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersio
 func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, res *v1alpha1.WebhookResource) controller.Result {
 	logger := log.FromContext(ctx)
 	gv, err := schema.ParseGroupVersion(res.GetAPIVersion())
-
 	if err != nil {
 		return controller.Result{
 			Object: set,
@@ -106,7 +113,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	}
 
 	renderedObj, err := newTemplateReducer(set).Reduce(res.Object)
-
 	if err != nil {
 		return controller.Result{
 			Object: set,
@@ -119,7 +125,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		Namespace: set.Namespace,
 		Name:      res.GetName(),
 	})
-
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.Result{
 			Object:  set,
@@ -133,7 +138,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		Namespace: set.Namespace,
 		Name:      set.Name,
 	})
-
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.Result{
 			Object:  set,
@@ -146,7 +150,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if applied != nil && !metav1.IsControlledBy(applied, set) {
 		return controller.Result{
 			Object: set,
-			Error:  fmt.Errorf("resource already exists and is not managed by pullup: %s", getResourceName(applied)),
+			Error:  NotManagedByPullupError{Resource: applied},
 			Reason: ReasonResourceExists,
 		}
 	}
@@ -208,7 +212,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	)
 
 	patch, err := reducers.Reduce(nil)
-
 	if err != nil {
 		return controller.Result{
 			Object: set,

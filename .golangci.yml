@@ -8,6 +8,10 @@ linters:
     - dogsled
     - funlen
     - wsl
+    - exhaustivestruct
+    - exhaustive
+    - testpackage
+    - paralleltest
   fast: false
 
 issues:

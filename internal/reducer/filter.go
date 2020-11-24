@@ -21,7 +21,6 @@ func FilterKey(fn FilterFunc) Interface {
 		for iter.Next() {
 			key := iter.Key().Interface()
 			ok, err := fn(key)
-
 			if err != nil {
 				return nil, fmt.Errorf("filter error at key %v: %w", key, err)
 			}

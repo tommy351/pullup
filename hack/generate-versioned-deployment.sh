@@ -22,4 +22,4 @@ images:
     newTag: ${IMAGE_TAG}
 " >> "${TMP_DEPLOYMENT_DIR}/kustomization.yml"
 
-"$PROJECT_ROOT/assets/bin/kustomize" build "$TMP_DEPLOYMENT_DIR"
+"$PROJECT_ROOT/assets/bin/kubectl" kustomize "$TMP_DEPLOYMENT_DIR"

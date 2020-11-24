@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -65,7 +67,7 @@ func (in WebhookResource) MarshalJSON() ([]byte, error) {
 
 func (in *WebhookResource) UnmarshalJSON(data []byte) error {
 	if err := in.Unstructured.UnmarshalJSON(data); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal WebhookResource: %w", err)
 	}
 
 	in.APIVersion = in.Unstructured.GetAPIVersion()

@@ -10,7 +10,6 @@ import (
 
 func Render(text string, data interface{}) (string, error) {
 	tmpl, err := template.New("").Funcs(sprig.TxtFuncMap()).Parse(text)
-
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}

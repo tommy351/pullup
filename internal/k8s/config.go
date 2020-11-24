@@ -7,11 +7,11 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	// Load auth plugins.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	// Load auth plugins
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 // Set provides config and scheme.

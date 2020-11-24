@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Pullup requires Go 1.13 and later.
+Pullup requires Go 1.15 and later.
 
 ## Getting Started
 

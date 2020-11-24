@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -51,7 +52,7 @@ func NewZapLevel(conf Config) (zap.AtomicLevel, error) {
 	level := zap.NewAtomicLevel()
 
 	if err := level.UnmarshalText([]byte(conf.Level)); err != nil {
-		return level, err
+		return level, fmt.Errorf("failed to unmarshal zap level: %w", err)
 	}
 
 	return level, nil
@@ -72,7 +73,7 @@ func NewZapLogger(encoder zapcore.Encoder, level zap.AtomicLevel, sink zapcore.W
 	logger := zap.New(
 		zapcore.NewCore(encoder, sink, level),
 		zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-			return zapcore.NewSampler(core, time.Second, 100, 100)
+			return zapcore.NewSamplerWithOptions(core, time.Second, 100, 100)
 		}),
 		zap.AddStacktrace(zapcore.WarnLevel),
 		zap.AddCallerSkip(1),
@@ -87,5 +88,6 @@ func NewZapLogger(encoder zapcore.Encoder, level zap.AtomicLevel, sink zapcore.W
 func NewLogger(zapLogger *zap.Logger) logr.Logger {
 	logger := zapr.NewLogger(zapLogger)
 	crlog.SetLogger(logger)
+
 	return crlog.Log.WithName("pullup")
 }

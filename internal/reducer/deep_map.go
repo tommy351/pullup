@@ -10,13 +10,11 @@ func DeepMapValue(fn MapFunc) Interface {
 
 	reducer = MapValue(func(value interface{}) (interface{}, error) {
 		newValue, err := fn(value)
-
 		if err != nil {
 			return nil, err
 		}
 
 		reducedValue, err := reducer.Reduce(newValue)
-
 		if err != nil {
 			if errors.Is(err, ErrNotArrayOrMap) {
 				return newValue, nil

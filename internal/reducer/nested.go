@@ -44,12 +44,12 @@ func ReduceNested(keys []string, reducer Interface) Interface {
 		}
 
 		newValue, err := reducer.Reduce(orig)
-
 		if err != nil {
 			return nil, fmt.Errorf("reduce error at key %s: %w", strings.Join(keys, "."), err)
 		}
 
 		parent.SetMapIndex(reflect.ValueOf(keys[len(keys)-1]), reflect.ValueOf(newValue))
+
 		return output, nil
 	})
 }

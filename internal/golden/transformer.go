@@ -5,16 +5,16 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 type ObjectTransformer struct{}
 
-func (o *ObjectTransformer) Transform(input interface{}) (interface{}, error) {
+func (o ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 	switch input := input.(type) {
 	case runtime.Object:
 		output := input.DeepCopyObject()
 		o.setObject(output)
+
 		return output, nil
 
 	case []runtime.Object:
@@ -25,24 +25,24 @@ func (o *ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 	}
 }
 
-func (*ObjectTransformer) setObject(obj runtime.Object) {
+func (ObjectTransformer) setObject(obj runtime.Object) {
 	metaObj, err := meta.Accessor(obj)
-
 	if err != nil {
 		return
 	}
 
 	metaObj.SetCreationTimestamp(metav1.Time{})
-	metaObj.SetUID(types.UID(""))
+	metaObj.SetUID("")
 	metaObj.SetResourceVersion("")
 	metaObj.SetGeneration(0)
+	metaObj.SetManagedFields(nil)
 
 	refs := metaObj.GetOwnerReferences()
 	newRefs := make([]metav1.OwnerReference, len(refs))
 
 	for i, ref := range refs {
 		newRefs[i] = ref
-		newRefs[i].UID = types.UID("")
+		newRefs[i].UID = ""
 	}
 
 	metaObj.SetOwnerReferences(newRefs)

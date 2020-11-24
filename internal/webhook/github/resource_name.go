@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/google/go-github/v29/github"
+	"github.com/google/go-github/v32/github"
 	"github.com/tommy351/pullup/internal/template"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 )

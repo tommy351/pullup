@@ -29,6 +29,7 @@ var _ = Describe("MapValue", func() {
 	}
 
 	expectFuncError := func() {
+		// nolint: goerr113
 		mapErr := errors.New("map error")
 
 		BeforeEach(func() {

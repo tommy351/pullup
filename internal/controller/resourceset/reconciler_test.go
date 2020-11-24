@@ -30,6 +30,7 @@ var _ = Describe("Reconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		data = testutil.MapObjects(data, namespaceMap.SetObject)
 		Expect(testenv.CreateObjects(data)).To(Succeed())
+
 		return data
 	}
 

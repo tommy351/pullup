@@ -28,7 +28,6 @@ func (m *Merger) mergeMap(input, source reflect.Value) (interface{}, error) {
 	for iter.Next() {
 		if inputValue := output.MapIndex(iter.Key()); inputValue.IsValid() {
 			newValue, err := m.Func(inputValue.Interface(), iter.Value().Interface())
-
 			if err != nil {
 				return nil, fmt.Errorf("merge error at key %v: %w", iter.Key().Interface(), err)
 			}

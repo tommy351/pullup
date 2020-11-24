@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -12,7 +13,7 @@ func run(_ *cobra.Command, _ []string) error {
 	var conf cmd.Config
 
 	if err := viper.Unmarshal(&conf); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	return cmd.RunManager(InitializeManager(conf))

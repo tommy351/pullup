@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/tommy351/pullup/internal/controller/resourceset"
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/internal/k8s"
@@ -31,22 +33,20 @@ func NewManager(mgr manager.Manager, rs *resourceset.Reconciler, hook *webhook.R
 		For(&v1alpha1.Webhook{}).
 		Owns(&v1alpha1.ResourceSet{}).
 		Complete(hook)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build the webhook controller: %w", err)
 	}
 
 	err = builder.
 		ControllerManagedBy(mgr).
 		For(&v1alpha1.ResourceSet{}).
 		Complete(rs)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build the resource set controller: %w", err)
 	}
 
 	if err := mgr.Add(metricsServer); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to register the metrics server: %w", err)
 	}
 
 	return &Manager{Manager: mgr}, nil

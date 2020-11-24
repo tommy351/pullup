@@ -18,7 +18,7 @@ do
 done
 
 # Apply rest of the manifests
-kustomize build "${PROJECT_ROOT}/test/deployment" | kubectl apply -f -
+kubectl apply -k "${PROJECT_ROOT}/test/deployment"
 
 # Wait until the job is running
 until kubectl get pod -l "job-name=${JOB_NAME}" -n "$NAMESPACE" | grep Running

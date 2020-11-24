@@ -1,6 +1,7 @@
 package golden
 
 import (
+	"fmt"
 	"io"
 
 	"sigs.k8s.io/yaml"
@@ -8,15 +9,14 @@ import (
 
 type YAMLSerializer struct{}
 
-func (*YAMLSerializer) Serialize(w io.Writer, input interface{}) error {
+func (YAMLSerializer) Serialize(w io.Writer, input interface{}) error {
 	data, err := yaml.Marshal(input)
-
 	if err != nil {
-		return err
+		return fmt.Errorf("yaml marshal error: %w", err)
 	}
 
 	if _, err := w.Write(data); err != nil {
-		return err
+		return fmt.Errorf("write error: %w", err)
 	}
 
 	return nil
