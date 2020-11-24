@@ -25,6 +25,7 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
@@ -70,6 +71,7 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
@@ -115,6 +117,7 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
@@ -266,6 +269,7 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
@@ -311,6 +315,7 @@
       terminationMessagePolicy: File
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
     priority: 0
     restartPolicy: Always
     schedulerName: default-scheduler
