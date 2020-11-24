@@ -11,6 +11,7 @@ linters:
     - exhaustivestruct
     - exhaustive
     - testpackage
+    - paralleltest
   fast: false
 
 issues:
