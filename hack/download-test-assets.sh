@@ -16,8 +16,8 @@ logEnd() {
 trap 'logEnd $?' EXIT
 
 test_framework_dir="$(cd "$(dirname "$0")/.." ; pwd)"
-os="$(uname -s)"
-os_lowercase="$(echo "$os" | tr '[:upper:]' '[:lower:]' )"
+goos=$(go env GOOS)
+goarch=$(go env GOARCH)
 
 dest_dir="${1:-"${test_framework_dir}/assets/bin"}"
 etcd_dest="${dest_dir}/etcd"
@@ -30,10 +30,10 @@ echo "About to download a couple of binaries. This might take a while..."
 mkdir -p "$dest_dir"
 
 k8s_version=1.19.2
-curl $quiet -L "https://go.kubebuilder.io/test-tools/${k8s_version}/${os_lowercase}/amd64" | tar --strip-components=2 -xz -C "$dest_dir" kubebuilder/bin
+curl $quiet -L "https://go.kubebuilder.io/test-tools/${k8s_version}/${goos}/${goarch}" | tar --strip-components=2 -xz -C "$dest_dir" kubebuilder/bin
 
 kind_version=v0.9.0
-curl $quiet -L "https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${os_lowercase}-amd64" --output "$kind_dest"
+curl $quiet -L "https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${goos}-${goarch}" --output "$kind_dest"
 
 chmod +x "$etcd_dest" "$kubectl_dest" "$kube_apiserver_dest" "$kind_dest"
 
