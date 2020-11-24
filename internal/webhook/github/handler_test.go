@@ -13,10 +13,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
+	"github.com/tommy351/pullup/internal/httputil"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
 	"github.com/tommy351/pullup/internal/testutil"
+	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,7 +84,7 @@ var _ = Describe("Handler", func() {
 	}
 
 	getChanges := func() []testenv.Change {
-		return testenv.GetChanges(handler.client)
+		return testenv.GetChanges(handler.Client)
 	}
 
 	testGolden := func() {
@@ -105,8 +107,8 @@ var _ = Describe("Handler", func() {
 			Expect(testenv.DeleteObjects(data)).To(Succeed())
 		})
 
-		It("should respond 204", func() {
-			Expect(recorder.Code).To(Equal(http.StatusNoContent))
+		It("should respond 200", func() {
+			Expect(recorder.Code).To(Equal(http.StatusOK))
 		})
 	}
 
@@ -118,7 +120,7 @@ var _ = Describe("Handler", func() {
 			It("should record Updated event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
 					Type:    v1.EventTypeNormal,
-					Reason:  ReasonUpdated,
+					Reason:  hookutil.ReasonUpdated,
 					Message: "Updated resource set: foobar-46",
 				})).To(BeTrue())
 			})
@@ -131,7 +133,7 @@ var _ = Describe("Handler", func() {
 			It("should record Created event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
 					Type:    v1.EventTypeNormal,
-					Reason:  ReasonCreated,
+					Reason:  hookutil.ReasonCreated,
 					Message: "Created resource set: foobar-46",
 				})).To(BeTrue())
 			})
@@ -143,9 +145,9 @@ var _ = Describe("Handler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		handler, err = NewHandler(Config{}, mgr)
-		Expect(err).NotTo(HaveOccurred())
+		handler = NewHandler(Config{}, mgr)
 
+		Expect(handler.Initialize()).To(Succeed())
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()
@@ -153,7 +155,7 @@ var _ = Describe("Handler", func() {
 
 	JustBeforeEach(func() {
 		recorder = httptest.NewRecorder()
-		handler.ServeHTTP(recorder, req)
+		httputil.NewHandler(handler.Handle)(recorder, req)
 	})
 
 	AfterEach(func() {
@@ -182,8 +184,8 @@ var _ = Describe("Handler", func() {
 		When("no matching webhooks", func() {
 			setRequest("opened")
 
-			It("should respond 204", func() {
-				Expect(recorder.Code).To(Equal(http.StatusNoContent))
+			It("should respond 200", func() {
+				Expect(recorder.Code).To(Equal(http.StatusOK))
 			})
 
 			It("should not change anything", func() {
@@ -223,8 +225,8 @@ var _ = Describe("Handler", func() {
 			}
 
 			testDeleteSuccess := func() {
-				It("should respond 204", func() {
-					Expect(recorder.Code).To(Equal(http.StatusNoContent))
+				It("should respond 200", func() {
+					Expect(recorder.Code).To(Equal(http.StatusOK))
 				})
 
 				It("should delete related resource sets", func() {
@@ -248,7 +250,7 @@ var _ = Describe("Handler", func() {
 				It("should record Deleted event", func() {
 					Expect(mgr.WaitForEvent(testenv.EventData{
 						Type:    v1.EventTypeNormal,
-						Reason:  ReasonDeleted,
+						Reason:  hookutil.ReasonDeleted,
 						Message: "Deleted resource sets",
 					})).To(BeTrue())
 				})
@@ -276,7 +278,7 @@ var _ = Describe("Handler", func() {
 				It("should record Deleted event", func() {
 					Expect(mgr.WaitForEvent(testenv.EventData{
 						Type:    v1.EventTypeNormal,
-						Reason:  ReasonDeleted,
+						Reason:  hookutil.ReasonDeleted,
 						Message: "Deleted resource sets",
 					})).To(BeTrue())
 				})
@@ -292,7 +294,7 @@ var _ = Describe("Handler", func() {
 				It("should record Deleted event", func() {
 					Expect(mgr.WaitForEvent(testenv.EventData{
 						Type:    v1.EventTypeNormal,
-						Reason:  ReasonDeleted,
+						Reason:  hookutil.ReasonDeleted,
 						Message: "Deleted resource sets",
 					})).To(BeTrue())
 				})

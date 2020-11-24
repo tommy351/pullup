@@ -3,6 +3,7 @@ package resourceset
 import (
 	"fmt"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
@@ -12,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -56,7 +56,7 @@ var _ = Describe("Reconciler", func() {
 
 	testGoldenFile := func() {
 		It("should match the golden file", func() {
-			changes := testenv.GetChanges(reconciler.client)
+			changes := testenv.GetChanges(reconciler.Client)
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
@@ -77,7 +77,7 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewReconciler(mgr, log.NullLogger{})
+		reconciler = NewReconciler(mgr, logr.Discard())
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()
@@ -106,7 +106,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should not change anything", func() {
-			Expect(testenv.GetChanges(reconciler.client)).To(BeEmpty())
+			Expect(testenv.GetChanges(reconciler.Client)).To(BeEmpty())
 		})
 	})
 
@@ -217,7 +217,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should not change anything", func() {
-			Expect(testenv.GetChanges(reconciler.client)).To(BeEmpty())
+			Expect(testenv.GetChanges(reconciler.Client)).To(BeEmpty())
 		})
 	})
 })

@@ -10,6 +10,10 @@ import (
 	"github.com/go-logr/logr"
 )
 
+const (
+	DefaultShutdownTimeout = time.Second * 5
+)
+
 type ServerOptions struct {
 	Name            string
 	Address         string
@@ -23,6 +27,14 @@ func RunServer(options ServerOptions) error {
 	server := http.Server{
 		Addr:    options.Address,
 		Handler: options.Handler,
+	}
+
+	if options.ShutdownTimeout == 0 {
+		options.ShutdownTimeout = DefaultShutdownTimeout
+	}
+
+	if options.Logger == nil {
+		options.Logger = logr.Discard()
 	}
 
 	idleConnsClosed := make(chan struct{})

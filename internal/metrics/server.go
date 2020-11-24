@@ -1,33 +1,33 @@
 package metrics
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/go-logr/logr"
+	"github.com/google/wire"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tommy351/pullup/internal/httputil"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-type Server struct {
-	logger logr.Logger
-}
+// ServerSet provides a server.
+// nolint: gochecknoglobals
+var ServerSet = wire.NewSet(
+	wire.Struct(new(Server), "*"),
+)
 
-func NewServer(logger logr.Logger) *Server {
-	return &Server{logger: logger}
+type Server struct {
+	Logger logr.Logger
 }
 
 func (s *Server) Start(stop <-chan struct{}) error {
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{}))
+	router := mux.NewRouter()
+	router.Handle("/metrics", promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{}))
 
 	return httputil.RunServer(httputil.ServerOptions{
-		Name:            "metrics",
-		Address:         ":9100",
-		Handler:         mux,
-		ShutdownTimeout: time.Second * 5,
-		Stop:            stop,
-		Logger:          s.logger,
+		Name:    "metrics",
+		Address: ":9100",
+		Handler: router,
+		Stop:    stop,
+		Logger:  s.Logger,
 	})
 }

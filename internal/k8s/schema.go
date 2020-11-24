@@ -1,7 +1,6 @@
 package k8s
 
 import (
-	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -18,12 +17,8 @@ type JSONPatch struct {
 }
 
 func GVKToTypeMeta(gvk schema.GroupVersionKind) metav1.TypeMeta {
-	return metav1.TypeMeta{
-		APIVersion: gvk.GroupVersion().String(),
-		Kind:       gvk.Kind,
-	}
-}
+	var meta metav1.TypeMeta
+	meta.APIVersion, meta.Kind = gvk.ToAPIVersionAndKind()
 
-func Kind(kind string) schema.GroupVersionKind {
-	return v1alpha1.SchemeGroupVersion.WithKind(kind)
+	return meta
 }

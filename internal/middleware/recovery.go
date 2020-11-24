@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/justinas/alice"
+	"github.com/gorilla/mux"
 )
 
-func Recovery(handler func(w http.ResponseWriter, r *http.Request, err error)) alice.Constructor {
+func Recovery(handler func(w http.ResponseWriter, r *http.Request, err error)) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {

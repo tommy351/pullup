@@ -7,7 +7,9 @@ package main
 
 import (
 	"github.com/tommy351/pullup/cmd"
+	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/controller/resourceset"
+	"github.com/tommy351/pullup/internal/controller/resourcetemplate"
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
@@ -30,6 +32,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	client := controller.NewClient(manager)
 	encoderConfig := log.NewEncoderConfig()
 	logConfig := cmd.NewLogConfig(conf)
 	atomicLevel, err := log.NewZapLevel(logConfig)
@@ -46,10 +49,28 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	}
 	logger, cleanup2 := log.NewZapLogger(encoder, atomicLevel, writeSyncer)
 	logrLogger := log.NewLogger(logger)
-	reconciler := resourceset.NewReconciler(manager, logrLogger)
-	webhookReconciler := webhook.NewReconciler(manager, logrLogger)
-	server := metrics.NewServer(logrLogger)
-	mainManager, err := NewManager(manager, reconciler, webhookReconciler, server)
+	resourcesetLogger := resourceset.NewLogger(logrLogger)
+	eventRecorder := controller.NewEventRecorder(manager)
+	reconciler := &resourceset.Reconciler{
+		Client:   client,
+		Logger:   resourcesetLogger,
+		Recorder: eventRecorder,
+	}
+	webhookLogger := webhook.NewLogger(logrLogger)
+	webhookReconciler := &webhook.Reconciler{
+		Client:   client,
+		Logger:   webhookLogger,
+		Recorder: eventRecorder,
+	}
+	resourcetemplateLogger := resourcetemplate.NewLogger(logrLogger)
+	resourcetemplateReconciler := &resourcetemplate.Reconciler{
+		Client: client,
+		Logger: resourcetemplateLogger,
+	}
+	server := &metrics.Server{
+		Logger: logrLogger,
+	}
+	mainManager, err := NewManager(manager, reconciler, webhookReconciler, resourcetemplateReconciler, server)
 	if err != nil {
 		cleanup2()
 		cleanup()

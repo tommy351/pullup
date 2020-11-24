@@ -5,21 +5,20 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/justinas/alice"
-	"github.com/tommy351/pullup/internal/log"
+	"github.com/gorilla/mux"
 	"github.com/zenazn/goji/web/mutil"
 )
 
-func SetLogger(logger logr.Logger) alice.Constructor {
+func SetLogger(logger logr.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := log.NewContext(r.Context(), logger)
+			ctx := logr.NewContext(r.Context(), logger)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func RequestLog(log func(r *http.Request, status, size int, duration time.Duration)) alice.Constructor {
+func RequestLog(log func(r *http.Request, status, size int, duration time.Duration)) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()

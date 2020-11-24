@@ -6,14 +6,13 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/google/wire"
 	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/k8s"
-	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -22,33 +21,38 @@ const (
 	ReasonPatchFailed = "PatchFailed"
 )
 
-type Reconciler struct {
-	client   client.Client
-	logger   logr.Logger
-	recorder record.EventRecorder
+// ReconcilerSet provides a reconciler.
+// nolint: gochecknoglobals
+var ReconcilerSet = wire.NewSet(
+	NewLogger,
+	wire.Struct(new(Reconciler), "*"),
+)
+
+type Logger logr.Logger
+
+func NewLogger(logger logr.Logger) Logger {
+	return logger.WithName("controller").WithName("webhook")
 }
 
-func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
-	return &Reconciler{
-		client:   mgr.GetClient(),
-		logger:   logger.WithName("controller").WithName("webhook"),
-		recorder: mgr.GetEventRecorderFor("pullup-controller"),
-	}
+type Reconciler struct {
+	Client   client.Client
+	Logger   Logger
+	Recorder record.EventRecorder
 }
 
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	hook := new(v1alpha1.Webhook)
 	ctx := context.Background()
 
-	if err := r.client.Get(ctx, req.NamespacedName, hook); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, hook); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to get webhook: %w", err)
 	}
 
-	logger := r.logger.WithValues("webhook", hook)
-	ctx = log.NewContext(ctx, logger)
+	logger := r.Logger.WithValues("webhook", hook)
+	ctx = logr.NewContext(ctx, logger)
 
 	list := new(v1alpha1.ResourceSetList)
-	err := r.client.List(ctx, list, client.InNamespace(hook.Namespace), client.MatchingLabels(map[string]string{
+	err := r.Client.List(ctx, list, client.InNamespace(hook.Namespace), client.MatchingLabels(map[string]string{
 		k8s.LabelWebhookName: hook.Name,
 	}))
 	if err != nil {
@@ -59,7 +63,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		set := set
 		result := r.patchResourceSet(ctx, hook, &set)
 
-		result.RecordEvent(r.recorder)
+		result.RecordEvent(r.Recorder)
 
 		if err := result.Error; err != nil {
 			logger.Error(err, result.GetMessage())
@@ -89,7 +93,7 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 		}
 	}
 
-	if err := r.client.Patch(ctx, set, client.RawPatch(types.JSONPatchType, patch)); err != nil {
+	if err := r.Client.Patch(ctx, set, client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return controller.Result{
 			Object:  webhook,
 			Error:   fmt.Errorf("failed to patch the resource set: %w", err),

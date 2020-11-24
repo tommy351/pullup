@@ -17,11 +17,10 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 		cmd.ConfigSet,
 		log.LoggerSet,
 		k8s.Set,
-		NewWebhookConfig,
-		NewGitHubConfig,
+		wire.FieldsOf(new(Config), "Webhook", "GitHub"),
 		NewControllerManager,
 		webhook.ServerSet,
-		metrics.NewServer,
+		metrics.ServerSet,
 		NewManager,
 	)
 

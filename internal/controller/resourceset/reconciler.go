@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/google/wire"
 	"github.com/tommy351/pullup/internal/controller"
-	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/internal/reducer"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -32,6 +31,19 @@ const (
 	ReasonUnchanged       = "Unchanged"
 )
 
+// ReconcilerSet provides a reconciler.
+// nolint: gochecknoglobals
+var ReconcilerSet = wire.NewSet(
+	NewLogger,
+	wire.Struct(new(Reconciler), "*"),
+)
+
+type Logger logr.Logger
+
+func NewLogger(logger logr.Logger) Logger {
+	return logger.WithName("controller").WithName("resourceset")
+}
+
 type NotManagedByPullupError struct {
 	Resource *unstructured.Unstructured
 }
@@ -41,36 +53,28 @@ func (n NotManagedByPullupError) Error() string {
 }
 
 type Reconciler struct {
-	client   client.Client
-	logger   logr.Logger
-	recorder record.EventRecorder
-}
-
-func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
-	return &Reconciler{
-		client:   mgr.GetClient(),
-		logger:   logger.WithName("controller").WithName("resourceset"),
-		recorder: mgr.GetEventRecorderFor("pullup-controller"),
-	}
+	Client   client.Client
+	Logger   Logger
+	Recorder record.EventRecorder
 }
 
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	set := new(v1alpha1.ResourceSet)
 	ctx := context.Background()
 
-	if err := r.client.Get(ctx, req.NamespacedName, set); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, set); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to get resource set: %w", err)
 	}
 
-	set.SetGroupVersionKind(k8s.Kind("ResourceSet"))
+	set.SetGroupVersionKind(v1alpha1.GroupVersion.WithKind("ResourceSet"))
 
-	logger := r.logger.WithValues("resourceSet", set)
-	ctx = log.NewContext(ctx, logger)
+	logger := r.Logger.WithValues("resourceSet", set)
+	ctx = logr.NewContext(ctx, logger)
 
 	for _, res := range set.Spec.Resources {
 		res := res
 		result := r.applyResource(ctx, set, &res)
-		result.RecordEvent(r.recorder)
+		result.RecordEvent(r.Recorder)
 
 		if err := result.Error; err != nil {
 			logger.Error(err, result.GetMessage())
@@ -87,7 +91,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (*unstructured.Unstructured, error) {
 	obj := new(unstructured.Unstructured)
 	obj.SetGroupVersionKind(gvk)
-	err := r.client.Get(ctx, key, obj)
+	err := r.Client.Get(ctx, key, obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get the resource: %w", err)
 	}
@@ -96,7 +100,7 @@ func (r *Reconciler) getUnstructured(ctx context.Context, gvk schema.GroupVersio
 }
 
 func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSet, res *v1alpha1.WebhookResource) controller.Result {
-	logger := log.FromContext(ctx)
+	logger := logr.FromContextOrDiscard(ctx)
 	gv, err := schema.ParseGroupVersion(res.GetAPIVersion())
 	if err != nil {
 		return controller.Result{
@@ -235,7 +239,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 			}
 		}
 
-		if err := r.client.Update(ctx, data); err != nil {
+		if err := r.Client.Update(ctx, data); err != nil {
 			return controller.Result{
 				Object:  set,
 				Error:   fmt.Errorf("failed to update resource: %w", err),
@@ -251,7 +255,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		}
 	}
 
-	if err := r.client.Create(ctx, data); err != nil {
+	if err := r.Client.Create(ctx, data); err != nil {
 		return controller.Result{
 			Object:  set,
 			Error:   fmt.Errorf("failed to create resource: %w", err),
