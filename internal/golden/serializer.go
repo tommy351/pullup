@@ -9,7 +9,7 @@ import (
 
 type YAMLSerializer struct{}
 
-func (*YAMLSerializer) Serialize(w io.Writer, input interface{}) error {
+func (YAMLSerializer) Serialize(w io.Writer, input interface{}) error {
 	data, err := yaml.Marshal(input)
 	if err != nil {
 		return fmt.Errorf("yaml marshal error: %w", err)
