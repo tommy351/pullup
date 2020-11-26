@@ -1,7 +1,6 @@
 package webhook
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -39,7 +38,6 @@ func NewLogger(logger logr.Logger) Logger {
 }
 
 type Handler interface {
-	Initialize() error
 	Handle(w http.ResponseWriter, r *http.Request) error
 }
 
@@ -95,10 +93,6 @@ func (s *Server) Start(stop <-chan struct{}) error {
 	}
 
 	for name, handler := range handlers {
-		if err := handler.Initialize(); err != nil {
-			return fmt.Errorf("failed to initialize %s handler: %w", name, err)
-		}
-
 		router.
 			Handle("/webhooks/"+name, httputil.NewHandler(handler.Handle)).
 			Methods(http.MethodPost)

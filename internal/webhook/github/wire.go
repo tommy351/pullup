@@ -9,13 +9,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-func NewHandler(conf Config, mgr manager.Manager) *Handler {
+func NewHandlerConfig(conf Config, mgr manager.Manager) HandlerConfig {
 	wire.Build(
 		controller.NewClient,
 		hookutil.NewEventRecorder,
-		hookutil.NewFieldIndexer,
 		hookutil.ResourceTemplateClientSet,
-		HandlerSet,
+		HandlerConfigSet,
 	)
-	return nil
+	return HandlerConfig{}
 }

@@ -11,6 +11,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// +kubebuilder:rbac:groups=pullup.dev,resources=resourcetemplates,verbs=get;list;watch
+
 // ReconcilerSet provides a reconciler.
 // nolint: gochecknoglobals
 var ReconcilerSet = wire.NewSet(

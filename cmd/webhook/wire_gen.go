@@ -54,17 +54,21 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	githubConfig := conf.GitHub
 	client := controller.NewClient(manager)
 	eventRecorder := hookutil.NewEventRecorder(manager)
-	fieldIndexer := hookutil.NewFieldIndexer(manager)
 	resourceTemplateClient := hookutil.ResourceTemplateClient{
 		Client:   client,
 		Recorder: eventRecorder,
 	}
-	handler := &github.Handler{
+	handlerConfig := github.HandlerConfig{
 		Config:                 githubConfig,
 		Client:                 client,
 		Recorder:               eventRecorder,
-		Indexer:                fieldIndexer,
 		ResourceTemplateClient: resourceTemplateClient,
+	}
+	handler, err := github.NewHandler(handlerConfig, manager)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
 	}
 	httpHandler := &http.Handler{
 		Client:                 client,

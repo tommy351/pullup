@@ -18,6 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// +kubebuilder:rbac:groups=pullup.dev,resources=httpwebhooks,verbs=get;list;watch
+
 // HandlerSet provides a handler.
 // nolint: gochecknoglobals
 var HandlerSet = wire.NewSet(
@@ -34,10 +36,6 @@ type Body struct {
 type Handler struct {
 	Client                 client.Client
 	ResourceTemplateClient hookutil.ResourceTemplateClient
-}
-
-func (h *Handler) Initialize() error {
-	return nil
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {

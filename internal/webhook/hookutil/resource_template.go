@@ -22,6 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// +kubebuilder:rbac:groups=pullup.dev,resources=resourcetemplates,verbs=create;patch;delete
+
 const (
 	ReasonCreated        = "Created"
 	ReasonCreateFailed   = "CreateFailed"

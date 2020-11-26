@@ -13,20 +13,18 @@ import (
 
 // Injectors from wire.go:
 
-func NewHandler(conf Config, mgr manager.Manager) *Handler {
+func NewHandlerConfig(conf Config, mgr manager.Manager) HandlerConfig {
 	client := controller.NewClient(mgr)
 	eventRecorder := hookutil.NewEventRecorder(mgr)
-	fieldIndexer := hookutil.NewFieldIndexer(mgr)
 	resourceTemplateClient := hookutil.ResourceTemplateClient{
 		Client:   client,
 		Recorder: eventRecorder,
 	}
-	handler := &Handler{
+	handlerConfig := HandlerConfig{
 		Config:                 conf,
 		Client:                 client,
 		Recorder:               eventRecorder,
-		Indexer:                fieldIndexer,
 		ResourceTemplateClient: resourceTemplateClient,
 	}
-	return handler
+	return handlerConfig
 }

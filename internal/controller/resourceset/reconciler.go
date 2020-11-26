@@ -20,6 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// +kubebuilder:rbac:groups=pullup.dev,resources=resourcesets,verbs=get;list;watch
+
 const (
 	ReasonUpdated         = "Updated"
 	ReasonUpdateFailed    = "UpdateFailed"

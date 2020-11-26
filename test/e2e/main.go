@@ -131,7 +131,7 @@ func triggerWebhook() error {
 
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusNoContent {
+	if res.StatusCode != http.StatusOK {
 		// nolint: goerr113
 		return fmt.Errorf("http response error: %d", res.StatusCode)
 	}

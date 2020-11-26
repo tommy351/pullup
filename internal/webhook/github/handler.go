@@ -15,45 +15,48 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
+
+// +kubebuilder:rbac:groups=pullup.dev,resources=webhooks;githubwebhooks,verbs=get;list;watch
+// +kubebuilder:rbac:groups=pullup.dev,resources=resourcesets,verbs=create;patch;delete
 
 const (
 	nameField      = "spec.repositories.githubName"
 	repoTypeGitHub = "github"
 )
 
+// HandlerConfigSet provides a handler config.
+// nolint: gochecknoglobals
+var HandlerConfigSet = wire.NewSet(
+	wire.Struct(new(HandlerConfig), "*"),
+)
+
 // HandlerSet provides a handler.
 // nolint: gochecknoglobals
 var HandlerSet = wire.NewSet(
-	wire.Struct(new(Handler), "*"),
+	HandlerConfigSet,
+	NewHandler,
 )
 
 type Config struct {
 	Secret string `mapstructure:"secret"`
 }
 
-type Handler struct {
+type HandlerConfig struct {
 	Config                 Config
 	Client                 client.Client
 	Recorder               record.EventRecorder
-	Indexer                client.FieldIndexer
 	ResourceTemplateClient hookutil.ResourceTemplateClient
 }
 
-func (h *Handler) Initialize() error {
-	if err := h.buildIndexAlpha(); err != nil {
-		return err
-	}
-
-	if err := h.buildIndexBeta(); err != nil {
-		return err
-	}
-
-	return nil
+type Handler struct {
+	HandlerConfig
 }
 
-func (h *Handler) buildIndexAlpha() error {
-	return h.Indexer.IndexField(context.TODO(), &v1alpha1.Webhook{}, nameField, func(obj runtime.Object) []string {
+func NewHandler(conf HandlerConfig, mgr manager.Manager) (*Handler, error) {
+	indexer := mgr.GetFieldIndexer()
+	err := indexer.IndexField(context.TODO(), &v1alpha1.Webhook{}, nameField, func(obj runtime.Object) []string {
 		var result []string
 
 		for _, repo := range obj.(*v1alpha1.Webhook).Spec.Repositories {
@@ -64,10 +67,11 @@ func (h *Handler) buildIndexAlpha() error {
 
 		return result
 	})
-}
+	if err != nil {
+		return nil, fmt.Errorf("index failed: %w", err)
+	}
 
-func (h *Handler) buildIndexBeta() error {
-	return h.Indexer.IndexField(context.TODO(), &v1beta1.GitHubWebhook{}, nameField, func(obj runtime.Object) []string {
+	err = indexer.IndexField(context.TODO(), &v1beta1.GitHubWebhook{}, nameField, func(obj runtime.Object) []string {
 		var result []string
 
 		for _, repo := range obj.(*v1beta1.GitHubWebhook).Spec.Repositories {
@@ -76,6 +80,13 @@ func (h *Handler) buildIndexBeta() error {
 
 		return result
 	})
+	if err != nil {
+		return nil, fmt.Errorf("index failed: %w", err)
+	}
+
+	return &Handler{
+		HandlerConfig: conf,
+	}, nil
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {

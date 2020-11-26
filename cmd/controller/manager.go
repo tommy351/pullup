@@ -16,6 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+// +kubebuilder:rbac:groups="",namespace=pullup,resources=configmaps,verbs=get;create;update
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;update;patch
+
 type Manager struct {
 	manager.Manager
 }

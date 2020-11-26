@@ -145,9 +145,10 @@ var _ = Describe("Handler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		handler = NewHandler(Config{}, mgr)
+		handlerConfig := NewHandlerConfig(Config{}, mgr)
+		handler, err = NewHandler(handlerConfig, mgr)
+		Expect(err).NotTo(HaveOccurred())
 
-		Expect(handler.Initialize()).To(Succeed())
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()

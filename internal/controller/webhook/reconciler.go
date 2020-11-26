@@ -16,6 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// +kubebuilder:rbac:groups=pullup.dev,resources=webhooks,verbs=get;list;watch
+// +kubebuilder:rbac:groups=pullup.dev,resources=resourcesets,verbs=patch
+
 const (
 	ReasonPatched     = "Patched"
 	ReasonPatchFailed = "PatchFailed"
