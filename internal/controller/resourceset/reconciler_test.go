@@ -60,7 +60,7 @@ var _ = Describe("Reconciler", func() {
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
-			Expect(objects).To(golden.Match())
+			Expect(objects).To(golden.MatchObject())
 		})
 	}
 

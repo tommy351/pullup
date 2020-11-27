@@ -92,7 +92,7 @@ var _ = Describe("Handler", func() {
 			objects, err := testenv.GetChangedObjects(getChanges())
 			Expect(err).NotTo(HaveOccurred())
 			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
-			Expect(objects).To(golden.Match())
+			Expect(objects).To(golden.MatchObject())
 		})
 	}
 
