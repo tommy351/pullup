@@ -1,37 +1,40 @@
 package jsonschema
 
 import (
-	"regexp"
-
 	"github.com/xeipuuv/gojsonschema"
+	"k8s.io/apimachinery/pkg/api/validation"
 )
-
-// dnsLabelPattern is a pattern for DNS labels.
-//
-// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
-var dnsLabelPattern = regexp.MustCompile("^[a-z0-9](?:[a-z0-9-.]*[a-z0-9])?$")
 
 // nolint: gochecknoinits
 func init() {
-	gojsonschema.FormatCheckers.Add("kubernetes_name", DNSLabelFormatChecker{MaxLength: 253})
-	gojsonschema.FormatCheckers.Add("kubernetes_namespace", DNSLabelFormatChecker{MaxLength: 63})
+	gojsonschema.FormatCheckers.Add("kubernetes_name", KubernetesNameFormatChecker{})
+	gojsonschema.FormatCheckers.Add("kubernetes_namespace", KubernetesNamespaceFormatChecker{})
 }
 
-type DNSLabelFormatChecker struct {
-	MaxLength int
-}
+type KubernetesNamespaceFormatChecker struct{}
 
-func (d DNSLabelFormatChecker) IsFormat(input interface{}) bool {
+func (KubernetesNamespaceFormatChecker) IsFormat(input interface{}) bool {
 	s, ok := input.(string)
 	if !ok {
 		return false
 	}
 
-	if d.MaxLength > 0 && len(s) > d.MaxLength {
+	if len(validation.ValidateNamespaceName(s, false)) > 0 {
 		return false
 	}
 
-	if !dnsLabelPattern.MatchString(s) {
+	return true
+}
+
+type KubernetesNameFormatChecker struct{}
+
+func (KubernetesNameFormatChecker) IsFormat(input interface{}) bool {
+	s, ok := input.(string)
+	if !ok {
+		return false
+	}
+
+	if len(validation.NameIsDNSSubdomain(s, false)) > 0 {
 		return false
 	}
 
