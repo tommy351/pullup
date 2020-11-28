@@ -32,6 +32,7 @@ const (
 	ReasonDeleted        = "Deleted"
 	ReasonDeleteFailed   = "DeleteFailed"
 	ReasonInvalidWebhook = "InvalidWebhook"
+	ReasonNotExist       = "NotExist"
 )
 
 type ResourceTemplateAction string
@@ -196,7 +197,15 @@ func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.Resource
 }
 
 func (r *ResourceTemplateClient) delete(ctx context.Context, rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) controller.Result {
-	if err := r.Client.Delete(ctx, rt); err != nil && !kerrors.IsNotFound(err) {
+	if err := r.Client.Delete(ctx, rt); err != nil {
+		if kerrors.IsNotFound(err) {
+			return controller.Result{
+				Object:  options.Webhook,
+				Message: fmt.Sprintf("Resource template does not exist: %s", rt.Name),
+				Reason:  ReasonNotExist,
+			}
+		}
+
 		return controller.Result{
 			Object: options.Webhook,
 			Error:  fmt.Errorf("failed to delete resource template: %w", err),

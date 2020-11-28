@@ -78,7 +78,7 @@ func (s *Server) Start(stop <-chan struct{}) error {
 		)
 		_ = httputil.JSON(w, http.StatusInternalServerError, &httputil.Response{
 			Errors: []httputil.Error{
-				{Description: "Internal server error"},
+				{Description: "internal server error"},
 			},
 		})
 	}))

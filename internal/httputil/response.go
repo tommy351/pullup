@@ -56,3 +56,14 @@ func NewErrorsForJSONSchema(errors []gojsonschema.ResultError) (result []Error) 
 
 	return
 }
+
+func NewValidationErrors(field string, errors []string) (result []Error) {
+	for _, err := range errors {
+		result = append(result, Error{
+			Description: err,
+			Field:       field,
+		})
+	}
+
+	return
+}

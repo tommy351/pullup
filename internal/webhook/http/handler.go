@@ -10,12 +10,12 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/wire"
 	"github.com/tommy351/pullup/internal/httputil"
-	"github.com/tommy351/pullup/internal/jsonschema"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	"github.com/xeipuuv/gojsonschema"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -27,26 +27,6 @@ import (
 var HandlerSet = wire.NewSet(
 	wire.Struct(new(Handler), "*"),
 )
-
-// nolint: gochecknoglobals
-var bodySchemaLoader = gojsonschema.NewGoLoader(map[string]interface{}{
-	"type": "object",
-	"properties": map[string]interface{}{
-		"namespace": map[string]interface{}{
-			"type":   "string",
-			"format": "kubernetes_namespace",
-		},
-		"name": map[string]interface{}{
-			"type":   "string",
-			"format": "kubernetes_name",
-		},
-		"action": map[string]interface{}{
-			"type": "string",
-			"enum": []interface{}{hookutil.ActionApply, hookutil.ActionDelete},
-		},
-	},
-	"requiredKeys": []string{"namespace", "name", "action"},
-})
 
 type Body struct {
 	Namespace string                          `json:"namespace"`
@@ -60,13 +40,13 @@ type Handler struct {
 	ResourceTemplateClient hookutil.ResourceTemplateClient
 }
 
-func (h *Handler) parseBody(r *http.Request) (*Body, []httputil.Error, error) {
+func (h *Handler) parseBody(r *http.Request) (*Body, []httputil.Error) {
 	logger := logr.FromContextOrDiscard(r.Context())
 
 	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 		return nil, []httputil.Error{
 			{Description: `Content type must be "application/json"`},
-		}, nil
+		}
 	}
 
 	var body Body
@@ -75,29 +55,30 @@ func (h *Handler) parseBody(r *http.Request) (*Body, []httputil.Error, error) {
 		logger.Error(err, "invalid json")
 
 		return nil, []httputil.Error{
-			{Description: "Invalid JSON"},
-		}, nil
+			{Description: `Invalid JSON`},
+		}
 	}
 
-	docLoader := gojsonschema.NewGoLoader(&body)
-	result, err := jsonschema.Validate(bodySchemaLoader, docLoader)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to validate body: %w", err)
+	if e := validation.ValidateNamespaceName(body.Namespace, false); len(e) > 0 {
+		return nil, httputil.NewValidationErrors("namespace", e)
 	}
 
-	if !result.Valid() {
-		return nil, httputil.NewErrorsForJSONSchema(result.Errors()), nil
+	if e := validation.NameIsDNSSubdomain(body.Name, false); len(e) > 0 {
+		return nil, httputil.NewValidationErrors("name", e)
 	}
 
-	return &body, nil, nil
+	if body.Action != hookutil.ActionApply && body.Action != hookutil.ActionDelete {
+		return nil, []httputil.Error{
+			{Description: "Action must be one of [apply, delete]", Field: "action"},
+		}
+	}
+
+	return &body, nil
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	body, bodyErrors, err := h.parseBody(r)
-	if err != nil {
-		return err
-	}
-
+	logger := logr.FromContextOrDiscard(r.Context())
+	body, bodyErrors := h.parseBody(r)
 	if len(bodyErrors) > 0 {
 		return httputil.JSON(w, http.StatusBadRequest, &httputil.Response{
 			Errors: bodyErrors,
@@ -105,7 +86,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	hook := new(v1beta1.HTTPWebhook)
-	err = h.Client.Get(r.Context(), types.NamespacedName{
+	err := h.Client.Get(r.Context(), types.NamespacedName{
 		Namespace: body.Namespace,
 		Name:      body.Name,
 	}, hook)
@@ -125,9 +106,15 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	if schema := hook.Spec.Schema; schema != nil {
 		schemaLoader := gojsonschema.NewBytesLoader(schema.Raw)
-		result, err := jsonschema.Validate(schemaLoader, docLoader)
+		result, err := gojsonschema.Validate(schemaLoader, docLoader)
 		if err != nil {
-			return fmt.Errorf("failed to validate data: %w", err)
+			logger.Error(err, "JSON schema validate error")
+
+			return httputil.JSON(w, http.StatusBadRequest, &httputil.Response{
+				Errors: []httputil.Error{
+					{Description: "Failed to validate against JSON schema"},
+				},
+			})
 		}
 
 		if !result.Valid() {

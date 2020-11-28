@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.72.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.1.0
 	github.com/eapache/channels v1.1.0
+	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/go-logr/logr v0.3.0
 	github.com/go-logr/zapr v0.3.0
 	github.com/google/go-cmp v0.5.3
@@ -30,6 +31,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
+	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	k8s.io/api v0.19.4
 	k8s.io/apiextensions-apiserver v0.18.6
