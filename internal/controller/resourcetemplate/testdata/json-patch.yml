@@ -1,0 +1,33 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  data:
+    event:
+      nginxTag: alpine
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      name: foo
+      jsonPatch:
+        - op: replace
+          path: /spec/containers/0/image
+          value: nginx:{{ .event.nginxTag }}
+        - op: remove
+          path: /metadata/annotations/foo
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: foo
+  namespace: test
+  annotations:
+    foo: bar
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+

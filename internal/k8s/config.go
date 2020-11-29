@@ -6,8 +6,8 @@ import (
 	"github.com/google/wire"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	// Load auth plugins.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -35,7 +35,7 @@ func LoadConfig(config Config) (*rest.Config, error) {
 func NewScheme() (*runtime.Scheme, error) {
 	s := runtime.NewScheme()
 	sb := runtime.NewSchemeBuilder(
-		corev1.AddToScheme,
+		scheme.AddToScheme,
 		v1alpha1.AddToScheme,
 		v1beta1.AddToScheme,
 	)

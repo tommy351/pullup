@@ -3,7 +3,6 @@ package v1beta1
 import (
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // +kubebuilder:object:root=true
@@ -40,7 +39,6 @@ type ResourceTemplateStatus struct {
 }
 
 type ResourceStatus struct {
-	Name            string                    `json:"name"`
-	LastAppliedTime metav1.Time               `json:"lastAppliedTime"`
-	LastAppliedData unstructured.Unstructured `json:"lastAppliedData"`
+	Name            string      `json:"name"`
+	LastAppliedTime metav1.Time `json:"lastAppliedTime"`
 }

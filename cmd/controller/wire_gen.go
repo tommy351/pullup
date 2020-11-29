@@ -64,8 +64,10 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	}
 	resourcetemplateLogger := resourcetemplate.NewLogger(logrLogger)
 	resourcetemplateReconciler := &resourcetemplate.Reconciler{
-		Client: client,
-		Logger: resourcetemplateLogger,
+		Client:   client,
+		Logger:   resourcetemplateLogger,
+		Scheme:   scheme,
+		Recorder: eventRecorder,
 	}
 	server := &metrics.Server{
 		Logger: logrLogger,

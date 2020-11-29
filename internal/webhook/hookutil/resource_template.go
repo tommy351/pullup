@@ -170,8 +170,21 @@ func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.Resource
 		}
 	}
 
-	patch, err := json.Marshal([]k8s.JSONPatch{
-		{Op: "replace", Path: "/spec", Value: rt.Spec},
+	patchValue, err := json.Marshal(rt.Spec)
+	if err != nil {
+		return controller.Result{
+			Object: options.Webhook,
+			Error:  fmt.Errorf("failed to marshal patch value: %w", err),
+			Reason: ReasonUpdateFailed,
+		}
+	}
+
+	patch, err := json.Marshal([]v1beta1.JSONPatch{
+		{
+			Operation: "replace",
+			Path:      "/spec",
+			Value:     &extv1.JSON{Raw: patchValue},
+		},
 	})
 	if err != nil {
 		return controller.Result{

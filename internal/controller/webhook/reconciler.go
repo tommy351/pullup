@@ -10,6 +10,8 @@ import (
 	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,11 +83,20 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 }
 
 func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) controller.Result {
-	patch, err := json.Marshal([]k8s.JSONPatch{
+	patchValue, err := json.Marshal(webhook.Spec.Resources)
+	if err != nil {
+		return controller.Result{
+			Object: webhook,
+			Error:  fmt.Errorf("failed to marshal json patch: %w", err),
+			Reason: ReasonPatchFailed,
+		}
+	}
+
+	patch, err := json.Marshal([]v1beta1.JSONPatch{
 		{
-			Op:    "replace",
-			Path:  "/spec/resources",
-			Value: webhook.Spec.Resources,
+			Operation: "replace",
+			Path:      "/spec/resources",
+			Value:     &extv1.JSON{Raw: patchValue},
 		},
 	})
 	if err != nil {

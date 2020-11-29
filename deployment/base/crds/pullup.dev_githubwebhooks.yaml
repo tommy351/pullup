@@ -35,6 +35,29 @@ spec:
                   properties:
                     apiVersion:
                       type: string
+                    jsonPatch:
+                      items:
+                        properties:
+                          from:
+                            type: string
+                          op:
+                            enum:
+                            - add
+                            - remove
+                            - replace
+                            - copy
+                            - move
+                            - test
+                            type: string
+                          path:
+                            type: string
+                          value:
+                            x-kubernetes-preserve-unknown-fields: true
+                        required:
+                        - op
+                        - path
+                        type: object
+                      type: array
                     kind:
                       type: string
                     merge:

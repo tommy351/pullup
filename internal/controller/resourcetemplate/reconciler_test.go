@@ -1,4 +1,4 @@
-package resourceset
+package resourcetemplate
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ var _ = Describe("Reconciler", func() {
 		})
 	}
 
-	testGoldenFile := func() {
+	testGolden := func() {
 		It("should match the golden file", func() {
 			changes := testenv.GetChanges(reconciler.Client)
 			objects, err := testenv.GetChangedObjects(changes)
@@ -102,13 +102,13 @@ var _ = Describe("Reconciler", func() {
 	JustBeforeEach(func() {
 		result, err = reconciler.Reconcile(reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      "test-46",
+				Name:      "foo-rt",
 				Namespace: namespaceMap.GetRandom("test"),
 			},
 		})
 	})
 
-	When("resource set does not exist", func() {
+	When("resource template does not exist", func() {
 		It("should not requeue", func() {
 			Expect(result).To(Equal(reconcile.Result{}))
 		})
@@ -123,38 +123,13 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	When("original resource exists", func() {
-		name := "original-resource-exists"
-
-		testSuccess(name)
-		testGoldenFile()
+		testSuccess("original-resource-exists")
+		testGolden()
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeNormal,
 			Reason:  ReasonCreated,
-			Message: `Created resource v1 Pod: "test-46"`,
+			Message: "Created resource: v1/Pod foo-rt",
 		})
-	})
-
-	When("kind = Service", func() {
-		testSuccess("service")
-	})
-
-	When("applied resource exists", func() {
-		name := "applied-resource-exists"
-
-		testSuccess(name)
-		testGoldenFile()
-		testEvent(testenv.EventData{
-			Type:    corev1.EventTypeNormal,
-			Reason:  ReasonUpdated,
-			Message: `Updated resource v1 Pod: "test-46"`,
-		})
-	})
-
-	When("neither original nor applied resource exists", func() {
-		name := "without-original-and-applied"
-
-		testSuccess(name)
-		testGoldenFile()
 	})
 
 	When("resource is not controlled", func() {
@@ -179,57 +154,61 @@ var _ = Describe("Reconciler", func() {
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeWarning,
 			Reason:  ReasonResourceExists,
-			Message: `resource already exists and is not managed by pullup: v1 Pod: "test-46"`,
+			Message: `resource already exists and is not managed by pullup: v1/Pod foo-rt`,
 		})
 	})
 
-	When("resource contain common arrays", func() {
-		name := "common-array"
-
-		testSuccess(name)
-		testGoldenFile()
+	When("merge is given", func() {
+		testSuccess("merge")
+		testGolden()
 	})
 
-	When("resource contain named arrays", func() {
-		name := "named-array"
-
-		testSuccess(name)
-		testGoldenFile()
+	When("merge with apiVersion, kind and name set", func() {
+		testSuccess("merge-with-gvk-and-name")
+		testGolden()
 	})
 
-	When("resource contain template", func() {
-		name := "template"
-
-		testSuccess(name)
-		testGoldenFile()
+	When("merge without data", func() {
+		testSuccess("merge-without-data")
+		testGolden()
 	})
 
-	When("resource set contains multiple resources", func() {
-		name := "multi-resources"
+	When("jsonPatch is given", func() {
+		testSuccess("json-patch")
+		testGolden()
+	})
 
-		testSuccess(name)
-		testGoldenFile()
+	When("original and current resource exists", func() {
+		testSuccess("original-and-current-resource-exists")
+		testGolden()
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeNormal,
-			Reason:  ReasonCreated,
-			Message: `Created resource v1 Pod: "test-46"`,
-		}, testenv.EventData{
-			Type:    corev1.EventTypeNormal,
-			Reason:  ReasonCreated,
-			Message: `Created resource v1 ConfigMap: "test-46"`,
+			Reason:  ReasonPatched,
+			Message: "Patched resource: v1/Pod foo-rt",
 		})
 	})
 
-	When("resources are not changed", func() {
-		testSuccess("unchanged-resources")
+	When("resource is unchanged", func() {
+		testSuccess("unchanged-resource")
+		testGolden()
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeNormal,
 			Reason:  ReasonUnchanged,
-			Message: `Skipped resource v1 Pod: "test-46"`,
+			Message: "Skipped resource: v1/Pod foo-rt",
 		})
+	})
 
-		It("should not change anything", func() {
-			Expect(testenv.GetChanges(reconciler.Client)).To(BeEmpty())
+	When("without original and current resource", func() {
+		testSuccess("without-original-and-current-resource")
+		testGolden()
+		testEvent(testenv.EventData{
+			Type:    corev1.EventTypeNormal,
+			Reason:  ReasonCreated,
+			Message: "Created resource: v1/Pod foo-rt",
 		})
+	})
+
+	When("kind = Service", func() {
+		testSuccess("service")
 	})
 })

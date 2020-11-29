@@ -18,7 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// +kubebuilder:rbac:groups=pullup.dev,resources=webhooks;githubwebhooks,verbs=get;list;watch
+// +kubebuilder:rbac:groups=pullup.dev,resources=webhooks,verbs=get;list;watch
+// +kubebuilder:rbac:groups=pullup.dev,resources=githubwebhooks,verbs=get;list;watch
 // +kubebuilder:rbac:groups=pullup.dev,resources=resourcesets,verbs=create;patch;delete
 
 const (

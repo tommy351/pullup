@@ -10,12 +10,6 @@ const (
 	LabelPullRequestNumber = "pull-request-number"
 )
 
-type JSONPatch struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
-}
-
 func GVKToTypeMeta(gvk schema.GroupVersionKind) metav1.TypeMeta {
 	var meta metav1.TypeMeta
 	meta.APIVersion, meta.Kind = gvk.ToAPIVersionAndKind()

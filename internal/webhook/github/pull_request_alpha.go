@@ -13,6 +13,8 @@ import (
 	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -114,11 +116,20 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 		}
 	}
 
-	patch, err := json.Marshal([]k8s.JSONPatch{
+	patchValue, err := json.Marshal(rs.Spec)
+	if err != nil {
+		return controller.Result{
+			Object: hook,
+			Error:  fmt.Errorf("failed to marshal patch value: %w", err),
+			Reason: hookutil.ReasonUpdateFailed,
+		}
+	}
+
+	patch, err := json.Marshal([]v1beta1.JSONPatch{
 		{
-			Op:    "replace",
-			Path:  "/spec",
-			Value: rs.Spec,
+			Operation: "replace",
+			Path:      "/spec",
+			Value:     &extv1.JSON{Raw: patchValue},
 		},
 	})
 	if err != nil {

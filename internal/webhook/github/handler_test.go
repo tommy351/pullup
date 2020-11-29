@@ -17,7 +17,6 @@ import (
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
-	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	v1 "k8s.io/api/core/v1"
@@ -75,9 +74,15 @@ var _ = Describe("Handler", func() {
 	}
 
 	loadTestData := func(name string) []runtime.Object {
-		data, err := testutil.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
+		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
-		data = testutil.MapObjects(data, namespaceMap.SetObject)
+
+		data, err = k8s.MapObjects(data, func(obj runtime.Object) error {
+			namespaceMap.SetObject(obj)
+
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred())
 		Expect(testenv.CreateObjects(data)).To(Succeed())
 
 		return data
@@ -91,7 +96,13 @@ var _ = Describe("Handler", func() {
 		It("should match the golden file", func() {
 			objects, err := testenv.GetChangedObjects(getChanges())
 			Expect(err).NotTo(HaveOccurred())
-			objects = testutil.MapObjects(objects, namespaceMap.RestoreObject)
+
+			objects, err = k8s.MapObjects(objects, func(obj runtime.Object) error {
+				namespaceMap.RestoreObject(obj)
+
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
 			Expect(objects).To(golden.MatchObject())
 		})
 	}
