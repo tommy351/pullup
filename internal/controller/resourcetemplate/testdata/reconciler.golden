@@ -314,6 +314,9 @@
     phase: Pending
     qosClass: BestEffort
 '''
+"Reconciler when resource is not controlled should match the golden file" = '''
+[]
+'''
 "Reconciler when resource is unchanged should match the golden file" = '''
 []
 '''

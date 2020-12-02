@@ -133,28 +133,12 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	When("resource is not controlled", func() {
-		var data []runtime.Object
-
-		BeforeEach(func() {
-			data = loadTestData("resource-not-controlled")
-		})
-
-		AfterEach(func() {
-			Expect(testenv.DeleteObjects(data)).To(Succeed())
-		})
-
-		It("should not requeue", func() {
-			Expect(result).To(Equal(reconcile.Result{}))
-		})
-
-		It("should return the error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-
+		testSuccess("resource-not-controlled")
+		testGolden()
 		testEvent(testenv.EventData{
 			Type:    corev1.EventTypeWarning,
 			Reason:  ReasonResourceExists,
-			Message: `resource already exists and is not managed by pullup: v1/Pod foo-rt`,
+			Message: "Resource already exists and is not managed by pullup: v1/Pod foo-rt",
 		})
 	})
 
