@@ -7,25 +7,37 @@ metadata:
 spec:
   data:
     event:
-      nginxTag: alpine
+      foo: bar
   patches:
     - apiVersion: v1
       kind: Pod
-      sourceName: foo
+      sourceName: foo-pod
       merge:
         spec:
           containers:
-            - name: node
-              image: node
             - name: nginx
-              image: nginx:{{ .event.nginxTag }}
+              image: nginx:{{ .event.foo }}
+    - apiVersion: v1
+      kind: ConfigMap
+      sourceName: foo-conf
+      merge:
+        data:
+          foo: "{{ .event.foo }}"
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: foo
+  name: foo-pod
   namespace: test
 spec:
   containers:
     - name: nginx
       image: nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: foo-conf
+  namespace: test
+data:
+  foo: abc

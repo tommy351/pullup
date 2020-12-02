@@ -9,7 +9,7 @@ spec:
   patches:
     - apiVersion: v1
       kind: Pod
-      name: foo
+      sourceName: foo
       merge:
         apiVersion: v12
         kind: Poo

@@ -9,7 +9,7 @@ spec:
   patches:
     - apiVersion: v1
       kind: Pod
-      name: foo
+      sourceName: foo
 ---
 apiVersion: pullup.dev/v1beta1
 kind: ResourceTemplate

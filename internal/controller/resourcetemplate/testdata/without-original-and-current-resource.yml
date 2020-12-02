@@ -8,7 +8,6 @@ spec:
   patches:
     - apiVersion: v1
       kind: Pod
-      name: foo
       merge:
         spec:
           containers:

@@ -7,27 +7,22 @@ metadata:
 spec:
   data:
     event:
-      nginxTag: alpine
-  patches:
-    - apiVersion: v1
+      apiVersion: v1
       kind: Pod
       sourceName: foo
-      jsonPatch:
-        - op: replace
-          path: /spec/containers/0/image
-          value: nginx:{{ .event.nginxTag }}
-        - op: remove
-          path: /metadata/annotations/foo
+      targetName: bar
+  patches:
+    - apiVersion: "{{ .event.apiVersion }}"
+      kind: "{{ .event.kind }}"
+      sourceName: "{{ .event.sourceName }}"
+      targetName: "{{ .event.targetName }}"
 ---
 apiVersion: v1
 kind: Pod
 metadata:
   name: foo
   namespace: test
-  annotations:
-    foo: bar
 spec:
   containers:
     - name: nginx
       image: nginx
-

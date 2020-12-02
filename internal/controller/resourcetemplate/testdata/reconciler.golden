@@ -226,6 +226,110 @@
     phase: Pending
     qosClass: BestEffort
 '''
+"Reconciler when metadata is a template string should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: bar
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/bar
+  spec:
+    containers:
+    - image: nginx
+      imagePullPolicy: Always
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
+'''
+"Reconciler when multi patches should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/foo-rt
+  spec:
+    containers:
+    - image: nginx:bar
+      imagePullPolicy: Always
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
+- apiVersion: v1
+  data:
+    foo: bar
+  kind: ConfigMap
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/configmaps/foo-rt
+'''
 "Reconciler when original and current resource exists should match the golden file" = '''
 - apiVersion: v1
   kind: Pod
@@ -319,6 +423,50 @@
 '''
 "Reconciler when resource is unchanged should match the golden file" = '''
 []
+'''
+"Reconciler when targetName is given should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: foo-new
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/foo-new
+  spec:
+    containers:
+    - image: nginx:alpine
+      imagePullPolicy: IfNotPresent
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
 '''
 "Reconciler when without original and current resource should match the golden file" = '''
 - apiVersion: v1

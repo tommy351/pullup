@@ -60,6 +60,26 @@ var _ = Describe("Reconciler", func() {
 		})
 	}
 
+	testError := func(name string, requeue bool) {
+		var data []runtime.Object
+
+		BeforeEach(func() {
+			data = loadTestData(name)
+		})
+
+		AfterEach(func() {
+			Expect(testenv.DeleteObjects(data)).To(Succeed())
+		})
+
+		It(fmt.Sprintf("should return requeue = %v", requeue), func() {
+			Expect(result).To(Equal(reconcile.Result{Requeue: requeue}))
+		})
+
+		It("should return the error", func() {
+			Expect(err).To(HaveOccurred())
+		})
+	}
+
 	testGolden := func() {
 		It("should match the golden file", func() {
 			changes := testenv.GetChanges(reconciler.Client)
@@ -194,5 +214,38 @@ var _ = Describe("Reconciler", func() {
 
 	When("kind = Service", func() {
 		testSuccess("service")
+	})
+
+	When("targetName is given", func() {
+		testSuccess("target-name")
+		testGolden()
+	})
+
+	When("jsonPatch is invalid", func() {
+		testError("json-patch-invalid", false)
+		testEvent(testenv.EventData{
+			Type:    corev1.EventTypeWarning,
+			Reason:  ReasonInvalidPatch,
+			Message: "replace operation does not apply: doc is missing path: /metadata/annotations/foo: missing value",
+		})
+	})
+
+	When("metadata is a template string", func() {
+		testSuccess("metadata-template")
+		testGolden()
+	})
+
+	When("multi patches", func() {
+		testSuccess("multi-patches")
+		testGolden()
+		testEvent(testenv.EventData{
+			Type:    corev1.EventTypeNormal,
+			Reason:  ReasonCreated,
+			Message: "Created resource: v1/Pod foo-rt",
+		}, testenv.EventData{
+			Type:    corev1.EventTypeNormal,
+			Reason:  ReasonCreated,
+			Message: "Created resource: v1/ConfigMap foo-rt",
+		})
 	})
 })

@@ -9,7 +9,7 @@ spec:
   patches:
     - apiVersion: v1
       kind: Pod
-      name: foo
+      sourceName: foo
   schema:
     type: object
     properties:

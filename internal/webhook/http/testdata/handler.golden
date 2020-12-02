@@ -27,13 +27,13 @@
           patches:
           - apiVersion: v1
             kind: Pod
-            name: foo
+            sourceName: foo
           resourceName: '{{ .webhook.metadata.name }}-rt'
         status: {}
     patches:
     - apiVersion: v1
       kind: Pod
-      name: foo
+      sourceName: foo
   status: {}
 '''
 "Handler when action = apply when resource template exists should match the golden file" = '''
@@ -56,13 +56,13 @@
           patches:
           - apiVersion: v1
             kind: Pod
-            name: foo
+            sourceName: foo
           resourceName: '{{ .webhook.metadata.name }}-rt'
         status: {}
     patches:
     - apiVersion: v1
       kind: Pod
-      name: foo
+      sourceName: foo
   status: {}
 '''
 "Handler when request body is valid when resource template does not exist should match the golden file" = '''
@@ -97,7 +97,7 @@
           patches:
           - apiVersion: v1
             kind: Pod
-            name: foo
+            sourceName: foo
           resourceName: '{{ .webhook.metadata.name }}-{{ .event.foo }}'
           schema:
             properties:
@@ -110,6 +110,6 @@
     patches:
     - apiVersion: v1
       kind: Pod
-      name: foo
+      sourceName: foo
   status: {}
 '''

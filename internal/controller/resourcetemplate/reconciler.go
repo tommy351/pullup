@@ -196,6 +196,15 @@ func (r *Reconciler) newUpdatePatch(original, desired, current runtime.Object) (
 }
 
 func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemplate, patch *v1beta1.WebhookPatch) controller.Result {
+	patch, err := renderWebhookPatch(rt, patch)
+	if err != nil {
+		return controller.Result{
+			Object: rt,
+			Error:  err,
+			Reason: ReasonInvalidPatch,
+		}
+	}
+
 	gvk, err := getPatchGVK(patch)
 	if err != nil {
 		return controller.Result{
@@ -205,22 +214,14 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 		}
 	}
 
-	patch, err = renderWebhookPatch(rt, patch)
-	if err != nil {
-		return controller.Result{
-			Object: rt,
-			Error:  err,
-			Reason: ReasonInvalidPatch,
-		}
-	}
-
+	var original runtime.Object
 	originalName := types.NamespacedName{
 		Namespace: rt.Namespace,
-		Name:      patch.Name,
+		Name:      patch.SourceName,
 	}
-	original, err := r.getObject(ctx, gvk, originalName)
-	if err != nil {
-		if !errors.IsNotFound(err) {
+
+	if originalName.Name != "" {
+		if original, err = r.getObject(ctx, gvk, originalName); err != nil && !errors.IsNotFound(err) {
 			return controller.Result{
 				Object:  rt,
 				Error:   fmt.Errorf("failed to get original resource: %w", err),
@@ -228,11 +229,13 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 				Requeue: true,
 			}
 		}
+	}
 
-		if original, err = r.newEmptyObject(gvk, originalName); err != nil {
+	if original == nil {
+		if original, err = r.newEmptyObject(gvk, types.NamespacedName{Namespace: rt.Namespace}); err != nil {
 			return controller.Result{
 				Object: rt,
-				Error:  fmt.Errorf("failed to create an empty object: %w", err),
+				Error:  err,
 				Reason: ReasonFailed,
 			}
 		}
@@ -249,7 +252,7 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 
 	currentName := types.NamespacedName{
 		Namespace: rt.Namespace,
-		Name:      rt.Name,
+		Name:      patch.TargetName,
 	}
 	current, err := r.getObject(ctx, gvk, currentName)
 	if err != nil && !errors.IsNotFound(err) {

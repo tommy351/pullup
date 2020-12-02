@@ -12,7 +12,8 @@ type WebhookStatus struct{}
 type WebhookPatch struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
-	Name       string `json:"name"`
+	SourceName string `json:"sourceName,omitempty"`
+	TargetName string `json:"targetName,omitempty"`
 
 	// +kubebuilder:validation:Type=object
 	Merge *extv1.JSON `json:"merge,omitempty"`

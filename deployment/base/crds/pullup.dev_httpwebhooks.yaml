@@ -63,12 +63,13 @@ spec:
                     merge:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
-                    name:
+                    sourceName:
+                      type: string
+                    targetName:
                       type: string
                   required:
                   - apiVersion
                   - kind
-                  - name
                   type: object
                 type: array
               resourceName:
