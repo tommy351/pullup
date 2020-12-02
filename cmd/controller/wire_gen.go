@@ -57,7 +57,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		Recorder: eventRecorder,
 	}
 	webhookLogger := webhook.NewLogger(logrLogger)
-	webhookReconciler := &webhook.Reconciler{
+	alphaReconciler := &webhook.AlphaReconciler{
 		Client:   client,
 		Logger:   webhookLogger,
 		Recorder: eventRecorder,
@@ -83,7 +83,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	server := &metrics.Server{
 		Logger: logrLogger,
 	}
-	mainManager, err := NewManager(manager, reconciler, webhookReconciler, resourcetemplateReconciler, betaReconcilerFactory, server)
+	mainManager, err := NewManager(manager, reconciler, alphaReconciler, resourcetemplateReconciler, betaReconcilerFactory, server)
 	if err != nil {
 		cleanup2()
 		cleanup()

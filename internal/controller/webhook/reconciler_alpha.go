@@ -26,11 +26,11 @@ const (
 	ReasonPatchFailed = "PatchFailed"
 )
 
-// ReconcilerSet provides a reconciler.
+// AlphaReconcilerSet provides a AlphaReconciler.
 // nolint: gochecknoglobals
-var ReconcilerSet = wire.NewSet(
+var AlphaReconcilerSet = wire.NewSet(
 	NewLogger,
-	wire.Struct(new(Reconciler), "*"),
+	wire.Struct(new(AlphaReconciler), "*"),
 )
 
 type Logger logr.Logger
@@ -39,13 +39,13 @@ func NewLogger(logger logr.Logger) Logger {
 	return logger.WithName("controller").WithName("webhook")
 }
 
-type Reconciler struct {
+type AlphaReconciler struct {
 	Client   client.Client
 	Logger   Logger
 	Recorder record.EventRecorder
 }
 
-func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (r *AlphaReconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	hook := new(v1alpha1.Webhook)
 	ctx := context.Background()
 
@@ -82,7 +82,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) controller.Result {
+func (r *AlphaReconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Webhook, set *v1alpha1.ResourceSet) controller.Result {
 	patchValue, err := json.Marshal(webhook.Spec.Resources)
 	if err != nil {
 		return controller.Result{

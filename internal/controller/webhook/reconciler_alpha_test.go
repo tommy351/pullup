@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = Describe("Reconciler", func() {
+var _ = Describe("AlphaReconciler", func() {
 	var (
-		reconciler   *Reconciler
+		reconciler   *AlphaReconciler
 		mgr          *testenv.Manager
 		result       reconcile.Result
 		err          error
@@ -28,7 +28,7 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewReconciler(mgr, logr.Discard())
+		reconciler = NewAlphaReconciler(mgr, logr.Discard())
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()

@@ -35,7 +35,7 @@ func NewControllerManager(restConf *rest.Config, scheme *runtime.Scheme, conf k8
 func NewManager(
 	mgr manager.Manager,
 	rs *resourceset.Reconciler,
-	hook *webhook.Reconciler,
+	hook *webhook.AlphaReconciler,
 	rt *resourcetemplate.Reconciler,
 	factory *webhook.BetaReconcilerFactory,
 	metricsServer *metrics.Server,
