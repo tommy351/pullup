@@ -25,6 +25,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		resourceset.ReconcilerSet,
 		webhook.ReconcilerSet,
 		resourcetemplate.ReconcilerSet,
+		webhook.BetaReconcilerFactorySet,
 		metrics.ServerSet,
 		NewManager,
 	)

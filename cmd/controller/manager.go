@@ -37,6 +37,7 @@ func NewManager(
 	rs *resourceset.Reconciler,
 	hook *webhook.Reconciler,
 	rt *resourcetemplate.Reconciler,
+	factory *webhook.BetaReconcilerFactory,
 	metricsServer *metrics.Server,
 ) (*Manager, error) {
 	err := builder.
@@ -45,7 +46,7 @@ func NewManager(
 		Owns(&v1alpha1.ResourceSet{}).
 		Complete(hook)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build the webhook controller: %w", err)
+		return nil, fmt.Errorf("failed to build the Webhook controller: %w", err)
 	}
 
 	err = builder.
@@ -53,7 +54,7 @@ func NewManager(
 		For(&v1alpha1.ResourceSet{}).
 		Complete(rs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build the resource set controller: %w", err)
+		return nil, fmt.Errorf("failed to build the ResourceSet controller: %w", err)
 	}
 
 	err = builder.
@@ -61,7 +62,15 @@ func NewManager(
 		For(&v1beta1.ResourceTemplate{}).
 		Complete(rt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build the resource template controller: %w", err)
+		return nil, fmt.Errorf("failed to build the ResourceTemplate controller: %w", err)
+	}
+
+	if err := factory.Build(mgr, &v1beta1.HTTPWebhook{}); err != nil {
+		return nil, fmt.Errorf("failed to build the HTTPWebhook controller: %w", err)
+	}
+
+	if err := factory.Build(mgr, &v1beta1.GitHubWebhook{}); err != nil {
+		return nil, fmt.Errorf("failed to build the HTTPWebhook controller: %w", err)
 	}
 
 	if err := mgr.Add(metricsServer); err != nil {

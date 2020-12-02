@@ -17,3 +17,13 @@ func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 	)
 	return nil
 }
+
+func NewBetaReconcilerConfig(mgr manager.Manager, logger logr.Logger) BetaReconcilerConfig {
+	wire.Build(
+		controller.NewClient,
+		controller.NewEventRecorder,
+		NewLogger,
+		BetaReconcilerConfigSet,
+	)
+	return BetaReconcilerConfig{}
+}

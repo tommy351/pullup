@@ -8,19 +8,21 @@ import (
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = Describe("Reconciler", func() {
+var _ = Describe("BetaReconciler", func() {
 	var (
-		reconciler   *Reconciler
+		reconciler   reconcile.Reconciler
 		mgr          *testenv.Manager
 		result       reconcile.Result
 		err          error
 		namespaceMap *random.NamespaceMap
+		conf         BetaReconcilerConfig
 	)
 
 	BeforeEach(func() {
@@ -28,9 +30,12 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewReconciler(mgr, logr.Discard())
+		conf = NewBetaReconcilerConfig(mgr, logr.Discard())
+		factory, err := NewBetaReconcilerFactory(conf, mgr)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(mgr.Initialize()).To(Succeed())
 
+		reconciler = factory.NewReconciler(&v1beta1.HTTPWebhook{})
 		namespaceMap = random.NewNamespaceMap()
 	})
 
@@ -57,7 +62,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should not change anything", func() {
-			Expect(testenv.GetChanges(reconciler.Client)).To(BeEmpty())
+			Expect(testenv.GetChanges(conf.Client)).To(BeEmpty())
 		})
 	})
 
@@ -67,7 +72,7 @@ var _ = Describe("Reconciler", func() {
 
 		BeforeEach(func() {
 			var err error
-			data, err = k8s.LoadObjects(testenv.GetScheme(), "testdata/success.yml")
+			data, err = k8s.LoadObjects(testenv.GetScheme(), "testdata/http-webhook-success.yml")
 			Expect(err).NotTo(HaveOccurred())
 
 			data, err = k8s.MapObjects(data, func(obj runtime.Object) error {
@@ -92,7 +97,7 @@ var _ = Describe("Reconciler", func() {
 		})
 
 		It("should match the golden file", func() {
-			changes := testenv.GetChanges(reconciler.Client)
+			changes := testenv.GetChanges(conf.Client)
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -109,13 +114,13 @@ var _ = Describe("Reconciler", func() {
 			Expect(mgr.WaitForEvent(testenv.EventData{
 				Type:    corev1.EventTypeNormal,
 				Reason:  ReasonPatched,
-				Message: `Patched resource set "bar-46"`,
+				Message: `Patched resource template "bar-46"`,
 			})).To(BeTrue())
 
 			Expect(mgr.WaitForEvent(testenv.EventData{
 				Type:    corev1.EventTypeNormal,
 				Reason:  ReasonPatched,
-				Message: `Patched resource set "bar-64"`,
+				Message: `Patched resource template "bar-64"`,
 			})).To(BeTrue())
 		})
 	})

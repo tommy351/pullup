@@ -24,3 +24,15 @@ func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 	}
 	return reconciler
 }
+
+func NewBetaReconcilerConfig(mgr manager.Manager, logger logr.Logger) BetaReconcilerConfig {
+	client := controller.NewClient(mgr)
+	webhookLogger := NewLogger(logger)
+	eventRecorder := controller.NewEventRecorder(mgr)
+	betaReconcilerConfig := BetaReconcilerConfig{
+		Client:   client,
+		Logger:   webhookLogger,
+		Recorder: eventRecorder,
+	}
+	return betaReconcilerConfig
+}
