@@ -468,6 +468,23 @@
     phase: Pending
     qosClass: BestEffort
 '''
+"Reconciler when using CRD should match the golden file" = '''
+- apiVersion: test.pullup.dev/v1
+  kind: Job
+  metadata:
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /apis/test.pullup.dev/v1/namespaces/test/jobs/foo-rt
+  spec:
+    name: xyz
+'''
 "Reconciler when without original and current resource should match the golden file" = '''
 - apiVersion: v1
   kind: Pod

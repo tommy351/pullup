@@ -248,4 +248,14 @@ var _ = Describe("Reconciler", func() {
 			Message: "Created resource: v1/ConfigMap foo-rt",
 		})
 	})
+
+	When("using CRD", func() {
+		testSuccess("crd")
+		testGolden()
+		testEvent(testenv.EventData{
+			Type:    corev1.EventTypeNormal,
+			Reason:  ReasonCreated,
+			Message: "Created resource: test.pullup.dev/v1/Job foo-rt",
+		})
+	})
 })
