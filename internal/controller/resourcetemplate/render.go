@@ -9,6 +9,22 @@ import (
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
+func renderWebhookPatches(rt *v1beta1.ResourceTemplate) ([]v1beta1.WebhookPatch, error) {
+	output := make([]v1beta1.WebhookPatch, len(rt.Spec.Patches))
+
+	for i, patch := range rt.Spec.Patches {
+		patch := patch
+		result, err := renderWebhookPatch(rt, &patch)
+		if err != nil {
+			return nil, err
+		}
+
+		output[i] = *result
+	}
+
+	return output, nil
+}
+
 func renderWebhookPatch(rt *v1beta1.ResourceTemplate, patch *v1beta1.WebhookPatch) (*v1beta1.WebhookPatch, error) {
 	var (
 		err  error

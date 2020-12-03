@@ -33,6 +33,8 @@ const (
 	ReasonPatchFailed    = "PatchFailed"
 	ReasonCreated        = "Created"
 	ReasonCreateFailed   = "CreateFailed"
+	ReasonDeleted        = "Deleted"
+	ReasonDeleteFailed   = "DeleteFailed"
 	ReasonFailed         = "Failed"
 	ReasonInvalidPatch   = "InvalidPatch"
 	ReasonResourceExists = "ResourceExists"
@@ -70,21 +72,94 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	logger := r.Logger.WithValues("resourceTemplate", rt)
 	ctx = logr.NewContext(ctx, logger)
 
-	for _, patch := range rt.Spec.Patches {
-		patch := patch
-		result := r.applyResource(ctx, rt, &patch)
-		result.RecordEvent(r.Recorder)
+	return r.handleResourceTemplate(ctx, rt)
+}
 
-		if err := result.Error; err != nil {
-			logger.Error(err, result.GetMessage())
+func (r *Reconciler) handleResult(ctx context.Context, result controller.Result) (reconcile.Result, error) {
+	logger := logr.FromContextOrDiscard(ctx)
+	result.RecordEvent(r.Recorder)
 
-			return reconcile.Result{Requeue: result.Requeue}, err
-		}
-
+	if err := result.Error; err != nil {
+		logger.Error(result.Error, result.GetMessage())
+	} else {
 		logger.Info(result.GetMessage())
 	}
 
+	return reconcile.Result{Requeue: result.Requeue}, result.Error
+}
+
+func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.ResourceTemplate) (reconcile.Result, error) {
+	patches, err := renderWebhookPatches(rt)
+	if err != nil {
+		return r.handleResult(ctx, controller.Result{
+			Object: rt,
+			Error:  err,
+			Reason: ReasonInvalidPatch,
+		})
+	}
+
+	activity := getResourceActivity(rt, patches)
+
+	if err := r.updateStatus(ctx, rt, activity.Active); err != nil {
+		return r.handleResult(ctx, controller.Result{
+			Object:  rt,
+			Error:   err,
+			Reason:  ReasonFailed,
+			Requeue: true,
+		})
+	}
+
+	r.deleteInactiveResources(ctx, rt, activity.Inactive)
+
+	for _, patch := range patches {
+		patch := patch
+
+		if result, err := r.handleResult(ctx, r.applyResource(ctx, rt, &patch)); err != nil {
+			return result, err
+		}
+	}
+
 	return reconcile.Result{}, nil
+}
+
+func (r *Reconciler) updateStatus(ctx context.Context, rt *v1beta1.ResourceTemplate, active []v1beta1.ResourceReference) error {
+	now := metav1.Now()
+	rt.Status.LastUpdateTime = &now
+	rt.Status.Active = active
+
+	if err := r.Client.Status().Update(ctx, rt); err != nil {
+		return fmt.Errorf("failed to update status: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.ResourceTemplate, refs []v1beta1.ResourceReference) {
+	for _, ref := range refs {
+		obj := new(unstructured.Unstructured)
+		obj.SetAPIVersion(ref.APIVersion)
+		obj.SetKind(ref.Kind)
+		obj.SetNamespace(rt.Namespace)
+		obj.SetName(rt.Name)
+
+		if err := r.Client.Delete(ctx, obj); err != nil {
+			if errors.IsNotFound(err) {
+				continue
+			}
+
+			_, _ = r.handleResult(ctx, controller.Result{
+				Object: rt,
+				Error:  fmt.Errorf("failed to delete resource: %w", err),
+				Reason: ReasonDeleteFailed,
+			})
+		}
+
+		_, _ = r.handleResult(ctx, controller.Result{
+			Object:  rt,
+			Message: fmt.Sprintf("Deleted resource: %s", getObjectName(obj)),
+			Reason:  ReasonDeleted,
+		})
+	}
 }
 
 func (r *Reconciler) getObject(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
@@ -196,15 +271,6 @@ func (r *Reconciler) newUpdatePatch(original, desired, current runtime.Object) (
 }
 
 func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemplate, patch *v1beta1.WebhookPatch) controller.Result {
-	patch, err := renderWebhookPatch(rt, patch)
-	if err != nil {
-		return controller.Result{
-			Object: rt,
-			Error:  err,
-			Reason: ReasonInvalidPatch,
-		}
-	}
-
 	gvk, err := getPatchGVK(patch)
 	if err != nil {
 		return controller.Result{
@@ -459,4 +525,35 @@ func setOwnerReferences(obj runtime.Object, refs []metav1.OwnerReference) error 
 	accessor.SetOwnerReferences(refs)
 
 	return nil
+}
+
+type resourceActivity struct {
+	Active   []v1beta1.ResourceReference
+	Inactive []v1beta1.ResourceReference
+}
+
+func getResourceActivity(rt *v1beta1.ResourceTemplate, patches []v1beta1.WebhookPatch) *resourceActivity {
+	var result resourceActivity
+
+	inactiveMap := make(map[v1beta1.ResourceReference]struct{})
+
+	for _, ref := range rt.Status.Active {
+		inactiveMap[ref] = struct{}{}
+	}
+
+	for _, patch := range patches {
+		ref := v1beta1.ResourceReference{
+			APIVersion: patch.APIVersion,
+			Kind:       patch.Kind,
+			Name:       patch.TargetName,
+		}
+		result.Active = append(result.Active, ref)
+		delete(inactiveMap, ref)
+	}
+
+	for ref := range inactiveMap {
+		result.Inactive = append(result.Inactive, ref)
+	}
+
+	return &result
 }

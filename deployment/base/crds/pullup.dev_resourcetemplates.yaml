@@ -16,7 +16,17 @@ spec:
     singular: resourcetemplate
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.data.webhook.kind
+      name: Webhook Kind
+      type: string
+    - jsonPath: .spec.data.webhook.metadata.name
+      name: Webhook Name
+      type: string
+    - jsonPath: .status.lastUpdateTime
+      name: Last Update
+      type: date
+    name: v1beta1
     schema:
       openAPIV3Schema:
         properties:
@@ -77,22 +87,24 @@ spec:
             type: object
           status:
             properties:
-              resourceStatuses:
+              active:
                 items:
                   properties:
-                    lastAppliedTime:
-                      format: date-time
+                    apiVersion:
+                      type: string
+                    kind:
                       type: string
                     name:
                       type: string
                   required:
-                  - lastAppliedTime
+                  - apiVersion
+                  - kind
                   - name
                   type: object
                 type: array
-                x-kubernetes-list-map-keys:
-                - name
-                x-kubernetes-list-type: map
+              lastUpdateTime:
+                format: date-time
+                type: string
             type: object
         type: object
     served: true

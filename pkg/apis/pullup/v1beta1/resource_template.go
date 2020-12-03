@@ -7,6 +7,9 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Webhook Kind",type=string,JSONPath=`.spec.data.webhook.kind`
+// +kubebuilder:printcolumn:name="Webhook Name",type=string,JSONPath=`.spec.data.webhook.metadata.name`
+// +kubebuilder:printcolumn:name="Last Update",type=date,JSONPath=`.status.lastUpdateTime`
 
 type ResourceTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -31,14 +34,12 @@ type ResourceTemplateSpec struct {
 }
 
 type ResourceTemplateStatus struct {
-	// +patchMergeKey=name
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=name
-	ResourceStatuses []ResourceStatus `json:"resourceStatuses,omitempty" patchStrategy:"merge" patchMergeKey:"name"`
+	LastUpdateTime *metav1.Time        `json:"lastUpdateTime,omitempty"`
+	Active         []ResourceReference `json:"active,omitempty"`
 }
 
-type ResourceStatus struct {
-	Name            string      `json:"name"`
-	LastAppliedTime metav1.Time `json:"lastAppliedTime"`
+type ResourceReference struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Name       string `json:"name"`
 }
