@@ -3,7 +3,6 @@ package resourceset
 import (
 	"fmt"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
@@ -13,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -89,7 +89,7 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewReconciler(mgr, logr.Discard())
+		reconciler = NewReconciler(mgr, log.Log)
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()

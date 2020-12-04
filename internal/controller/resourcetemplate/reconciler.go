@@ -140,25 +140,21 @@ func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.Re
 		obj.SetAPIVersion(ref.APIVersion)
 		obj.SetKind(ref.Kind)
 		obj.SetNamespace(rt.Namespace)
-		obj.SetName(rt.Name)
+		obj.SetName(ref.Name)
 
-		if err := r.Client.Delete(ctx, obj); err != nil {
-			if errors.IsNotFound(err) {
-				continue
-			}
-
+		if err := r.Client.Delete(ctx, obj); err == nil {
+			_, _ = r.handleResult(ctx, controller.Result{
+				Object:  rt,
+				Message: fmt.Sprintf("Deleted resource: %s", getObjectName(obj)),
+				Reason:  ReasonDeleted,
+			})
+		} else if !errors.IsNotFound(err) {
 			_, _ = r.handleResult(ctx, controller.Result{
 				Object: rt,
 				Error:  fmt.Errorf("failed to delete resource: %w", err),
 				Reason: ReasonDeleteFailed,
 			})
 		}
-
-		_, _ = r.handleResult(ctx, controller.Result{
-			Object:  rt,
-			Message: fmt.Sprintf("Deleted resource: %s", getObjectName(obj)),
-			Reason:  ReasonDeleted,
-		})
 	}
 }
 

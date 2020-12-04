@@ -136,7 +136,7 @@ func (r *recorderStatusClient) Update(ctx context.Context, obj runtime.Object, o
 		return fmt.Errorf("update failed: %w", err)
 	}
 
-	r.append("update", obj)
+	r.append("status_update", obj)
 
 	return nil
 }
@@ -146,7 +146,7 @@ func (r *recorderStatusClient) Patch(ctx context.Context, obj runtime.Object, pa
 		return fmt.Errorf("patch failed: %w", err)
 	}
 
-	r.append("patch", obj)
+	r.append("status_patch", obj)
 
 	return nil
 }

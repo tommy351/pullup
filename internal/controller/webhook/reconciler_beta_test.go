@@ -1,7 +1,6 @@
 package webhook
 
 import (
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
@@ -12,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -30,7 +30,7 @@ var _ = Describe("BetaReconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		conf = NewBetaReconcilerConfig(mgr, logr.Discard())
+		conf = NewBetaReconcilerConfig(mgr, log.Log)
 		factory, err := NewBetaReconcilerFactory(conf, mgr)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(mgr.Initialize()).To(Succeed())

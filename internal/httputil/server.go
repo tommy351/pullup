@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -34,7 +35,7 @@ func RunServer(options ServerOptions) error {
 	}
 
 	if options.Logger == nil {
-		options.Logger = logr.Discard()
+		options.Logger = log.Log
 	}
 
 	idleConnsClosed := make(chan struct{})

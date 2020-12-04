@@ -1,18 +1,22 @@
 package resourcetemplate
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -109,7 +113,7 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewReconciler(mgr, logr.Discard())
+		reconciler = NewReconciler(mgr, log.Log)
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()
@@ -256,6 +260,84 @@ var _ = Describe("Reconciler", func() {
 			Type:    corev1.EventTypeNormal,
 			Reason:  ReasonCreated,
 			Message: "Created resource: test.pullup.dev/v1/Job foo-rt",
+		})
+	})
+
+	When("resources are removed from patches", func() {
+		testSuccess("delete-resources")
+		testEvent(testenv.EventData{
+			Type:    corev1.EventTypeNormal,
+			Reason:  ReasonDeleted,
+			Message: "Deleted resource: v1/ConfigMap abc",
+		}, testenv.EventData{
+			Type:    corev1.EventTypeNormal,
+			Reason:  ReasonDeleted,
+			Message: "Deleted resource: v1/ConfigMap xyz",
+		})
+
+		It("should delete resources", func() {
+			changes := testenv.GetChanges(reconciler.Client)
+			gvk := schema.GroupVersionKind{Version: "v1", Kind: "ConfigMap"}
+			Expect(changes).To(ContainElements(
+				testenv.Change{
+					Type:             "delete",
+					GroupVersionKind: gvk,
+					NamespacedName: types.NamespacedName{
+						Namespace: namespaceMap.GetRandom("test"),
+						Name:      "abc",
+					},
+				},
+				testenv.Change{
+					Type:             "delete",
+					GroupVersionKind: gvk,
+					NamespacedName: types.NamespacedName{
+						Namespace: namespaceMap.GetRandom("test"),
+						Name:      "xyz",
+					},
+				},
+			))
+		})
+
+		BeforeEach(func() {
+			client := reconciler.Client
+			ctx := context.Background()
+			rt := new(v1beta1.ResourceTemplate)
+			name := types.NamespacedName{
+				Name:      "foo-rt",
+				Namespace: namespaceMap.GetRandom("test"),
+			}
+			err := client.Get(ctx, name, rt)
+			Expect(err).NotTo(HaveOccurred())
+
+			now := metav1.Now()
+			rt.Status.LastUpdateTime = &now
+			rt.Status.Active = []v1beta1.ResourceReference{
+				{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+					Name:       "abc",
+				},
+				{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+					Name:       "def",
+				},
+				{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+					Name:       "xyz",
+				},
+			}
+
+			Expect(client.Status().Update(ctx, rt)).To(Succeed())
+
+			By("Wait for status updated")
+			Eventually(func() *metav1.Time {
+				rt := new(v1beta1.ResourceTemplate)
+				Expect(client.Get(ctx, name, rt)).NotTo(HaveOccurred())
+
+				return rt.Status.LastUpdateTime
+			}).ShouldNot(BeNil())
 		})
 	})
 })
