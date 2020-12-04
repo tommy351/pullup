@@ -17,9 +17,19 @@ import (
 // nolint: gochecknoglobals
 var ConfigSet = wire.NewSet(NewLogConfig, NewKubernetesConfig)
 
+type MetricsConfig struct {
+	Address string `mapstructure:"address"`
+}
+
+type HealthProbeConfig struct {
+	Address string `mapstructure:"address"`
+}
+
 type Config struct {
-	Log        log.Config `mapstructure:"log"`
-	Kubernetes k8s.Config `mapstructure:"kubernetes"`
+	Log        log.Config        `mapstructure:"log"`
+	Kubernetes k8s.Config        `mapstructure:"kubernetes"`
+	Metrics    MetricsConfig     `mapstructure:"metrics"`
+	Health     HealthProbeConfig `mapstructure:"health"`
 }
 
 func NewLogConfig(conf Config) log.Config {
@@ -56,6 +66,14 @@ func SetupCommand(cmd *cobra.Command) *cobra.Command {
 	f.String("kubeconfig", "", "kubernetes config path")
 	_ = viper.BindPFlag("kubernetes.config", f.Lookup("kubeconfig"))
 	BindEnv("kubernetes.config", "KUBECONFIG")
+
+	f.String("metrics-address", "", "metrics address")
+	_ = viper.BindPFlag("metrics.address", f.Lookup("metrics-address"))
+	viper.SetDefault("metrics.address", ":9100")
+
+	f.String("health-address", "", "health probe address")
+	_ = viper.BindPFlag("health.address", f.Lookup("health-address"))
+	viper.SetDefault("health.address", ":9101")
 
 	// Bind environment variables
 	viper.AutomaticEnv()

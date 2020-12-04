@@ -11,7 +11,6 @@ import (
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
-	"github.com/tommy351/pullup/internal/metrics"
 )
 
 func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
@@ -26,7 +25,6 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		webhook.AlphaReconcilerSet,
 		webhook.BetaReconcilerFactorySet,
 		resourcetemplate.ReconcilerSet,
-		metrics.ServerSet,
 		NewManager,
 	)
 

@@ -55,7 +55,7 @@ func main() {
 
 func waitUntilWebhookReady() error {
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s/healthz", webhookHost), nil)
+		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s", webhookHost), nil)
 		if err != nil {
 			return false, fmt.Errorf("failed to create a request: %w", err)
 		}
@@ -69,7 +69,7 @@ func waitUntilWebhookReady() error {
 
 		defer res.Body.Close()
 
-		return res.StatusCode == http.StatusOK, nil
+		return true, nil
 	})
 	if err != nil {
 		return fmt.Errorf("webhook is not ready: %w", err)

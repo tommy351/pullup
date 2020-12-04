@@ -13,7 +13,6 @@ import (
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
-	"github.com/tommy351/pullup/internal/metrics"
 )
 
 // Injectors from wire.go:
@@ -28,7 +27,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	manager, err := NewControllerManager(restConfig, scheme, config)
+	manager, err := NewControllerManager(restConfig, scheme, conf)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -80,10 +79,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	server := &metrics.Server{
-		Logger: logrLogger,
-	}
-	mainManager, err := NewManager(manager, reconciler, alphaReconciler, resourcetemplateReconciler, betaReconcilerFactory, server)
+	mainManager, err := NewManager(manager, reconciler, alphaReconciler, resourcetemplateReconciler, betaReconcilerFactory)
 	if err != nil {
 		cleanup2()
 		cleanup()

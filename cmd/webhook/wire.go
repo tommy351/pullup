@@ -7,7 +7,6 @@ import (
 	"github.com/tommy351/pullup/cmd"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
-	"github.com/tommy351/pullup/internal/metrics"
 	"github.com/tommy351/pullup/internal/webhook"
 )
 
@@ -20,7 +19,6 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 		wire.FieldsOf(new(Config), "Webhook", "GitHub"),
 		NewControllerManager,
 		webhook.ServerSet,
-		metrics.ServerSet,
 		NewManager,
 	)
 

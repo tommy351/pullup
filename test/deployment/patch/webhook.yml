@@ -7,13 +7,6 @@ spec:
     spec:
       containers:
         - name: webhook
-          ports:
-            - name: webhook
-              containerPort: 4000
-            - $patch: delete
-              containerPort: 8080
           env:
-            - name: WEBHOOK_ADDRESS
-              value: :4000
             - name: LOG_LEVEL
               value: debug

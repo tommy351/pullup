@@ -2,21 +2,17 @@ package webhook
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/google/wire"
 	"github.com/gorilla/mux"
 	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/httputil"
-	"github.com/tommy351/pullup/internal/log"
 	"github.com/tommy351/pullup/internal/middleware"
 	"github.com/tommy351/pullup/internal/webhook/github"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	httphook "github.com/tommy351/pullup/internal/webhook/http"
 )
-
-const healthCheckPath = "/healthz"
 
 // ServerSet provides handlers and the server.
 // nolint: gochecknoglobals
@@ -57,20 +53,6 @@ func (s *Server) Start(stop <-chan struct{}) error {
 
 	router.Use(middleware.SetLogger(s.Logger))
 
-	router.Use(middleware.RequestLog(func(r *http.Request, status, size int, duration time.Duration) {
-		if r.RequestURI != healthCheckPath {
-			logr.FromContextOrDiscard(r.Context()).V(log.Debug).Info("",
-				"requestMethod", r.Method,
-				"requestUrl", r.RequestURI,
-				"remoteAddr", r.RemoteAddr,
-				"userAgent", r.UserAgent(),
-				"responseStatus", status,
-				"responseSize", size,
-				"duration", duration,
-			)
-		}
-	}))
-
 	router.Use(middleware.Recovery(func(w http.ResponseWriter, r *http.Request, err error) {
 		logr.FromContextOrDiscard(r.Context()).Error(err, "Webhook server error",
 			"requestMethod", r.Method,
@@ -82,10 +64,6 @@ func (s *Server) Start(stop <-chan struct{}) error {
 			},
 		})
 	}))
-
-	router.Handle(healthCheckPath, httputil.NewHandler(func(w http.ResponseWriter, r *http.Request) error {
-		return httputil.JSON(w, http.StatusOK, &httputil.Response{})
-	})).Methods(http.MethodGet)
 
 	handlers := map[string]Handler{
 		"github": s.GithubHandler,
