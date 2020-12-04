@@ -222,6 +222,7 @@ func (r *ResourceTemplateClient) delete(ctx context.Context, rt *v1beta1.Resourc
 		return controller.Result{
 			Object: options.Webhook,
 			Error:  fmt.Errorf("failed to delete resource template: %w", err),
+			Reason: ReasonDeleteFailed,
 		}
 	}
 

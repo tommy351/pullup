@@ -44,9 +44,10 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 	}
 
 	options := &hookutil.ResourceTemplateOptions{
-		Action:  hookutil.ActionApply,
-		Event:   event,
-		Webhook: hook,
+		Action:              hookutil.ActionApply,
+		Event:               event,
+		Webhook:             hook,
+		DefaultResourceName: "{{ .webhook.metadata.name }}-{{ .event.number }}",
 	}
 
 	if eventAction == "closed" {

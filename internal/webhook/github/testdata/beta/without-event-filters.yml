@@ -1,0 +1,9 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: GitHubWebhook
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  repositories:
+    - name: foo/bar

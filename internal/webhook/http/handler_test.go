@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = Describe("Handler", func() {
@@ -40,7 +42,9 @@ var _ = Describe("Handler", func() {
 		req := httptest.NewRequest(http.MethodPost, "/", &buf)
 		req.Header.Set("Content-Type", "application/json")
 
-		return req
+		ctx := logr.NewContext(req.Context(), log.Log)
+
+		return req.WithContext(ctx)
 	}
 
 	loadTestData := func(name string) []runtime.Object {

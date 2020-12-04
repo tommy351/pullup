@@ -17,7 +17,7 @@ type Ref struct {
 func ParseRef(ref string) (Ref, bool) {
 	chunks := strings.SplitN(ref, "/", 3)
 
-	if chunks[0] != "refs" {
+	if len(chunks) != 3 || chunks[0] != "refs" {
 		return Ref{}, false
 	}
 

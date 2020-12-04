@@ -33,14 +33,14 @@ func (h *Handler) handlePushEventBeta(ctx context.Context, event *github.PushEve
 
 	ref, ok := gitutil.ParseRef(event.GetRef())
 	if !ok {
-		logger.V(log.Debug).Info("Invalid ref")
+		logger.V(log.Debug).Info("Invalid ref", "ref", event.GetRef())
 
 		return nil
 	}
 
 	switch ref.Type {
 	case gitutil.RefTypeBranch:
-		if !hookutil.FilterWebhook(repo.Push.Branches, ref.Name) {
+		if (repo.Push.Branches == nil && repo.Push.Tags != nil) || !hookutil.FilterWebhook(repo.Push.Branches, ref.Name) {
 			logger.V(log.Debug).Info("Skipped on this branch", "branch", ref.Name)
 
 			return nil
