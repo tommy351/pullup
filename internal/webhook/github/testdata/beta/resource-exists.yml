@@ -1,0 +1,26 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: GitHubWebhook
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  resourceName: "{{ .webhook.metadata.name }}"
+  repositories:
+    - name: foo/bar
+      push: {}
+      pullRequest: {}
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foobar
+  namespace: test
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  data: {}

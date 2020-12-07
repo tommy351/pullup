@@ -6,35 +6,21 @@ export GO111MODULE="on"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." ; pwd)"
 
-go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
-
 echo "Generate CRD"
-controller-gen \
+go run sigs.k8s.io/controller-tools/cmd/controller-gen \
   crd:trivialVersions=true \
   object:headerFile="${PROJECT_ROOT}/hack/boilerplate.go.txt" \
   paths="${PROJECT_ROOT}/pkg/apis/..." \
   output:crd:artifacts:config="${PROJECT_ROOT}/deployment/base/crds"
 
-go get k8s.io/code-generator/cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}@v0.19.4
+echo "Generate RBAC"
+go run sigs.k8s.io/controller-tools/cmd/controller-gen \
+  rbac:roleName=pullup \
+  object:headerFile="${PROJECT_ROOT}/hack/boilerplate.go.txt" \
+  paths="${PROJECT_ROOT}/cmd/...;${PROJECT_ROOT}/internal/..." \
+  output:rbac:artifacts:config="${PROJECT_ROOT}/deployment/base/rbac"
 
-TMP_DIR=$(mktemp -d)
-
-cleanup() {
-  rm -rf "$TMP_DIR"
-}
-trap "cleanup" EXIT SIGINT
-
-"${PROJECT_ROOT}/hack/generate-groups.sh" client,lister,informer \
-  github.com/tommy351/pullup/pkg/client \
-  github.com/tommy351/pullup/pkg/apis \
-  pullup:v1alpha1 \
-  --output-base "$TMP_DIR" \
-  --go-header-file "${PROJECT_ROOT}/hack/boilerplate.go.txt"
-
-echo "Copying generated file to ${PROJECT_ROOT}/pkg"
-cp -a "$TMP_DIR"/github.com/tommy351/pullup/pkg/* "${PROJECT_ROOT}/pkg"
-
-go get github.com/google/wire/cmd/wire@v0.4.0
+go get github.com/google/wire/cmd/wire
 
 echo "Generate Go files"
 go generate ./...

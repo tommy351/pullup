@@ -8,6 +8,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	DefaultShutdownTimeout = time.Second * 5
 )
 
 type ServerOptions struct {
@@ -23,6 +28,14 @@ func RunServer(options ServerOptions) error {
 	server := http.Server{
 		Addr:    options.Address,
 		Handler: options.Handler,
+	}
+
+	if options.ShutdownTimeout == 0 {
+		options.ShutdownTimeout = DefaultShutdownTimeout
+	}
+
+	if options.Logger == nil {
+		options.Logger = log.Log
 	}
 
 	idleConnsClosed := make(chan struct{})

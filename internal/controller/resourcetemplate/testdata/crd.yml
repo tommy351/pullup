@@ -1,0 +1,22 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  patches:
+    - apiVersion: test.pullup.dev/v1
+      kind: Job
+      sourceName: foo
+      merge:
+        spec:
+          name: xyz
+---
+apiVersion: test.pullup.dev/v1
+kind: Job
+metadata:
+  name: foo
+  namespace: test
+spec:
+  name: abc

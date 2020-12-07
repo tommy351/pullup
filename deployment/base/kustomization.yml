@@ -1,6 +1,10 @@
 resources:
-  - crds/pullup.dev_webhooks.yaml
+  - crds/pullup.dev_githubwebhooks.yaml
+  - crds/pullup.dev_httpwebhooks.yaml
   - crds/pullup.dev_resourcesets.yaml
+  - crds/pullup.dev_resourcetemplates.yaml
+  - crds/pullup.dev_webhooks.yaml
+  - rbac/role.yaml
   - service-account.yml
   - rbac.yml
   - deployment-controller.yml

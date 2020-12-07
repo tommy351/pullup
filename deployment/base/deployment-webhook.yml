@@ -27,6 +27,8 @@ spec:
               containerPort: 8080
             - name: metrics
               containerPort: 9100
+            - name: health
+              containerPort: 9101
           env:
             - name: KUBERNETES_NAMESPACE
               valueFrom:
@@ -34,10 +36,10 @@ spec:
                   fieldPath: metadata.namespace
           readinessProbe:
             httpGet:
-              path: /healthz
-              port: webhook
+              path: /readyz
+              port: health
           livenessProbe:
             httpGet:
               path: /healthz
-              port: webhook
+              port: health
       serviceAccountName: pullup

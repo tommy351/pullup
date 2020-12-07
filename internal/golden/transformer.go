@@ -1,9 +1,14 @@
 package golden
 
 import (
-	"github.com/tommy351/pullup/internal/testutil"
+	"encoding/json"
+	"fmt"
+
+	"github.com/tommy351/pullup/internal/k8s"
+	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -13,22 +18,37 @@ func (o ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 	switch input := input.(type) {
 	case runtime.Object:
 		output := input.DeepCopyObject()
-		o.setObject(output)
+
+		if err := o.setObject(output); err != nil {
+			return nil, err
+		}
 
 		return output, nil
 
 	case []runtime.Object:
-		return testutil.MapObjects(input, o.setObject), nil
+		output := make([]runtime.Object, len(input))
+
+		for i, obj := range input {
+			output[i] = obj.DeepCopyObject()
+		}
+
+		return k8s.MapObjects(output, o.setObject)
 
 	default:
 		return input, nil
 	}
 }
 
-func (ObjectTransformer) setObject(obj runtime.Object) {
+func (o ObjectTransformer) setObject(obj runtime.Object) error {
+	if rt, ok := obj.(*v1beta1.ResourceTemplate); ok {
+		if err := o.setResourceTemplate(rt); err != nil {
+			return err
+		}
+	}
+
 	metaObj, err := meta.Accessor(obj)
 	if err != nil {
-		return
+		return nil
 	}
 
 	metaObj.SetCreationTimestamp(metav1.Time{})
@@ -46,4 +66,41 @@ func (ObjectTransformer) setObject(obj runtime.Object) {
 	}
 
 	metaObj.SetOwnerReferences(newRefs)
+
+	return nil
+}
+
+func (o ObjectTransformer) setResourceTemplate(rt *v1beta1.ResourceTemplate) error {
+	if rt.Spec.Data.Raw != nil {
+		data := map[string]interface{}{}
+
+		if err := json.Unmarshal(rt.Spec.Data.Raw, &data); err != nil {
+			return fmt.Errorf("failed to unmarshal data: %w", err)
+		}
+
+		for _, field := range []string{
+			"creationTimestamp",
+			"generation",
+			"managedFields",
+			"namespace",
+			"resourceVersion",
+			"selfLink",
+			"uid",
+		} {
+			unstructured.RemoveNestedField(data, "webhook", "metadata", field)
+		}
+
+		buf, err := json.Marshal(&data)
+		if err != nil {
+			return fmt.Errorf("failed to marshal data: %w", err)
+		}
+
+		rt.Spec.Data.Raw = buf
+	}
+
+	if rt.Status.LastUpdateTime != nil {
+		rt.Status.LastUpdateTime = &metav1.Time{}
+	}
+
+	return nil
 }

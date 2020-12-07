@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
@@ -75,9 +74,4 @@ func (in *WebhookResource) UnmarshalJSON(data []byte) error {
 	in.Metadata = meta.AsPartialObjectMetadata(&in.Unstructured).ObjectMeta
 
 	return nil
-}
-
-// nolint: gochecknoinits
-func init() {
-	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 }

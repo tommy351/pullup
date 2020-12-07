@@ -1,0 +1,20 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  patches:
+    - apiVersion: v1
+      kind: Pod
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  containers:
+    - name: nginx
+      image: nginx

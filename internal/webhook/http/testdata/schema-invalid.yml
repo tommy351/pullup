@@ -1,0 +1,14 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  resourceName: "{{ .webhook.metadata.name }}-{{ .event.foo }}"
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
+  schema:
+    type: what

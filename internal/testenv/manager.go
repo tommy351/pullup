@@ -43,13 +43,17 @@ func (m *Manager) WaitForSync() {
 
 func (m *Manager) GetClient() client.Client {
 	c := m.Manager.GetClient()
+	scheme := m.Manager.GetScheme()
 
 	return &client.DelegatingClient{
-		Reader:       c,
-		StatusClient: c,
+		Reader: c,
+		StatusClient: &recorderStatusClient{
+			writer: c.Status(),
+			scheme: scheme,
+		},
 		Writer: &recorderWriter{
 			writer: c,
-			scheme: m.Manager.GetScheme(),
+			scheme: scheme,
 		},
 	}
 }

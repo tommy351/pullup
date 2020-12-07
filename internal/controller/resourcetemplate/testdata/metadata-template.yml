@@ -1,0 +1,28 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  data:
+    event:
+      apiVersion: v1
+      kind: Pod
+      sourceName: foo
+      targetName: bar
+  patches:
+    - apiVersion: "{{ .event.apiVersion }}"
+      kind: "{{ .event.kind }}"
+      sourceName: "{{ .event.sourceName }}"
+      targetName: "{{ .event.targetName }}"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: foo
+  namespace: test
+spec:
+  containers:
+    - name: nginx
+      image: nginx

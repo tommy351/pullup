@@ -136,6 +136,7 @@
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
+    creationTimestamp: null
     name: test-46
     namespace: test
     ownerReferences:
@@ -186,6 +187,7 @@
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
+    creationTimestamp: null
     name: test-46
     namespace: test
     ownerReferences:

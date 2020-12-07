@@ -5,11 +5,12 @@ package main
 import (
 	"github.com/google/wire"
 	"github.com/tommy351/pullup/cmd"
+	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/controller/resourceset"
+	"github.com/tommy351/pullup/internal/controller/resourcetemplate"
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
-	"github.com/tommy351/pullup/internal/metrics"
 )
 
 func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
@@ -18,9 +19,12 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		log.LoggerSet,
 		k8s.Set,
 		NewControllerManager,
-		resourceset.NewReconciler,
-		webhook.NewReconciler,
-		metrics.NewServer,
+		controller.NewClient,
+		controller.NewEventRecorder,
+		resourceset.ReconcilerSet,
+		webhook.AlphaReconcilerSet,
+		webhook.BetaReconcilerFactorySet,
+		resourcetemplate.ReconcilerSet,
 		NewManager,
 	)
 

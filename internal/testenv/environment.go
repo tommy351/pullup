@@ -34,7 +34,7 @@ func (e *Environment) Start() (err error) {
 		Host: e.ControlPlane.APIURL().Host,
 	}
 
-	if _, err = envtest.InstallCRDs(e.config, e.CRDInstallOptions); err != nil {
+	if _, err = e.InstallCRDs(e.CRDInstallOptions); err != nil {
 		return
 	}
 
@@ -76,4 +76,8 @@ func (e *Environment) NewManager() (*Manager, error) {
 		Manager:          m,
 		EventBroadcaster: broadcaster,
 	}, nil
+}
+
+func (e *Environment) InstallCRDs(options envtest.CRDInstallOptions) ([]runtime.Object, error) {
+	return envtest.InstallCRDs(e.config, options)
 }

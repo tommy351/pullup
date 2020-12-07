@@ -1,0 +1,56 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: bar
+  namespace: foo
+spec:
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: bar
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: bar-46
+  namespace: foo
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: bar
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  data:
+    event: {}
+    webhook: {}
+  patches: []
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: bar-64
+  namespace: foo
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: bar
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  data:
+    event: {}
+    webhook: {}
+  patches: []
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: baz-123
+  namespace: foo
+spec:
+  data:
+    event: {}
+    webhook: {}
+  patches: []

@@ -7,11 +7,13 @@ package main
 
 import (
 	"github.com/tommy351/pullup/cmd"
+	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
-	"github.com/tommy351/pullup/internal/metrics"
 	"github.com/tommy351/pullup/internal/webhook"
 	"github.com/tommy351/pullup/internal/webhook/github"
+	"github.com/tommy351/pullup/internal/webhook/hookutil"
+	"github.com/tommy351/pullup/internal/webhook/http"
 )
 
 // Injectors from wire.go:
@@ -27,11 +29,11 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	manager, err := NewControllerManager(restConfig, scheme)
+	manager, err := NewControllerManager(restConfig, scheme, config)
 	if err != nil {
 		return nil, nil, err
 	}
-	webhookConfig := NewWebhookConfig(conf)
+	webhookConfig := conf.Webhook
 	encoderConfig := log.NewEncoderConfig()
 	logConfig := cmd.NewLogConfig(config)
 	atomicLevel, err := log.NewZapLevel(logConfig)
@@ -48,16 +50,36 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	}
 	logger, cleanup2 := log.NewZapLogger(encoder, atomicLevel, writeSyncer)
 	logrLogger := log.NewLogger(logger)
-	githubConfig := NewGitHubConfig(conf)
-	handler, err := github.NewHandler(githubConfig, manager)
+	githubConfig := conf.GitHub
+	client := controller.NewClient(manager)
+	eventRecorder := hookutil.NewEventRecorder(manager)
+	resourceTemplateClient := hookutil.ResourceTemplateClient{
+		Client:   client,
+		Recorder: eventRecorder,
+	}
+	handlerConfig := github.HandlerConfig{
+		Config:                 githubConfig,
+		Client:                 client,
+		Recorder:               eventRecorder,
+		ResourceTemplateClient: resourceTemplateClient,
+	}
+	handler, err := github.NewHandler(handlerConfig, manager)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	server := webhook.NewServer(webhookConfig, logrLogger, handler)
-	metricsServer := metrics.NewServer(logrLogger)
-	mainManager, err := NewManager(manager, server, metricsServer)
+	httpHandler := &http.Handler{
+		Client:                 client,
+		ResourceTemplateClient: resourceTemplateClient,
+	}
+	server := &webhook.Server{
+		Config:        webhookConfig,
+		Logger:        logrLogger,
+		GithubHandler: handler,
+		HTTPHandler:   httpHandler,
+	}
+	mainManager, err := NewManager(manager, server)
 	if err != nil {
 		cleanup2()
 		cleanup()

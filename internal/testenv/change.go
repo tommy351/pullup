@@ -20,18 +20,34 @@ type Change struct {
 }
 
 func GetChanges(c interface{}) []Change {
-	var recorder Recorder
+	// nolint: prealloc
+	var (
+		recorders []Recorder
+		changes   []Change
+	)
+
+	appendRecorder := func(value interface{}) {
+		if v, ok := value.(Recorder); ok {
+			recorders = append(recorders, v)
+		}
+	}
 
 	switch c := c.(type) {
 	case Recorder:
-		recorder = c
+		appendRecorder(c)
+
 	case client.DelegatingClient:
-		recorder = c.Writer.(Recorder)
+		appendRecorder(c.Writer)
+		appendRecorder(c.StatusClient)
+
 	case *client.DelegatingClient:
-		recorder = c.Writer.(Recorder)
+		appendRecorder(c.Writer)
+		appendRecorder(c.StatusClient)
 	}
 
-	changes := recorder.Changes()
+	for _, r := range recorders {
+		changes = append(changes, r.Changes()...)
+	}
 
 	sort.SliceStable(changes, func(i, j int) bool {
 		return changes[i].NamespacedName.String() < changes[j].NamespacedName.String()

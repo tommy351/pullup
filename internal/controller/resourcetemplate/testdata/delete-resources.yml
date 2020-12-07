@@ -1,0 +1,53 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      targetName: def
+      merge:
+        data:
+          foo: bar
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: abc
+  namespace: test
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: ResourceTemplate
+      name: foo-rt
+      controller: true
+      blockOwnerDeletion: true
+data: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: def
+  namespace: test
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: ResourceTemplate
+      name: foo-rt
+      controller: true
+      blockOwnerDeletion: true
+data: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xyz
+  namespace: test
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: ResourceTemplate
+      name: foo-rt
+      controller: true
+      blockOwnerDeletion: true
+data: {}

@@ -4,7 +4,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
@@ -43,9 +42,4 @@ type Commit struct {
 	Ref string `json:"ref,omitempty"`
 	// +optional
 	SHA string `json:"sha,omitempty"`
-}
-
-// nolint: gochecknoinits
-func init() {
-	SchemeBuilder.Register(&ResourceSet{}, &ResourceSetList{})
 }

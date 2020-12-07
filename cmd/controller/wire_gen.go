@@ -7,11 +7,12 @@ package main
 
 import (
 	"github.com/tommy351/pullup/cmd"
+	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/controller/resourceset"
+	"github.com/tommy351/pullup/internal/controller/resourcetemplate"
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
-	"github.com/tommy351/pullup/internal/metrics"
 )
 
 // Injectors from wire.go:
@@ -26,10 +27,11 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	manager, err := NewControllerManager(restConfig, scheme, config)
+	manager, err := NewControllerManager(restConfig, scheme, conf)
 	if err != nil {
 		return nil, nil, err
 	}
+	client := controller.NewClient(manager)
 	encoderConfig := log.NewEncoderConfig()
 	logConfig := cmd.NewLogConfig(conf)
 	atomicLevel, err := log.NewZapLevel(logConfig)
@@ -46,10 +48,38 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	}
 	logger, cleanup2 := log.NewZapLogger(encoder, atomicLevel, writeSyncer)
 	logrLogger := log.NewLogger(logger)
-	reconciler := resourceset.NewReconciler(manager, logrLogger)
-	webhookReconciler := webhook.NewReconciler(manager, logrLogger)
-	server := metrics.NewServer(logrLogger)
-	mainManager, err := NewManager(manager, reconciler, webhookReconciler, server)
+	resourcesetLogger := resourceset.NewLogger(logrLogger)
+	eventRecorder := controller.NewEventRecorder(manager)
+	reconciler := &resourceset.Reconciler{
+		Client:   client,
+		Logger:   resourcesetLogger,
+		Recorder: eventRecorder,
+	}
+	webhookLogger := webhook.NewLogger(logrLogger)
+	alphaReconciler := &webhook.AlphaReconciler{
+		Client:   client,
+		Logger:   webhookLogger,
+		Recorder: eventRecorder,
+	}
+	resourcetemplateLogger := resourcetemplate.NewLogger(logrLogger)
+	resourcetemplateReconciler := &resourcetemplate.Reconciler{
+		Client:   client,
+		Logger:   resourcetemplateLogger,
+		Scheme:   scheme,
+		Recorder: eventRecorder,
+	}
+	betaReconcilerConfig := webhook.BetaReconcilerConfig{
+		Client:   client,
+		Logger:   webhookLogger,
+		Recorder: eventRecorder,
+	}
+	betaReconcilerFactory, err := webhook.NewBetaReconcilerFactory(betaReconcilerConfig, manager)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	mainManager, err := NewManager(manager, reconciler, alphaReconciler, resourcetemplateReconciler, betaReconcilerFactory)
 	if err != nil {
 		cleanup2()
 		cleanup()
