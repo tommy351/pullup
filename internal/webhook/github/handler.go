@@ -21,7 +21,7 @@ import (
 
 // +kubebuilder:rbac:groups=pullup.dev,resources=webhooks,verbs=get;list;watch
 // +kubebuilder:rbac:groups=pullup.dev,resources=githubwebhooks,verbs=get;list;watch
-// +kubebuilder:rbac:groups=pullup.dev,resources=resourcesets,verbs=create;patch;delete
+// +kubebuilder:rbac:groups=pullup.dev,resources=resourcesets,verbs=create;patch;delete;deletecollection
 
 const (
 	nameField      = "spec.repositories.githubName"
