@@ -12,8 +12,14 @@ rules:
   - apiGroups: ['pullup.dev']
     resources:
       - resourcesets
+      - resourcetemplates
     verbs:
       - delete
+  - apiGroups: ['']
+    resources:
+      - services
+    verbs:
+      - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -41,8 +47,10 @@ spec:
       env:
         - name: WEBHOOK_SERVICE_NAME
           value: $(WEBHOOK_SERVICE_NAME)
-        - name: WEBHOOK_NAME
-          value: $(WEBHOOK_NAME)
+        - name: ALPHA_WEBHOOK_NAME
+          value: $(ALPHA_WEBHOOK_NAME)
+        - name: HTTP_WEBHOOK_NAME
+          value: $(HTTP_WEBHOOK_NAME)
         - name: KUBERNETES_NAMESPACE
           valueFrom:
             fieldRef:

@@ -6,18 +6,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/fakegithub"
-	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Webhook", func() {
+	webhookName := os.Getenv("ALPHA_WEBHOOK_NAME")
+
 	When("action = opened", func() {
 		event := fakegithub.NewPullRequestEvent()
 		name := fmt.Sprintf("%s-%d", webhookName, event.GetNumber())
@@ -54,18 +56,7 @@ var _ = Describe("Webhook", func() {
 		})
 
 		It("should create a service", func() {
-			Eventually(func() *http.Response {
-				req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s/test", name), nil)
-				Expect(err).NotTo(HaveOccurred())
-
-				res, _ := http.DefaultClient.Do(req)
-
-				return res
-			}, time.Minute, time.Second).Should(And(
-				Not(BeNil()),
-				HaveHTTPStatus(http.StatusOK),
-				testutil.HaveHTTPHeader("X-Resource-Name", name),
-			))
+			testHTTPServer(name)
 		})
 	})
 })

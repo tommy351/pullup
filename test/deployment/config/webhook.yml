@@ -1,3 +1,5 @@
 varReference:
   - path: spec/resources/metadata/name
     kind: Webhook
+  - path: spec/patches/sourceName
+    kind: HTTPWebhook

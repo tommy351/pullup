@@ -6,9 +6,10 @@ namePrefix: test-
 resources:
   - namespace.yml
   - rbac.yml
-  - job-e2e.yml
+  - e2e.yml
   - http-server.yml
-  - webhook.yml
+  - alpha-webhook.yml
+  - http-webhook.yml
 
 configurations:
   - config/webhook.yml
@@ -41,8 +42,13 @@ vars:
       apiVersion: v1
       kind: Service
       name: http-server
-  - name: WEBHOOK_NAME
+  - name: ALPHA_WEBHOOK_NAME
     objref:
       apiVersion: pullup.dev/v1alpha1
       kind: Webhook
+      name: http-server
+  - name: HTTP_WEBHOOK_NAME
+    objref:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
       name: http-server

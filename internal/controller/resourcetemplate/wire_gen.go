@@ -18,11 +18,13 @@ func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 	resourcetemplateLogger := NewLogger(logger)
 	scheme := controller.NewScheme(mgr)
 	eventRecorder := controller.NewEventRecorder(mgr)
+	reader := controller.NewAPIReader(mgr)
 	reconciler := &Reconciler{
-		Client:   client,
-		Logger:   resourcetemplateLogger,
-		Scheme:   scheme,
-		Recorder: eventRecorder,
+		Client:    client,
+		Logger:    resourcetemplateLogger,
+		Scheme:    scheme,
+		Recorder:  eventRecorder,
+		APIReader: reader,
 	}
 	return reconciler
 }

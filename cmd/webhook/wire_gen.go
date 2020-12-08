@@ -29,11 +29,6 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	manager, err := NewControllerManager(restConfig, scheme, config)
-	if err != nil {
-		return nil, nil, err
-	}
-	webhookConfig := conf.Webhook
 	encoderConfig := log.NewEncoderConfig()
 	logConfig := cmd.NewLogConfig(config)
 	atomicLevel, err := log.NewZapLevel(logConfig)
@@ -50,6 +45,13 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	}
 	logger, cleanup2 := log.NewZapLogger(encoder, atomicLevel, writeSyncer)
 	logrLogger := log.NewLogger(logger)
+	manager, err := NewControllerManager(restConfig, scheme, config, logrLogger)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	webhookConfig := conf.Webhook
 	githubConfig := conf.GitHub
 	client := controller.NewClient(manager)
 	eventRecorder := hookutil.NewEventRecorder(manager)

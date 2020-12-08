@@ -11,6 +11,8 @@ rules:
       - get
       - create
       - update
+      - patch
+      - delete
   - apiGroups:
       - apps
       - extensions
@@ -20,6 +22,8 @@ rules:
       - get
       - create
       - update
+      - patch
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

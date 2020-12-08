@@ -1,8 +1,12 @@
 package e2e
 
 import (
+	"context"
+	"fmt"
+	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,8 +18,8 @@ import (
 
 // nolint: gochecknoglobals
 var (
-	webhookHost  = os.Getenv("WEBHOOK_SERVICE_NAME")
-	webhookName  = os.Getenv("WEBHOOK_NAME")
+	webhookHost = os.Getenv("WEBHOOK_SERVICE_NAME")
+
 	k8sNamespace = os.Getenv("KUBERNETES_NAMESPACE")
 
 	scheme    *runtime.Scheme
@@ -40,3 +44,18 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 })
+
+func testHTTPServer(name string) {
+	Eventually(func() *http.Response {
+		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s/test", name), nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		res, _ := http.DefaultClient.Do(req)
+
+		return res
+	}, time.Minute, time.Second).Should(And(
+		Not(BeNil()),
+		HaveHTTPStatus(http.StatusOK),
+		testutil.HaveHTTPHeader("X-Resource-Name", name),
+	))
+}
