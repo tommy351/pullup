@@ -64,12 +64,18 @@ func deleteObjects(objects []runtime.Object) {
 	}
 }
 
+func httpGet(url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	return http.DefaultClient.Do(req)
+}
+
 func testHTTPServer(name string) {
 	Eventually(func() *http.Response {
-		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s/test", name), nil)
-		Expect(err).NotTo(HaveOccurred())
-
-		res, _ := http.DefaultClient.Do(req)
+		res, _ := httpGet(fmt.Sprintf("http://%s", name))
 
 		return res
 	}, time.Minute, time.Second).Should(And(

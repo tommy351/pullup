@@ -10,8 +10,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,6 +93,69 @@ var _ = Describe("HTTPWebhook", func() {
 		})
 
 		It("should delete the service", func() {
+			Eventually(func() bool {
+				err := k8sClient.Get(context.TODO(), types.NamespacedName{
+					Namespace: k8sNamespace,
+					Name:      name,
+				}, &corev1.Service{})
+
+				return errors.IsNotFound(err)
+			}, time.Minute, time.Second).Should(BeTrue())
+		})
+	})
+
+	When("webhook is updated", func() {
+		BeforeEach(func() {
+			sendRequest("apply")
+			testHTTPServer(name)
+
+			webhook := new(v1beta1.HTTPWebhook)
+			webhook.Namespace = k8sNamespace
+			webhook.Name = webhookName
+
+			err := k8sClient.Patch(context.TODO(), webhook, client.RawPatch(types.JSONPatchType, testutil.MustMarshalJSON([]v1beta1.JSONPatch{
+				{
+					Operation: "replace",
+					Path:      "/spec/patches/0/merge/spec/template/spec/containers/0/env/0/value",
+					Value: &extv1.JSON{
+						Raw: testutil.MustMarshalJSON("{{ .webhook.metadata.name }}-{{ .event.suffix }}-new"),
+					},
+				},
+			})))
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should update the ResourceTemplate as well", func() {
+			Eventually(func() *http.Response {
+				res, _ := httpGet(fmt.Sprintf("http://%s", name))
+
+				return res
+			}, time.Minute, time.Second).Should(And(
+				Not(BeNil()),
+				testutil.HaveHTTPHeader("X-Resource-Name", fmt.Sprintf("%s-new", name)),
+			))
+		})
+	})
+
+	When("patches are removed from the webhook", func() {
+		BeforeEach(func() {
+			sendRequest("apply")
+			testHTTPServer(name)
+
+			webhook := new(v1beta1.HTTPWebhook)
+			webhook.Namespace = k8sNamespace
+			webhook.Name = webhookName
+
+			err := k8sClient.Patch(context.TODO(), webhook, client.RawPatch(types.JSONPatchType, testutil.MustMarshalJSON([]v1beta1.JSONPatch{
+				{
+					Operation: "remove",
+					Path:      "/spec/patches/1",
+				},
+			})))
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should remove inactive resources", func() {
 			Eventually(func() bool {
 				err := k8sClient.Get(context.TODO(), types.NamespacedName{
 					Namespace: k8sNamespace,
