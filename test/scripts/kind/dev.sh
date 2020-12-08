@@ -4,11 +4,9 @@ set -euo pipefail
 
 NAMESPACE=test-pullup
 RESOURCES_TO_DELETE=(
-  deployment/test-pullup-controller
-  deployment/test-pullup-webhook
-  pod/test-pullup-e2e
-  webhook/test-http-server
-  httpwebhook/test-http-server
+  deployment/pullup-controller
+  deployment/pullup-webhook
+  pod/pullup-e2e
 )
 
 # Build images
@@ -16,9 +14,6 @@ $(dirname ${BASH_SOURCE[0]})/../build-images.sh
 
 # Setup the cluster
 source $(dirname ${BASH_SOURCE[0]})/setup.sh
-
-# Create CRDs
-$(dirname ${BASH_SOURCE[0]})/../create-crd.sh
 
 # Delete resources
 for name in "${RESOURCES_TO_DELETE[@]}"

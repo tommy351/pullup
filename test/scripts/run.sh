@@ -5,7 +5,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." ; pwd)"
 PATH="${PROJECT_ROOT}/assets/bin:${PATH}"
 NAMESPACE=test-pullup
-POD_NAME=test-pullup-e2e
+POD_NAME=pullup-e2e
 
 $(dirname ${BASH_SOURCE[0]})/create-crd.sh
 

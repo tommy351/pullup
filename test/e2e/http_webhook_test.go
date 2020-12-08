@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -15,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,11 +22,12 @@ import (
 
 var _ = Describe("HTTPWebhook", func() {
 	var (
-		suffix string
-		name   string
+		suffix  string
+		name    string
+		objects []runtime.Object
 	)
 
-	webhookName := os.Getenv("ALPHA_WEBHOOK_NAME")
+	webhookName := "http-server"
 
 	sendRequest := func(action string) {
 		Eventually(func() *http.Response {
@@ -57,6 +58,8 @@ var _ = Describe("HTTPWebhook", func() {
 	BeforeEach(func() {
 		suffix = rand.String(5)
 		name = fmt.Sprintf("%s-%s", webhookName, suffix)
+		objects = loadObjects("testdata/http-webhook.yml")
+		createObjects(objects)
 	})
 
 	AfterEach(func() {
@@ -67,6 +70,7 @@ var _ = Describe("HTTPWebhook", func() {
 			},
 		}
 		Expect(client.IgnoreNotFound(k8sClient.Delete(context.TODO(), rt))).To(Succeed())
+		deleteObjects(objects)
 	})
 
 	When("action = apply", func() {

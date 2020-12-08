@@ -1,18 +1,11 @@
 bases:
   - ../../deployment/base
 
-namePrefix: test-
-
 resources:
   - namespace.yml
   - rbac.yml
   - e2e.yml
   - http-server.yml
-  - alpha-webhook.yml
-  - http-webhook.yml
-
-configurations:
-  - config/webhook.yml
 
 patchesStrategicMerge:
   - patch/controller.yml
@@ -32,23 +25,3 @@ vars:
       apiVersion: v1
       kind: Service
       name: pullup-webhook
-  - name: HTTP_SERVER_DEPLOYMENT_NAME
-    objref:
-      apiVersion: apps/v1
-      kind: Deployment
-      name: http-server
-  - name: HTTP_SERVER_SERVICE_NAME
-    objref:
-      apiVersion: v1
-      kind: Service
-      name: http-server
-  - name: ALPHA_WEBHOOK_NAME
-    objref:
-      apiVersion: pullup.dev/v1alpha1
-      kind: Webhook
-      name: http-server
-  - name: HTTP_WEBHOOK_NAME
-    objref:
-      apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
-      name: http-server

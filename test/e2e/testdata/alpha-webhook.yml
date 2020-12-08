@@ -2,6 +2,7 @@ apiVersion: pullup.dev/v1alpha1
 kind: Webhook
 metadata:
   name: http-server
+  namespace: test-pullup
 spec:
   repositories:
     - name: foo/bar
@@ -10,7 +11,7 @@ spec:
     - apiVersion: apps/v1
       kind: Deployment
       metadata:
-        name: $(HTTP_SERVER_DEPLOYMENT_NAME)
+        name: http-server
       spec:
         selector:
           matchLabels:
@@ -27,7 +28,7 @@ spec:
     - apiVersion: v1
       kind: Service
       metadata:
-        name: $(HTTP_SERVER_SERVICE_NAME)
+        name: http-server
       spec:
         selector:
           app: '{{ .Name }}'

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,10 +14,22 @@ import (
 	"github.com/tommy351/pullup/internal/fakegithub"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var _ = Describe("Webhook", func() {
-	webhookName := os.Getenv("ALPHA_WEBHOOK_NAME")
+	var objects []runtime.Object
+
+	webhookName := "http-server"
+
+	BeforeEach(func() {
+		objects = loadObjects("testdata/alpha-webhook.yml")
+		createObjects(objects)
+	})
+
+	AfterEach(func() {
+		deleteObjects(objects)
+	})
 
 	When("action = opened", func() {
 		event := fakegithub.NewPullRequestEvent()

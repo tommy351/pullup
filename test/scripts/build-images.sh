@@ -28,8 +28,4 @@ build_image pullup-http-server "${PROJECT_ROOT}/test/http-server"
 
 go get github.com/onsi/ginkgo/ginkgo
 GOOS=linux CGO_ENABLED=0 ginkgo build "${PROJECT_ROOT}/test/e2e"
-docker build \
-  -t pullup-e2e \
-  --build-arg "BINARY_NAME=e2e.test" \
-  -f "${PROJECT_ROOT}/Dockerfile" \
-  "${PROJECT_ROOT}/test/e2e"
+docker build -t pullup-e2e "${PROJECT_ROOT}/test/e2e"

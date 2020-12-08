@@ -45,6 +45,25 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
+func loadObjects(path string) []runtime.Object {
+	objects, err := k8s.LoadObjects(scheme, path)
+	Expect(err).NotTo(HaveOccurred())
+
+	return objects
+}
+
+func createObjects(objects []runtime.Object) {
+	for _, obj := range objects {
+		Expect(k8sClient.Create(context.TODO(), obj)).To(Succeed())
+	}
+}
+
+func deleteObjects(objects []runtime.Object) {
+	for _, obj := range objects {
+		Expect(client.IgnoreNotFound(k8sClient.Delete(context.TODO(), obj))).To(Succeed())
+	}
+}
+
 func testHTTPServer(name string) {
 	Eventually(func() *http.Response {
 		req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, fmt.Sprintf("http://%s/test", name), nil)

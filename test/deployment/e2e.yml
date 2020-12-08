@@ -11,9 +11,13 @@ metadata:
 rules:
   - apiGroups: ['pullup.dev']
     resources:
+      - webhooks
+      - httpwebhooks
+      - githubwebhooks
       - resourcesets
       - resourcetemplates
     verbs:
+      - create
       - delete
   - apiGroups: ['']
     resources:
@@ -47,10 +51,6 @@ spec:
       env:
         - name: WEBHOOK_SERVICE_NAME
           value: $(WEBHOOK_SERVICE_NAME)
-        - name: ALPHA_WEBHOOK_NAME
-          value: $(ALPHA_WEBHOOK_NAME)
-        - name: HTTP_WEBHOOK_NAME
-          value: $(HTTP_WEBHOOK_NAME)
         - name: KUBERNETES_NAMESPACE
           valueFrom:
             fieldRef:

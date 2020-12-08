@@ -2,6 +2,7 @@ apiVersion: pullup.dev/v1beta1
 kind: HTTPWebhook
 metadata:
   name: http-server
+  namespace: test-pullup
 spec:
   resourceName: '{{ .webhook.metadata.name }}-{{ .event.suffix }}'
   schema:
@@ -12,7 +13,7 @@ spec:
   patches:
     - apiVersion: apps/v1
       kind: Deployment
-      sourceName: $(HTTP_SERVER_DEPLOYMENT_NAME)
+      sourceName: http-server
       merge:
         spec:
           selector:
@@ -30,7 +31,7 @@ spec:
                       value: '{{ .webhook.metadata.name }}-{{ .event.suffix }}'
     - apiVersion: v1
       kind: Service
-      sourceName: $(HTTP_SERVER_SERVICE_NAME)
+      sourceName: http-server
       merge:
         spec:
           selector:
