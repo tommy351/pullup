@@ -1,18 +1,49 @@
-apiVersion: batch/v1
-kind: Job
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pullup-e2e
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pullup-e2e
+rules:
+  - apiGroups: ['pullup.dev']
+    resources:
+      - resourcesets
+    verbs:
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pullup-e2e
+subjects:
+  - kind: ServiceAccount
+    name: pullup-e2e
+roleRef:
+  kind: Role
+  name: pullup-e2e
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Pod
 metadata:
   name: pullup-e2e
 spec:
-  backoffLimit: 0
-  template:
-    spec:
-      restartPolicy: Never
-      containers:
-        - name: pullup-e2e
-          image: pullup-e2e
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: WEBHOOK_SERVICE_NAME
-              value: $(WEBHOOK_SERVICE_NAME)
-            - name: WEBHOOK_NAME
-              value: $(WEBHOOK_NAME)
+  restartPolicy: Never
+  serviceAccountName: pullup-e2e
+  containers:
+    - name: pullup-e2e
+      image: pullup-e2e
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: WEBHOOK_SERVICE_NAME
+          value: $(WEBHOOK_SERVICE_NAME)
+        - name: WEBHOOK_NAME
+          value: $(WEBHOOK_NAME)
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
