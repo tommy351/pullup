@@ -1,0 +1,36 @@
+apiVersion: pullup.dev/v1beta1
+kind: GitHubWebhook
+metadata:
+  name: http-server-push
+  namespace: test-pullup
+spec:
+  resourceName: '{{ .webhook.metadata.name }}-{{ .event.head }}'
+  repositories:
+    - name: foo/bar
+      push: {}
+  patches:
+    - apiVersion: apps/v1
+      kind: Deployment
+      sourceName: http-server
+      merge:
+        spec:
+          selector:
+            matchLabels:
+              app: '{{ .webhook.metadata.name }}-{{ .event.head }}'
+          template:
+            metadata:
+              labels:
+                app: '{{ .webhook.metadata.name }}-{{ .event.head }}'
+            spec:
+              containers:
+                - name: http-server
+                  env:
+                    - name: RESOURCE_NAME
+                      value: '{{ .webhook.metadata.name }}-{{ .event.head }}'
+    - apiVersion: v1
+      kind: Service
+      sourceName: http-server
+      merge:
+        spec:
+          selector:
+            app: '{{ .webhook.metadata.name }}-{{ .event.head }}'

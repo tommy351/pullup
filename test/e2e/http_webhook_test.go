@@ -12,10 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -32,7 +29,7 @@ var _ = Describe("HTTPWebhook", func() {
 	webhookName := "http-server"
 
 	sendRequest := func(action string) {
-		Eventually(func() *http.Response {
+		Eventually(func() (*http.Response, error) {
 			var buf bytes.Buffer
 			Expect(json.NewEncoder(&buf).Encode(map[string]interface{}{
 				"namespace": k8sNamespace,
@@ -48,9 +45,7 @@ var _ = Describe("HTTPWebhook", func() {
 
 			req.Header.Set("Content-Type", "application/json")
 
-			res, _ := http.DefaultClient.Do(req)
-
-			return res
+			return http.DefaultClient.Do(req)
 		}, time.Minute, time.Second).Should(And(
 			Not(BeNil()),
 			HaveHTTPStatus(http.StatusOK),
@@ -65,13 +60,6 @@ var _ = Describe("HTTPWebhook", func() {
 	})
 
 	AfterEach(func() {
-		rt := &v1beta1.ResourceTemplate{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: k8sNamespace,
-				Name:      name,
-			},
-		}
-		Expect(client.IgnoreNotFound(k8sClient.Delete(context.TODO(), rt))).To(Succeed())
 		deleteObjects(objects)
 	})
 
@@ -93,14 +81,7 @@ var _ = Describe("HTTPWebhook", func() {
 		})
 
 		It("should delete the service", func() {
-			Eventually(func() bool {
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{
-					Namespace: k8sNamespace,
-					Name:      name,
-				}, &corev1.Service{})
-
-				return errors.IsNotFound(err)
-			}, time.Minute, time.Second).Should(BeTrue())
+			checkServiceDeleted(name)
 		})
 	})
 
@@ -126,14 +107,11 @@ var _ = Describe("HTTPWebhook", func() {
 		})
 
 		It("should update the ResourceTemplate as well", func() {
-			Eventually(func() *http.Response {
-				res, _ := httpGet(fmt.Sprintf("http://%s", name))
-
-				return res
-			}, time.Minute, time.Second).Should(And(
-				Not(BeNil()),
+			Eventually(func() (*http.Response, error) {
+				return httpGet(fmt.Sprintf("http://%s", name))
+			}, time.Minute, time.Second).Should(
 				testutil.HaveHTTPHeader("X-Resource-Name", fmt.Sprintf("%s-new", name)),
-			))
+			)
 		})
 	})
 
@@ -156,14 +134,7 @@ var _ = Describe("HTTPWebhook", func() {
 		})
 
 		It("should remove inactive resources", func() {
-			Eventually(func() bool {
-				err := k8sClient.Get(context.TODO(), types.NamespacedName{
-					Namespace: k8sNamespace,
-					Name:      name,
-				}, &corev1.Service{})
-
-				return errors.IsNotFound(err)
-			}, time.Minute, time.Second).Should(BeTrue())
+			checkServiceDeleted(name)
 		})
 	})
 })

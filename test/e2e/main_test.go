@@ -12,7 +12,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/testutil"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -74,13 +77,21 @@ func httpGet(url string) (*http.Response, error) {
 }
 
 func testHTTPServer(name string) {
-	Eventually(func() *http.Response {
-		res, _ := httpGet(fmt.Sprintf("http://%s", name))
-
-		return res
+	Eventually(func() (*http.Response, error) {
+		return httpGet(fmt.Sprintf("http://%s", name))
 	}, time.Minute, time.Second).Should(And(
-		Not(BeNil()),
 		HaveHTTPStatus(http.StatusOK),
 		testutil.HaveHTTPHeader("X-Resource-Name", name),
 	))
+}
+
+func checkServiceDeleted(name string) {
+	Eventually(func() bool {
+		err := k8sClient.Get(context.TODO(), types.NamespacedName{
+			Namespace: k8sNamespace,
+			Name:      name,
+		}, &corev1.Service{})
+
+		return errors.IsNotFound(err)
+	}, time.Minute, time.Second).Should(BeTrue())
 }
