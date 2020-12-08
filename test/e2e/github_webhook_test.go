@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -28,7 +27,7 @@ func sendGitHubRequest(event string, data interface{}) {
 		req.Header.Set("X-GitHub-Event", event)
 
 		return http.DefaultClient.Do(req)
-	}, time.Minute, time.Second).Should(HaveHTTPStatus(http.StatusOK))
+	}).Should(HaveHTTPStatus(http.StatusOK))
 }
 
 var _ = Describe("GitHubWebhook", func() {

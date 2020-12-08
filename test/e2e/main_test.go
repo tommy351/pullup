@@ -30,6 +30,8 @@ var (
 )
 
 func Test(t *testing.T) {
+	SetDefaultEventuallyTimeout(time.Minute)
+	SetDefaultEventuallyPollingInterval(time.Second)
 	testutil.RunSpecs(t, "e2e")
 }
 
@@ -79,7 +81,7 @@ func httpGet(url string) (*http.Response, error) {
 func testHTTPServer(name string) {
 	Eventually(func() (*http.Response, error) {
 		return httpGet(fmt.Sprintf("http://%s", name))
-	}, time.Minute, time.Second).Should(And(
+	}).Should(And(
 		HaveHTTPStatus(http.StatusOK),
 		testutil.HaveHTTPHeader("X-Resource-Name", name),
 	))
@@ -93,5 +95,5 @@ func checkServiceDeleted(name string) {
 		}, &corev1.Service{})
 
 		return errors.IsNotFound(err)
-	}, time.Minute, time.Second).Should(BeTrue())
+	}).Should(BeTrue())
 }

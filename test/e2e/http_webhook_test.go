@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,7 +45,7 @@ var _ = Describe("HTTPWebhook", func() {
 			req.Header.Set("Content-Type", "application/json")
 
 			return http.DefaultClient.Do(req)
-		}, time.Minute, time.Second).Should(And(
+		}).Should(And(
 			Not(BeNil()),
 			HaveHTTPStatus(http.StatusOK),
 		))
@@ -109,7 +108,7 @@ var _ = Describe("HTTPWebhook", func() {
 		It("should update the ResourceTemplate as well", func() {
 			Eventually(func() (*http.Response, error) {
 				return httpGet(fmt.Sprintf("http://%s", name))
-			}, time.Minute, time.Second).Should(
+			}).Should(
 				testutil.HaveHTTPHeader("X-Resource-Name", fmt.Sprintf("%s-new", name)),
 			)
 		})
