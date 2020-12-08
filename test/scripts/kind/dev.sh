@@ -6,7 +6,7 @@ NAMESPACE=test-pullup
 RESOURCES_TO_DELETE=(
   deployment/pullup-controller
   deployment/pullup-webhook
-  pod/pullup-e2e
+  job/pullup-e2e
 )
 
 # Build images
