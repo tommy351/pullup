@@ -12,6 +12,7 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,6 +51,10 @@ func (r *AlphaReconciler) Reconcile(req reconcile.Request) (reconcile.Result, er
 	ctx := context.Background()
 
 	if err := r.Client.Get(ctx, req.NamespacedName, hook); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
 		return reconcile.Result{}, fmt.Errorf("failed to get webhook: %w", err)
 	}
 

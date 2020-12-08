@@ -67,6 +67,10 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	ctx := context.Background()
 
 	if err := r.Client.Get(ctx, req.NamespacedName, rt); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
 		return reconcile.Result{}, fmt.Errorf("failed to get resource template: %w", err)
 	}
 
