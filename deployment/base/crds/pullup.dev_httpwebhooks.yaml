@@ -10,6 +10,9 @@ metadata:
 spec:
   group: pullup.dev
   names:
+    categories:
+    - all
+    - pullup
     kind: HTTPWebhook
     listKind: HTTPWebhookList
     plural: httpwebhooks

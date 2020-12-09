@@ -13,6 +13,7 @@ const (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=all;pullup
 // +kubebuilder:printcolumn:name="Webhook Kind",type=string,JSONPath=`.spec.webhookRef.kind`
 // +kubebuilder:printcolumn:name="Webhook Name",type=string,JSONPath=`.spec.webhookRef.name`
 // +kubebuilder:printcolumn:name="Last Update",type=date,JSONPath=`.status.lastUpdateTime`

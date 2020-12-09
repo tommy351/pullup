@@ -7,6 +7,7 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=all;pullup
 
 type HTTPWebhook struct {
 	metav1.TypeMeta   `json:",inline"`

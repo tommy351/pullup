@@ -6,6 +6,7 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=all;pullup
 
 type GitHubWebhook struct {
 	metav1.TypeMeta   `json:",inline"`
