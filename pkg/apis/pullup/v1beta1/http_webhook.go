@@ -32,7 +32,8 @@ type HTTPWebhookList struct {
 type HTTPWebhookSpec struct {
 	WebhookSpec `json:",inline"`
 
-	Schema *extv1.JSON `json:"schema,omitempty"`
+	Schema      *extv1.JSON  `json:"schema,omitempty"`
+	SecretToken *SecretValue `json:"secretToken,omitempty"`
 }
 
 type HTTPWebhookStatus struct {

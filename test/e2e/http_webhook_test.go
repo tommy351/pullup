@@ -25,7 +25,7 @@ var _ = Describe("HTTPWebhook", func() {
 		webhookName string
 	)
 
-	sendRequest := func(action string) {
+	sendRequest := func(action string, headers map[string]string) {
 		Eventually(func() (*http.Response, error) {
 			var buf bytes.Buffer
 			Expect(json.NewEncoder(&buf).Encode(map[string]interface{}{
@@ -39,6 +39,10 @@ var _ = Describe("HTTPWebhook", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			req.Header.Set("Content-Type", "application/json")
+
+			for k, v := range headers {
+				req.Header.Set(k, v)
+			}
 
 			return http.DefaultClient.Do(req)
 		}).Should(And(
@@ -54,7 +58,7 @@ var _ = Describe("HTTPWebhook", func() {
 		)
 
 		waitUntilApplyDone := func() {
-			sendRequest("apply")
+			sendRequest("apply", nil)
 			getConfigMap("conf-a-" + suffix)
 			getConfigMap("conf-b-" + suffix)
 		}
@@ -77,7 +81,7 @@ var _ = Describe("HTTPWebhook", func() {
 
 		When("action = apply", func() {
 			BeforeEach(func() {
-				sendRequest("apply")
+				sendRequest("apply", nil)
 			})
 
 			It("should create resources", func() {
@@ -96,7 +100,7 @@ var _ = Describe("HTTPWebhook", func() {
 		When("action = delete", func() {
 			BeforeEach(func() {
 				waitUntilApplyDone()
-				sendRequest("delete")
+				sendRequest("delete", nil)
 			})
 
 			It("should delete resources", func() {
@@ -189,12 +193,37 @@ var _ = Describe("HTTPWebhook", func() {
 
 		When("action = apply", func() {
 			BeforeEach(func() {
-				sendRequest("apply")
+				sendRequest("apply", nil)
 			})
 
 			It("should create a service", func() {
 				testHTTPServer("http-server-" + suffix)
 			})
+		})
+	})
+
+	When("secretToken is given", func() {
+		var objects []runtime.Object
+
+		BeforeEach(func() {
+			objects = loadObjects("testdata/http-webhook-secret.yml")
+			webhookName = "secret"
+			data = nil
+			createObjects(objects)
+			sendRequest("apply", map[string]string{
+				"Pullup-Webhook-Secret": "some-thing-very-secret",
+			})
+		})
+
+		AfterEach(func() {
+			deleteObjects(objects)
+		})
+
+		It("should create resources", func() {
+			conf := getConfigMap("secret-rt")
+			Expect(conf.Data).To(Equal(map[string]string{
+				"a": "abc",
+			}))
 		})
 	})
 })
