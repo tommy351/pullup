@@ -2,7 +2,6 @@ package http
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -204,15 +203,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		Webhook: hook,
 	})
 	if err != nil {
-		if errors.Is(err, hookutil.ErrInvalidResourceTemplateAction) {
-			return httputil.Response{
-				StatusCode: http.StatusBadRequest,
-				Errors: []httputil.Error{
-					{Description: "Invalid action", Field: "action"},
-				},
-			}
-		}
-
 		return fmt.Errorf("failed to %s resource template: %w", body.Action, err)
 	}
 

@@ -118,6 +118,43 @@ var _ = Describe("Handler", func() {
 		mgr.Stop()
 	})
 
+	When("content type is not application/json", func() {
+		BeforeEach(func() {
+			req = httptest.NewRequest(http.MethodPost, "/", nil)
+		})
+
+		It("should respond 400", func() {
+			Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
+		})
+
+		It("should respond errors", func() {
+			Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
+				Errors: []httputil.Error{
+					{Description: `Content type must be "application/json"`},
+				},
+			})))
+		})
+	})
+
+	When("body is not a valid JSON", func() {
+		BeforeEach(func() {
+			req = httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("{")))
+			req.Header.Set("Content-Type", "application/json")
+		})
+
+		It("should respond 400", func() {
+			Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
+		})
+
+		It("should respond errors", func() {
+			Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
+				Errors: []httputil.Error{
+					{Description: "Invalid JSON"},
+				},
+			})))
+		})
+	})
+
 	for name, body := range map[string]*Body{
 		"payload is invalid":        nil,
 		"payload without namespace": {},
