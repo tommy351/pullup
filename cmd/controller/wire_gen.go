@@ -27,11 +27,6 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	manager, err := NewControllerManager(restConfig, scheme, conf)
-	if err != nil {
-		return nil, nil, err
-	}
-	client := controller.NewClient(manager)
 	encoderConfig := log.NewEncoderConfig()
 	logConfig := cmd.NewLogConfig(conf)
 	atomicLevel, err := log.NewZapLevel(logConfig)
@@ -48,6 +43,13 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	}
 	logger, cleanup2 := log.NewZapLogger(encoder, atomicLevel, writeSyncer)
 	logrLogger := log.NewLogger(logger)
+	manager, err := NewControllerManager(restConfig, scheme, conf, logrLogger)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	client := controller.NewClient(manager)
 	resourcesetLogger := resourceset.NewLogger(logrLogger)
 	eventRecorder := controller.NewEventRecorder(manager)
 	reconciler := &resourceset.Reconciler{
@@ -62,11 +64,13 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		Recorder: eventRecorder,
 	}
 	resourcetemplateLogger := resourcetemplate.NewLogger(logrLogger)
+	reader := controller.NewAPIReader(manager)
 	resourcetemplateReconciler := &resourcetemplate.Reconciler{
-		Client:   client,
-		Logger:   resourcetemplateLogger,
-		Scheme:   scheme,
-		Recorder: eventRecorder,
+		Client:    client,
+		Logger:    resourcetemplateLogger,
+		Scheme:    scheme,
+		Recorder:  eventRecorder,
+		APIReader: reader,
 	}
 	betaReconcilerConfig := webhook.BetaReconcilerConfig{
 		Client:   client,

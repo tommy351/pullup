@@ -55,10 +55,11 @@ func NewLogger(logger logr.Logger) Logger {
 }
 
 type Reconciler struct {
-	Client   client.Client
-	Logger   Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Client    client.Client
+	Logger    Logger
+	Scheme    *runtime.Scheme
+	Recorder  record.EventRecorder
+	APIReader client.Reader
 }
 
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
@@ -66,13 +67,16 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	ctx := context.Background()
 
 	if err := r.Client.Get(ctx, req.NamespacedName, rt); err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
 		return reconcile.Result{}, fmt.Errorf("failed to get resource template: %w", err)
 	}
 
 	logger := r.Logger.WithValues("resourceTemplate", rt)
-	ctx = logr.NewContext(ctx, logger)
 
-	return r.handleResourceTemplate(ctx, rt)
+	return r.handleResourceTemplate(logr.NewContext(ctx, logger), rt)
 }
 
 func (r *Reconciler) handleResult(ctx context.Context, result controller.Result) (reconcile.Result, error) {
@@ -170,9 +174,12 @@ func (r *Reconciler) getObject(ctx context.Context, gvk schema.GroupVersionKind,
 		obj = un
 	}
 
-	if err := r.Client.Get(ctx, key, obj); err != nil {
+	// Use APIReader to disable the cache
+	if err := r.APIReader.Get(ctx, key, obj); err != nil {
 		return nil, fmt.Errorf("failed to get resource: %w", err)
 	}
+
+	obj.GetObjectKind().SetGroupVersionKind(gvk)
 
 	return obj, nil
 }

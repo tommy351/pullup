@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/tommy351/pullup/cmd"
 	"github.com/tommy351/pullup/internal/controller/resourceset"
 	"github.com/tommy351/pullup/internal/controller/resourcetemplate"
@@ -22,7 +23,7 @@ type Manager struct {
 	manager.Manager
 }
 
-func NewControllerManager(restConf *rest.Config, scheme *runtime.Scheme, conf cmd.Config) (manager.Manager, error) {
+func NewControllerManager(restConf *rest.Config, scheme *runtime.Scheme, conf cmd.Config, logger logr.Logger) (manager.Manager, error) {
 	return manager.New(restConf, manager.Options{
 		Scheme:                  scheme,
 		LeaderElection:          true,
@@ -30,6 +31,7 @@ func NewControllerManager(restConf *rest.Config, scheme *runtime.Scheme, conf cm
 		LeaderElectionNamespace: conf.Kubernetes.Namespace,
 		HealthProbeBindAddress:  conf.Health.Address,
 		MetricsBindAddress:      conf.Metrics.Address,
+		Logger:                  logger,
 	})
 }
 

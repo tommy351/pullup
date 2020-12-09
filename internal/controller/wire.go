@@ -18,3 +18,7 @@ func NewClient(mgr manager.Manager) client.Client {
 func NewScheme(mgr manager.Manager) *runtime.Scheme {
 	return mgr.GetScheme()
 }
+
+func NewAPIReader(mgr manager.Manager) client.Reader {
+	return mgr.GetAPIReader()
+}

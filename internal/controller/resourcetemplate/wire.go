@@ -14,6 +14,7 @@ func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 		controller.NewClient,
 		controller.NewEventRecorder,
 		controller.NewScheme,
+		controller.NewAPIReader,
 		ReconcilerSet,
 	)
 	return nil

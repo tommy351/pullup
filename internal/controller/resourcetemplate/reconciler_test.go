@@ -137,8 +137,8 @@ var _ = Describe("Reconciler", func() {
 			Expect(result).To(Equal(reconcile.Result{}))
 		})
 
-		It("should return the error", func() {
-			Expect(err).To(HaveOccurred())
+		It("should not return the error", func() {
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should not change anything", func() {

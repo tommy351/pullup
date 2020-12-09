@@ -21,6 +21,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		NewControllerManager,
 		controller.NewClient,
 		controller.NewEventRecorder,
+		controller.NewAPIReader,
 		resourceset.ReconcilerSet,
 		webhook.AlphaReconcilerSet,
 		webhook.BetaReconcilerFactorySet,

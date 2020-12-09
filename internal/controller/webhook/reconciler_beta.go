@@ -12,6 +12,7 @@ import (
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -97,6 +98,10 @@ func (r *BetaReconciler) Reconcile(req reconcile.Request) (reconcile.Result, err
 	ctx := context.Background()
 
 	if err := r.Client.Get(ctx, req.NamespacedName, obj); err != nil {
+		if kerrors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
 		return reconcile.Result{}, fmt.Errorf("failed to get webhook: %w", err)
 	}
 

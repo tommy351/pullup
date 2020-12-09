@@ -1,0 +1,16 @@
+apiVersion: pullup.dev/v1beta1
+kind: GitHubWebhook
+metadata:
+  name: conf-pull-request
+  namespace: test-pullup
+spec:
+  repositories:
+    - name: foo/bar
+      pullRequest: {}
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      sourceName: conf-a
+      merge:
+        data:
+          a: '{{ .event.number }}'
