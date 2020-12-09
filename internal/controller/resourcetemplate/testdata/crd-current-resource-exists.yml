@@ -1,0 +1,36 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  patches:
+    - apiVersion: test.pullup.dev/v1
+      kind: Job
+      sourceName: foo
+      merge:
+        spec:
+          name: xyz
+---
+apiVersion: test.pullup.dev/v1
+kind: Job
+metadata:
+  name: foo
+  namespace: test
+spec:
+  name: abc
+---
+apiVersion: test.pullup.dev/v1
+kind: Job
+metadata:
+  name: foo-rt
+  namespace: test
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: ResourceTemplate
+      name: foo-rt
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  name: def

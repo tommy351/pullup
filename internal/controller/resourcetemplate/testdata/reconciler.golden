@@ -763,6 +763,45 @@
   status:
     lastUpdateTime: null
 '''
+"Reconciler when using CRD and current resource exists should match the golden file" = '''
+- apiVersion: test.pullup.dev/v1
+  kind: Job
+  metadata:
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /apis/test.pullup.dev/v1/namespaces/test/jobs/foo-rt
+  spec:
+    name: xyz
+- apiVersion: pullup.dev/v1beta1
+  kind: ResourceTemplate
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foo-rt
+  spec:
+    data: null
+    patches:
+    - apiVersion: test.pullup.dev/v1
+      kind: Job
+      merge:
+        spec:
+          name: xyz
+      sourceName: foo
+  status:
+    active:
+    - apiVersion: test.pullup.dev/v1
+      kind: Job
+      name: foo-rt
+    lastUpdateTime: null
+'''
 "Reconciler when using CRD should match the golden file" = '''
 - apiVersion: test.pullup.dev/v1
   kind: Job

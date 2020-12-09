@@ -263,6 +263,11 @@ var _ = Describe("Reconciler", func() {
 		})
 	})
 
+	When("using CRD and current resource exists", func() {
+		testSuccess("crd-current-resource-exists")
+		testGolden()
+	})
+
 	When("resources are removed from patches", func() {
 		testSuccess("delete-resources")
 		testEvent(testenv.EventData{
