@@ -170,9 +170,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	docLoader := gojsonschema.NewBytesLoader(body.Data.Raw)
+	if schema := hook.Spec.Schema; schema != nil && schema.Raw != nil {
+		rawData := body.Data.Raw
+		if rawData == nil {
+			rawData = []byte("null")
+		}
 
-	if schema := hook.Spec.Schema; schema != nil {
+		docLoader := gojsonschema.NewBytesLoader(rawData)
 		schemaLoader := gojsonschema.NewBytesLoader(schema.Raw)
 		result, err := gojsonschema.Validate(schemaLoader, docLoader)
 		if err != nil {

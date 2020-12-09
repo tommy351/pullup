@@ -308,6 +308,32 @@ var _ = Describe("Handler", func() {
 				})))
 			})
 		})
+
+		When("data is nil", func() {
+			BeforeEach(func() {
+				req = newRequest(&Body{
+					Namespace: namespaceMap.GetRandom("test"),
+					Name:      "foobar",
+					Action:    hookutil.ActionApply,
+				})
+			})
+
+			It("should respond 400", func() {
+				Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
+			})
+
+			It("should respond errors", func() {
+				Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
+					Errors: []httputil.Error{
+						{
+							Type:        "invalid_type",
+							Description: "Invalid type. Expected: object, given: null",
+							Field:       "(root)",
+						},
+					},
+				})))
+			})
+		})
 	})
 
 	When("schema is invalid", func() {
