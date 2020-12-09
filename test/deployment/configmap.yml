@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conf-a
+data:
+  a: abc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conf-b
+data:
+  b: abc

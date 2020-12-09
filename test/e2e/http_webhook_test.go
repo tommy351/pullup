@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,12 +21,9 @@ import (
 
 var _ = Describe("HTTPWebhook", func() {
 	var (
-		suffix  string
-		name    string
-		objects []runtime.Object
+		data        map[string]interface{}
+		webhookName string
 	)
-
-	webhookName := "http-server"
 
 	sendRequest := func(action string) {
 		Eventually(func() (*http.Response, error) {
@@ -34,9 +32,7 @@ var _ = Describe("HTTPWebhook", func() {
 				"namespace": k8sNamespace,
 				"name":      webhookName,
 				"action":    action,
-				"data": map[string]interface{}{
-					"suffix": suffix,
-				},
+				"data":      data,
 			})).To(Succeed())
 
 			req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, fmt.Sprintf("http://%s/webhooks/http", webhookHost), &buf)
@@ -51,89 +47,154 @@ var _ = Describe("HTTPWebhook", func() {
 		))
 	}
 
-	BeforeEach(func() {
-		suffix = rand.String(5)
-		name = fmt.Sprintf("%s-%s", webhookName, suffix)
-		objects = loadObjects("testdata/http-webhook.yml")
-		createObjects(objects)
-	})
+	Context("configmap", func() {
+		var (
+			objects []runtime.Object
+			suffix  string
+		)
 
-	AfterEach(func() {
-		deleteObjects(objects)
-	})
-
-	When("action = apply", func() {
-		BeforeEach(func() {
+		waitUntilApplyDone := func() {
 			sendRequest("apply")
-		})
+			getConfigMap("conf-a-" + suffix)
+			getConfigMap("conf-b-" + suffix)
+		}
 
-		It("should create a service", func() {
-			testHTTPServer(name)
-		})
-	})
-
-	When("action = delete", func() {
 		BeforeEach(func() {
-			sendRequest("apply")
-			testHTTPServer(name)
-			sendRequest("delete")
+			objects = loadObjects("testdata/http-webhook-config.yml")
+			suffix = rand.String(5)
+			webhookName = "conf-ab"
+			data = map[string]interface{}{
+				"suffix": suffix,
+				"a":      rand.String(5),
+				"b":      rand.String(5),
+			}
+			createObjects(objects)
 		})
 
-		It("should delete the service", func() {
-			checkServiceDeleted(name)
+		AfterEach(func() {
+			deleteObjects(objects)
 		})
-	})
 
-	When("webhook is updated", func() {
-		BeforeEach(func() {
-			sendRequest("apply")
-			testHTTPServer(name)
+		When("action = apply", func() {
+			BeforeEach(func() {
+				sendRequest("apply")
+			})
 
-			webhook := new(v1beta1.HTTPWebhook)
-			webhook.Namespace = k8sNamespace
-			webhook.Name = webhookName
+			It("should create resources", func() {
+				confA := getConfigMap("conf-a-" + suffix)
+				confB := getConfigMap("conf-b-" + suffix)
 
-			err := k8sClient.Patch(context.TODO(), webhook, client.RawPatch(types.JSONPatchType, testutil.MustMarshalJSON([]v1beta1.JSONPatch{
-				{
-					Operation: "replace",
-					Path:      "/spec/patches/0/merge/spec/template/spec/containers/0/env/0/value",
-					Value: &extv1.JSON{
-						Raw: testutil.MustMarshalJSON("{{ .webhook.metadata.name }}-{{ .event.suffix }}-new"),
+				Expect(confA.Data).To(Equal(map[string]string{
+					"a": data["a"].(string),
+				}))
+				Expect(confB.Data).To(Equal(map[string]string{
+					"b": data["b"].(string),
+				}))
+			})
+		})
+
+		When("action = delete", func() {
+			BeforeEach(func() {
+				waitUntilApplyDone()
+				sendRequest("delete")
+			})
+
+			It("should delete resources", func() {
+				waitUntilConfigMapDeleted("conf-a-" + suffix)
+				waitUntilConfigMapDeleted("conf-b-" + suffix)
+			})
+		})
+
+		When("webhook is updated", func() {
+			BeforeEach(func() {
+				waitUntilApplyDone()
+
+				webhook := new(v1beta1.HTTPWebhook)
+				webhook.Namespace = k8sNamespace
+				webhook.Name = webhookName
+
+				err := k8sClient.Patch(context.TODO(), webhook, client.RawPatch(types.JSONPatchType, testutil.MustMarshalJSON([]v1beta1.JSONPatch{
+					{
+						Operation: "add",
+						Path:      "/spec/patches/0/merge/data/foo",
+						Value: &extv1.JSON{
+							Raw: testutil.MustMarshalJSON("bar"),
+						},
 					},
-				},
-			})))
-			Expect(err).NotTo(HaveOccurred())
+				})))
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should update ResourceTemplate as well", func() {
+				Eventually(func() (map[string]string, error) {
+					conf := new(corev1.ConfigMap)
+					err := k8sClient.Get(context.TODO(), types.NamespacedName{
+						Namespace: k8sNamespace,
+						Name:      "conf-a-" + suffix,
+					}, conf)
+					if err != nil {
+						return nil, fmt.Errorf("failed to get configmap: %w", err)
+					}
+
+					return conf.Data, nil
+				}).Should(Equal(map[string]string{
+					"a":   data["a"].(string),
+					"foo": "bar",
+				}))
+			})
 		})
 
-		It("should update the ResourceTemplate as well", func() {
-			Eventually(func() (*http.Response, error) {
-				return httpGet(fmt.Sprintf("http://%s", name))
-			}).Should(
-				testutil.HaveHTTPHeader("X-Resource-Name", fmt.Sprintf("%s-new", name)),
-			)
+		When("patches are removed from the webhook", func() {
+			BeforeEach(func() {
+				waitUntilApplyDone()
+
+				webhook := new(v1beta1.HTTPWebhook)
+				webhook.Namespace = k8sNamespace
+				webhook.Name = webhookName
+
+				err := k8sClient.Patch(context.TODO(), webhook, client.RawPatch(types.JSONPatchType, testutil.MustMarshalJSON([]v1beta1.JSONPatch{
+					{
+						Operation: "remove",
+						Path:      "/spec/patches/1",
+					},
+				})))
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should remove inactive resources", func() {
+				waitUntilConfigMapDeleted("conf-b-" + suffix)
+			})
 		})
 	})
 
-	When("patches are removed from the webhook", func() {
+	Context("service", func() {
+		var (
+			objects []runtime.Object
+			suffix  string
+		)
+
 		BeforeEach(func() {
-			sendRequest("apply")
-			testHTTPServer(name)
-
-			webhook := new(v1beta1.HTTPWebhook)
-			webhook.Namespace = k8sNamespace
-			webhook.Name = webhookName
-
-			err := k8sClient.Patch(context.TODO(), webhook, client.RawPatch(types.JSONPatchType, testutil.MustMarshalJSON([]v1beta1.JSONPatch{
-				{
-					Operation: "remove",
-					Path:      "/spec/patches/1",
-				},
-			})))
-			Expect(err).NotTo(HaveOccurred())
+			objects = loadObjects("testdata/http-webhook-service.yml")
+			suffix = rand.String(5)
+			webhookName = "http-server"
+			data = map[string]interface{}{
+				"suffix": suffix,
+			}
+			createObjects(objects)
 		})
 
-		It("should remove inactive resources", func() {
-			checkServiceDeleted(name)
+		AfterEach(func() {
+			deleteObjects(objects)
+		})
+
+		When("action = apply", func() {
+			BeforeEach(func() {
+				sendRequest("apply")
+			})
+
+			It("should create a service", func() {
+				testHTTPServer("http-server-" + suffix)
+			})
 		})
 	})
 })

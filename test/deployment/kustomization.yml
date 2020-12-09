@@ -6,6 +6,7 @@ resources:
   - rbac.yml
   - e2e.yml
   - http-server.yml
+  - configmap.yml
 
 patchesStrategicMerge:
   - patch/controller.yml

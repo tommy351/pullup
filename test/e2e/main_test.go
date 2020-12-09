@@ -13,17 +13,22 @@ import (
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // nolint: gochecknoglobals
 var (
-	webhookHost = os.Getenv("WEBHOOK_SERVICE_NAME")
-
+	webhookHost  = os.Getenv("WEBHOOK_SERVICE_NAME")
 	k8sNamespace = os.Getenv("KUBERNETES_NAMESPACE")
+	backoff      = wait.Backoff{
+		Duration: time.Second,
+		Factor:   1.5,
+		Jitter:   0.1,
+		Steps:    10,
+	}
 
 	scheme    *runtime.Scheme
 	k8sClient client.Client
@@ -87,13 +92,43 @@ func testHTTPServer(name string) {
 	))
 }
 
-func checkServiceDeleted(name string) {
-	Eventually(func() bool {
-		err := k8sClient.Get(context.TODO(), types.NamespacedName{
-			Namespace: k8sNamespace,
-			Name:      name,
-		}, &corev1.Service{})
+func waitUntilObjectDeleted(key types.NamespacedName, obj runtime.Object) {
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		err := k8sClient.Get(context.TODO(), key, obj)
+		if err != nil {
+			return true, client.IgnoreNotFound(err)
+		}
 
-		return errors.IsNotFound(err)
-	}).Should(BeTrue())
+		return false, nil
+	})
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func getObject(key types.NamespacedName, obj runtime.Object) {
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		err := k8sClient.Get(context.TODO(), key, obj)
+		if err != nil {
+			return false, client.IgnoreNotFound(err)
+		}
+
+		return true, nil
+	})
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func waitUntilConfigMapDeleted(name string) {
+	waitUntilObjectDeleted(types.NamespacedName{
+		Namespace: k8sNamespace,
+		Name:      name,
+	}, &corev1.ConfigMap{})
+}
+
+func getConfigMap(name string) *corev1.ConfigMap {
+	conf := new(corev1.ConfigMap)
+	getObject(types.NamespacedName{
+		Namespace: k8sNamespace,
+		Name:      name,
+	}, conf)
+
+	return conf
 }

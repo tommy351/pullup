@@ -13,10 +13,7 @@ $(dirname ${BASH_SOURCE[0]})/create-crd.sh
 kubectl apply -k "${PROJECT_ROOT}/test/deployment"
 
 # Wait until the job is running
-until kubectl get pod -l "job-name=${JOB_NAME}" -n "$NAMESPACE" | grep Running
-do
-  sleep 1
-done
+kubectl wait -n "$NAMESPACE" --for=condition=Ready --timeout=60s pod -l "job-name=${JOB_NAME}"
 
 # Print job logs
 kubectl logs -n "$NAMESPACE" -f "job/${JOB_NAME}"

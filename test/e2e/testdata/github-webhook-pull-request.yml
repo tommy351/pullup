@@ -1,35 +1,16 @@
 apiVersion: pullup.dev/v1beta1
 kind: GitHubWebhook
 metadata:
-  name: http-server-pull-request
+  name: conf-pull-request
   namespace: test-pullup
 spec:
   repositories:
     - name: foo/bar
       pullRequest: {}
   patches:
-    - apiVersion: apps/v1
-      kind: Deployment
-      sourceName: http-server
-      merge:
-        spec:
-          selector:
-            matchLabels:
-              app: '{{ .webhook.metadata.name }}-{{ .event.number }}'
-          template:
-            metadata:
-              labels:
-                app: '{{ .webhook.metadata.name }}-{{ .event.number }}'
-            spec:
-              containers:
-                - name: http-server
-                  env:
-                    - name: RESOURCE_NAME
-                      value: '{{ .webhook.metadata.name }}-{{ .event.number }}'
     - apiVersion: v1
-      kind: Service
-      sourceName: http-server
+      kind: ConfigMap
+      sourceName: conf-a
       merge:
-        spec:
-          selector:
-            app: '{{ .webhook.metadata.name }}-{{ .event.number }}'
+        data:
+          a: '{{ .event.number }}'

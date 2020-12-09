@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -34,7 +35,7 @@ var _ = Describe("GitHubWebhook", func() {
 	var objects []runtime.Object
 
 	When("event = push", func() {
-		webhookName := "http-server-push"
+		webhookName := "conf-push"
 		event := fakegithub.NewPushEvent()
 		name := fmt.Sprintf("%s-%s", webhookName, event.GetHead())
 
@@ -48,13 +49,16 @@ var _ = Describe("GitHubWebhook", func() {
 			deleteObjects(objects)
 		})
 
-		It("should create a service", func() {
-			testHTTPServer(name)
+		It("should create resources", func() {
+			conf := getConfigMap(name)
+			Expect(conf.Data).To(Equal(map[string]string{
+				"a": event.GetHead(),
+			}))
 		})
 	})
 
 	When("event = pull_request", func() {
-		webhookName := "http-server-pull-request"
+		webhookName := "conf-pull-request"
 
 		BeforeEach(func() {
 			objects = loadObjects("testdata/github-webhook-pull-request.yml")
@@ -73,8 +77,11 @@ var _ = Describe("GitHubWebhook", func() {
 				sendGitHubRequest("pull_request", event)
 			})
 
-			It("should create a service", func() {
-				testHTTPServer(name)
+			It("should create resources", func() {
+				conf := getConfigMap(name)
+				Expect(conf.Data).To(Equal(map[string]string{
+					"a": strconv.Itoa(event.GetNumber()),
+				}))
 			})
 		})
 
@@ -85,12 +92,12 @@ var _ = Describe("GitHubWebhook", func() {
 
 			BeforeEach(func() {
 				sendGitHubRequest("pull_request", openedEvent)
-				testHTTPServer(name)
+				getConfigMap(name)
 				sendGitHubRequest("pull_request", closedEvent)
 			})
 
-			It("should delete the service", func() {
-				checkServiceDeleted(name)
+			It("should delete resources", func() {
+				waitUntilConfigMapDeleted(name)
 			})
 		})
 	})
