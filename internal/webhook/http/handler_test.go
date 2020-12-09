@@ -19,7 +19,7 @@ import (
 	"github.com/tommy351/pullup/internal/testutil"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -181,7 +181,7 @@ var _ = Describe("Handler", func() {
 
 			It("should record Updated event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
-					Type:    v1.EventTypeNormal,
+					Type:    corev1.EventTypeNormal,
 					Reason:  hookutil.ReasonUpdated,
 					Message: "Updated resource template: foobar-rt",
 				})).To(BeTrue())
@@ -194,7 +194,7 @@ var _ = Describe("Handler", func() {
 
 			It("should record Created event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
-					Type:    v1.EventTypeNormal,
+					Type:    corev1.EventTypeNormal,
 					Reason:  hookutil.ReasonCreated,
 					Message: "Created resource template: foobar-rt",
 				})).To(BeTrue())
@@ -225,7 +225,7 @@ var _ = Describe("Handler", func() {
 
 			It("should record Deleted event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
-					Type:    v1.EventTypeNormal,
+					Type:    corev1.EventTypeNormal,
 					Reason:  hookutil.ReasonDeleted,
 					Message: "Deleted resource template: foobar-rt",
 				})).To(BeTrue())
@@ -237,7 +237,7 @@ var _ = Describe("Handler", func() {
 
 			It("should record NotExist event", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
-					Type:    v1.EventTypeNormal,
+					Type:    corev1.EventTypeNormal,
 					Reason:  hookutil.ReasonNotExist,
 					Message: "Resource template does not exist: foobar-rt",
 				})).To(BeTrue())
@@ -336,6 +336,88 @@ var _ = Describe("Handler", func() {
 					{Description: "Failed to validate against JSON schema"},
 				},
 			})))
+		})
+	})
+
+	When("secretToken is given", func() {
+		var data []runtime.Object
+
+		BeforeEach(func() {
+			req = newRequest(&Body{
+				Namespace: namespaceMap.GetRandom("test"),
+				Name:      "foobar",
+				Action:    hookutil.ActionApply,
+			})
+		})
+
+		AfterEach(func() {
+			Expect(testenv.DeleteObjects(data)).To(Succeed())
+		})
+
+		When("secret exists", func() {
+			BeforeEach(func() {
+				data = loadTestData("secret")
+				req.Header.Set("Pullup-Webhook-Secret", "some-thing-very-secret")
+			})
+
+			It("should respond 200", func() {
+				Expect(recorder.Code).To(Equal(http.StatusOK))
+			})
+		})
+
+		When("secret mismatch", func() {
+			BeforeEach(func() {
+				data = loadTestData("secret")
+				req.Header.Set("Pullup-Webhook-Secret", "foobar")
+			})
+
+			It("should respond 403", func() {
+				Expect(recorder.Code).To(Equal(http.StatusForbidden))
+			})
+
+			It("should respond errors", func() {
+				Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
+					Errors: []httputil.Error{
+						{Description: "Secret mismatch"},
+					},
+				})))
+			})
+		})
+
+		When("key does not exist", func() {
+			BeforeEach(func() {
+				data = loadTestData("secret-key-not-exist")
+			})
+
+			It("should respond 403", func() {
+				Expect(recorder.Code).To(Equal(http.StatusForbidden))
+			})
+
+			It("should respond errors", func() {
+				Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
+					Errors: []httputil.Error{
+						{Description: "Key does not contain in the secret"},
+					},
+				})))
+			})
+		})
+
+		When("secret does not exist", func() {
+			BeforeEach(func() {
+				data = loadTestData("secret-not-exist")
+			})
+
+			It("should respond 403", func() {
+				Expect(recorder.Code).To(Equal(http.StatusForbidden))
+			})
+
+			It("should respond errors", func() {
+				Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
+					Errors: []httputil.Error{
+						{Description: "Secret not found"},
+					},
+				})))
+			})
 		})
 	})
 })

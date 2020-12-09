@@ -1,6 +1,9 @@
 package v1beta1
 
-import extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+)
 
 type WebhookSpec struct {
 	Patches      []WebhookPatch `json:"patches,omitempty"`
@@ -32,4 +35,8 @@ type JSONPatch struct {
 	Path      string      `json:"path"`
 	From      string      `json:"from,omitempty"`
 	Value     *extv1.JSON `json:"value,omitempty"`
+}
+
+type SecretValue struct {
+	SecretKeyRef *corev1.SecretKeySelector `json:"secretKeyRef,omitempty"`
 }

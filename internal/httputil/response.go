@@ -9,13 +9,22 @@ import (
 )
 
 type Response struct {
-	Errors []Error `json:"errors,omitempty"`
+	StatusCode int     `json:"-"`
+	Errors     []Error `json:"errors,omitempty"`
+}
+
+func (r Response) Error() string {
+	return fmt.Sprintf("response status %d", r.StatusCode)
 }
 
 type Error struct {
 	Type        string `json:"type,omitempty"`
 	Description string `json:"description"`
 	Field       string `json:"field,omitempty"`
+}
+
+func (e Error) Error() string {
+	return e.Description
 }
 
 func String(w http.ResponseWriter, status int, data string) error {
