@@ -140,15 +140,6 @@ func (r *BetaReconciler) Reconcile(req reconcile.Request) (reconcile.Result, err
 }
 
 func (r *BetaReconciler) patchResource(ctx context.Context, webhook hookutil.Webhook, rt *v1beta1.ResourceTemplate) controller.Result {
-	webhookBuf, err := json.Marshal(webhook)
-	if err != nil {
-		return controller.Result{
-			Object: webhook,
-			Error:  fmt.Errorf("failed to marshal webhook: %w", err),
-			Reason: ReasonPatchFailed,
-		}
-	}
-
 	patchesBuf, err := json.Marshal(webhook.GetSpec().Patches)
 	if err != nil {
 		return controller.Result{
@@ -163,11 +154,6 @@ func (r *BetaReconciler) patchResource(ctx context.Context, webhook hookutil.Web
 			Operation: "replace",
 			Path:      "/spec/patches",
 			Value:     &extv1.JSON{Raw: patchesBuf},
-		},
-		{
-			Operation: "replace",
-			Path:      "/spec/data/webhook",
-			Value:     &extv1.JSON{Raw: webhookBuf},
 		},
 	})
 	if err != nil {

@@ -93,7 +93,7 @@ func (r *Reconciler) handleResult(ctx context.Context, result controller.Result)
 }
 
 func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.ResourceTemplate) (reconcile.Result, error) {
-	patches, err := renderWebhookPatches(rt)
+	patches, err := r.renderWebhookPatches(ctx, rt)
 	if err != nil {
 		return r.handleResult(ctx, controller.Result{
 			Object: rt,

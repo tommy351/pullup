@@ -263,18 +263,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = pull_request when action = opened when resource exists should match the golden file" = '''
@@ -309,18 +301,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = pull_request when action = reopened when resource does not exist should match the golden file" = '''
@@ -355,18 +339,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = pull_request when action = reopened when resource exists should match the golden file" = '''
@@ -401,18 +377,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = pull_request when action = synchronize when resource does not exist should match the golden file" = '''
@@ -447,18 +415,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = pull_request when action = synchronize when resource exists should match the golden file" = '''
@@ -493,18 +453,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = pull_request when resourceName is not given should match the golden file" = '''
@@ -539,17 +491,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = push when pushing a branch when resource does not exist should match the golden file" = '''
@@ -577,18 +522,10 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''
 "Handler v1beta1.GitHubWebhook when event type = push when pushing a branch when resource exists should match the golden file" = '''
@@ -616,17 +553,9 @@
           name: bar
           owner:
             login: foo
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: GitHubWebhook
-        metadata:
-          name: foobar
-        spec:
-          repositories:
-          - name: foo/bar
-            pullRequest: {}
-            push: {}
-          resourceName: '{{ .webhook.metadata.name }}'
-        status: {}
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: GitHubWebhook
+      name: foobar
   status: {}
 '''

@@ -1,20 +1,60 @@
 package resourcetemplate
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
+	"github.com/tommy351/pullup/internal/jsonutil"
 	"github.com/tommy351/pullup/internal/template"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func renderWebhookPatches(rt *v1beta1.ResourceTemplate) ([]v1beta1.WebhookPatch, error) {
+func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.ResourceTemplate) ([]v1beta1.WebhookPatch, error) {
 	output := make([]v1beta1.WebhookPatch, len(rt.Spec.Patches))
+	raw := rt.Spec.Data.Raw
+	if raw == nil {
+		raw = []byte("{}")
+	}
+
+	var (
+		err  error
+		data interface{}
+	)
+
+	addedKeys := map[string]interface{}{
+		v1beta1.DataKeyResource: rt,
+	}
+
+	if ref := rt.Spec.WebhookRef; ref != nil {
+		gvk := schema.FromAPIVersionAndKind(ref.APIVersion, ref.Kind)
+		webhook, err := r.getObject(ctx, gvk, types.NamespacedName{
+			Namespace: rt.Namespace,
+			Name:      ref.Name,
+		})
+		if client.IgnoreNotFound(err) != nil {
+			return nil, err
+		}
+
+		addedKeys[v1beta1.DataKeyWebhook] = webhook
+	}
+
+	raw, err = jsonutil.AddMapKeys(raw, addedKeys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to mutate data: %w", err)
+	}
+
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal data: %w", err)
+	}
 
 	for i, patch := range rt.Spec.Patches {
 		patch := patch
-		result, err := renderWebhookPatch(rt, &patch)
+		result, err := r.renderWebhookPatch(rt, &patch, data)
 		if err != nil {
 			return nil, err
 		}
@@ -25,18 +65,9 @@ func renderWebhookPatches(rt *v1beta1.ResourceTemplate) ([]v1beta1.WebhookPatch,
 	return output, nil
 }
 
-func renderWebhookPatch(rt *v1beta1.ResourceTemplate, patch *v1beta1.WebhookPatch) (*v1beta1.WebhookPatch, error) {
-	var (
-		err  error
-		data interface{}
-	)
+func (r *Reconciler) renderWebhookPatch(rt *v1beta1.ResourceTemplate, patch *v1beta1.WebhookPatch, data interface{}) (*v1beta1.WebhookPatch, error) {
+	var err error
 	result := patch.DeepCopy()
-
-	if raw := rt.Spec.Data.Raw; raw != nil {
-		if err := json.Unmarshal(raw, &data); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal data: %w", err)
-		}
-	}
 
 	if result.APIVersion, err = template.Render(patch.APIVersion, data); err != nil {
 		return nil, fmt.Errorf("failed to render apiVersion: %w", err)

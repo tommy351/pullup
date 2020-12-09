@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/wire"
 	"github.com/tommy351/pullup/internal/controller"
+	"github.com/tommy351/pullup/internal/jsonutil"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/template"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
@@ -122,37 +123,54 @@ func (r *ResourceTemplateClient) generateResourceTemplate(options *ResourceTempl
 			},
 		},
 		Spec: v1beta1.ResourceTemplateSpec{
+			WebhookRef: &v1beta1.ObjectReference{
+				APIVersion: apiVersion,
+				Kind:       kind,
+				Name:       options.Webhook.GetName(),
+			},
 			Patches: options.Webhook.GetSpec().Patches,
 		},
 	}
 
 	buf, err := json.Marshal(map[string]interface{}{
-		"event":   options.Event,
-		"webhook": options.Webhook,
+		v1beta1.DataKeyEvent: options.Event,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal resource template data: %w", err)
 	}
 
 	rt.Spec.Data = extv1.JSON{Raw: buf}
+	name, err := r.renderResourceName(rt, options)
+	if err != nil {
+		return nil, err
+	}
 
+	rt.Name = name
+
+	return rt, nil
+}
+
+func (r *ResourceTemplateClient) renderResourceName(rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) (string, error) {
 	resourceName := options.Webhook.GetSpec().ResourceName
 	if resourceName == "" {
 		resourceName = options.DefaultResourceName
 	}
 
 	if resourceName == "" {
-		return nil, ErrResourceNameRequired
+		return "", ErrResourceNameRequired
 	}
 
-	name, err := template.RenderFromJSON(resourceName, rt.Spec.Data)
+	buf, err := jsonutil.AddMapKey(rt.Spec.Data.Raw, v1beta1.DataKeyWebhook, options.Webhook)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate name: %w", err)
+		return "", fmt.Errorf("failed to mutate json: %w", err)
 	}
 
-	rt.Name = name
+	name, err := template.RenderFromJSON(resourceName, extv1.JSON{Raw: buf})
+	if err != nil {
+		return "", fmt.Errorf("failed to generate name: %w", err)
+	}
 
-	return rt, nil
+	return name, nil
 }
 
 func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) controller.Result {

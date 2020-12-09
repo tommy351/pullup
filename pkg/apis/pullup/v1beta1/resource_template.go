@@ -5,10 +5,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	DataKeyEvent    = "event"
+	DataKeyWebhook  = "webhook"
+	DataKeyResource = "resource"
+)
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Webhook Kind",type=string,JSONPath=`.spec.data.webhook.kind`
-// +kubebuilder:printcolumn:name="Webhook Name",type=string,JSONPath=`.spec.data.webhook.metadata.name`
+// +kubebuilder:printcolumn:name="Webhook Kind",type=string,JSONPath=`.spec.webhookRef.kind`
+// +kubebuilder:printcolumn:name="Webhook Name",type=string,JSONPath=`.spec.webhookRef.name`
 // +kubebuilder:printcolumn:name="Last Update",type=date,JSONPath=`.status.lastUpdateTime`
 
 type ResourceTemplate struct {
@@ -29,8 +35,9 @@ type ResourceTemplateList struct {
 }
 
 type ResourceTemplateSpec struct {
-	Patches []WebhookPatch `json:"patches,omitempty"`
-	Data    extv1.JSON     `json:"data,omitempty"`
+	WebhookRef *ObjectReference `json:"webhookRef,omitempty"`
+	Patches    []WebhookPatch   `json:"patches,omitempty"`
+	Data       extv1.JSON       `json:"data,omitempty"`
 }
 
 type ResourceTemplateStatus struct {

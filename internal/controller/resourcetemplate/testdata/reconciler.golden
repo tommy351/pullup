@@ -802,6 +802,227 @@
       name: foo-rt
     lastUpdateTime: null
 '''
+"Reconciler when using resource in template should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/foo-rt
+  spec:
+    containers:
+    - env:
+      - name: RESOURCE_NAME
+        value: foo-rt
+      image: nginx:alpine
+      imagePullPolicy: IfNotPresent
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
+- apiVersion: pullup.dev/v1beta1
+  kind: ResourceTemplate
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foo-rt
+  spec:
+    data: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      merge:
+        spec:
+          containers:
+          - env:
+            - name: RESOURCE_NAME
+              value: '{{ .resource.metadata.name }}'
+            image: nginx:alpine
+            name: nginx
+  status:
+    active:
+    - apiVersion: v1
+      kind: Pod
+      name: foo-rt
+    lastUpdateTime: null
+'''
+"Reconciler when webhook not found should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/foo-rt
+  spec:
+    containers:
+    - image: nginx:alpine
+      imagePullPolicy: IfNotPresent
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
+- apiVersion: pullup.dev/v1beta1
+  kind: ResourceTemplate
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foo-rt
+  spec:
+    data: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      merge:
+        spec:
+          containers:
+          - image: nginx:alpine
+            name: nginx
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: http-hook
+  status:
+    active:
+    - apiVersion: v1
+      kind: Pod
+      name: foo-rt
+    lastUpdateTime: null
+'''
+"Reconciler when webhookRef is given should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/foo-rt
+  spec:
+    containers:
+    - env:
+      - name: WEBHOOK_NAME
+        value: http-hook
+      image: nginx:alpine
+      imagePullPolicy: IfNotPresent
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
+- apiVersion: pullup.dev/v1beta1
+  kind: ResourceTemplate
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foo-rt
+  spec:
+    data: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      merge:
+        spec:
+          containers:
+          - env:
+            - name: WEBHOOK_NAME
+              value: '{{ .webhook.metadata.name }}'
+            image: nginx:alpine
+            name: nginx
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: http-hook
+  status:
+    active:
+    - apiVersion: v1
+      kind: Pod
+      name: foo-rt
+    lastUpdateTime: null
+'''
 "Reconciler when without original and current resource should match the golden file" = '''
 - apiVersion: v1
   kind: Pod

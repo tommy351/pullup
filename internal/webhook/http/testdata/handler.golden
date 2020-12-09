@@ -18,22 +18,14 @@
   spec:
     data:
       event: null
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: HTTPWebhook
-        metadata:
-          name: foobar
-        spec:
-          patches:
-          - apiVersion: v1
-            kind: Pod
-            sourceName: foo
-          resourceName: '{{ .webhook.metadata.name }}-rt'
-        status: {}
     patches:
     - apiVersion: v1
       kind: Pod
       sourceName: foo
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: foobar
   status: {}
 '''
 "Handler when action = apply when resource template exists should match the golden file" = '''
@@ -47,22 +39,14 @@
   spec:
     data:
       event: null
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: HTTPWebhook
-        metadata:
-          name: foobar
-        spec:
-          patches:
-          - apiVersion: v1
-            kind: Pod
-            sourceName: foo
-          resourceName: '{{ .webhook.metadata.name }}-rt'
-        status: {}
     patches:
     - apiVersion: v1
       kind: Pod
       sourceName: foo
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: foobar
   status: {}
 '''
 "Handler when request body is valid when resource template does not exist should match the golden file" = '''
@@ -88,28 +72,13 @@
       event:
         bar: 123
         foo: bar
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: HTTPWebhook
-        metadata:
-          name: foobar
-        spec:
-          patches:
-          - apiVersion: v1
-            kind: Pod
-            sourceName: foo
-          resourceName: '{{ .webhook.metadata.name }}-{{ .event.foo }}'
-          schema:
-            properties:
-              bar:
-                type: number
-              foo:
-                type: string
-            type: object
-        status: {}
     patches:
     - apiVersion: v1
       kind: Pod
       sourceName: foo
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: foobar
   status: {}
 '''

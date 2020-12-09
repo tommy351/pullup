@@ -340,4 +340,19 @@ var _ = Describe("Reconciler", func() {
 			}).ShouldNot(BeNil())
 		})
 	})
+
+	When("webhookRef is given", func() {
+		testSuccess("webhook-ref")
+		testGolden()
+	})
+
+	When("webhook not found", func() {
+		testSuccess("webhook-not-found")
+		testGolden()
+	})
+
+	When("using resource in template", func() {
+		testSuccess("resource-in-template")
+		testGolden()
+	})
 })

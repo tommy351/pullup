@@ -22,9 +22,12 @@ metadata:
       controller: true
       blockOwnerDeletion: true
 spec:
+  webhookRef:
+    apiVersion: pullup.dev/v1beta1
+    kind: HTTPWebhook
+    name: bar
   data:
     event: {}
-    webhook: {}
   patches: []
 ---
 apiVersion: pullup.dev/v1beta1
@@ -39,9 +42,12 @@ metadata:
       controller: true
       blockOwnerDeletion: true
 spec:
+  webhookRef:
+    apiVersion: pullup.dev/v1beta1
+    kind: HTTPWebhook
+    name: bar
   data:
     event: {}
-    webhook: {}
   patches: []
 ---
 apiVersion: pullup.dev/v1beta1
@@ -52,5 +58,4 @@ metadata:
 spec:
   data:
     event: {}
-    webhook: {}
   patches: []

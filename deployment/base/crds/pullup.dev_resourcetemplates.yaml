@@ -17,10 +17,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.data.webhook.kind
+    - jsonPath: .spec.webhookRef.kind
       name: Webhook Kind
       type: string
-    - jsonPath: .spec.data.webhook.metadata.name
+    - jsonPath: .spec.webhookRef.name
       name: Webhook Name
       type: string
     - jsonPath: .status.lastUpdateTime
@@ -84,6 +84,19 @@ spec:
                   - kind
                   type: object
                 type: array
+              webhookRef:
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
             type: object
           status:
             properties:

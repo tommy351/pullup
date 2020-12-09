@@ -1,0 +1,28 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: http-hook
+  namespace: test
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  webhookRef:
+    apiVersion: pullup.dev/v1beta1
+    kind: HTTPWebhook
+    name: http-hook
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      merge:
+        spec:
+          containers:
+            - name: nginx
+              image: nginx:alpine
+              env:
+                - name: WEBHOOK_NAME
+                  value: '{{ .webhook.metadata.name }}'

@@ -18,21 +18,14 @@
   spec:
     data:
       event: {}
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: HTTPWebhook
-        metadata:
-          name: bar
-        spec:
-          patches:
-          - apiVersion: v1
-            kind: Pod
-            sourceName: bar
-        status: {}
     patches:
     - apiVersion: v1
       kind: Pod
       sourceName: bar
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: bar
   status: {}
 - apiVersion: pullup.dev/v1beta1
   kind: ResourceTemplate
@@ -51,20 +44,13 @@
   spec:
     data:
       event: {}
-      webhook:
-        apiVersion: pullup.dev/v1beta1
-        kind: HTTPWebhook
-        metadata:
-          name: bar
-        spec:
-          patches:
-          - apiVersion: v1
-            kind: Pod
-            sourceName: bar
-        status: {}
     patches:
     - apiVersion: v1
       kind: Pod
       sourceName: bar
+    webhookRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: HTTPWebhook
+      name: bar
   status: {}
 '''
