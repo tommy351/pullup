@@ -931,7 +931,10 @@
     selfLink: /api/v1/namespaces/test/pods/foo-rt
   spec:
     containers:
-    - image: nginx:alpine
+    - env:
+      - name: WEBHOOK_NAME
+        value: <no value>
+      image: nginx:alpine
       imagePullPolicy: IfNotPresent
       name: nginx
       resources: {}
@@ -972,7 +975,10 @@
       merge:
         spec:
           containers:
-          - image: nginx:alpine
+          - env:
+            - name: WEBHOOK_NAME
+              value: '{{ .webhook.metadata.name }}'
+            image: nginx:alpine
             name: nginx
     webhookRef:
       apiVersion: pullup.dev/v1beta1

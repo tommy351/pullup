@@ -40,7 +40,9 @@ func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.Resou
 			return nil, err
 		}
 
-		addedKeys[v1beta1.DataKeyWebhook] = webhook
+		if webhook != nil {
+			addedKeys[v1beta1.DataKeyWebhook] = webhook
+		}
 	}
 
 	raw, err = jsonutil.AddMapKeys(raw, addedKeys)

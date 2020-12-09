@@ -17,3 +17,6 @@ spec:
           containers:
             - name: nginx
               image: nginx:alpine
+              env:
+                - name: WEBHOOK_NAME
+                  value: '{{ .webhook.metadata.name }}'
