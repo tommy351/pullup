@@ -5,6 +5,16 @@ import (
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
+// +kubebuilder:validation:Enum=create;update;apply;delete
+type WebhookAction string
+
+const (
+	WebhookActionCreate WebhookAction = "create"
+	WebhookActionUpdate WebhookAction = "update"
+	WebhookActionApply  WebhookAction = "apply"
+	WebhookActionDelete WebhookAction = "delete"
+)
+
 type WebhookSpec struct {
 	Patches      []WebhookPatch `json:"patches,omitempty"`
 	ResourceName string         `json:"resourceName,omitempty"`

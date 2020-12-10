@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/wire"
 	"github.com/tommy351/pullup/internal/httputil"
+	"github.com/tommy351/pullup/internal/slice"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	"github.com/xeipuuv/gojsonschema"
@@ -30,10 +31,19 @@ var HandlerSet = wire.NewSet(
 )
 
 type Body struct {
-	Namespace string                          `json:"namespace"`
-	Name      string                          `json:"name"`
-	Action    hookutil.ResourceTemplateAction `json:"action"`
-	Data      extv1.JSON                      `json:"data"`
+	Namespace string                `json:"namespace"`
+	Name      string                `json:"name"`
+	Action    v1beta1.WebhookAction `json:"action"`
+	Data      extv1.JSON            `json:"data"`
+}
+
+func isValidWebhookAction(action v1beta1.WebhookAction) bool {
+	return slice.IncludeString([]string{
+		string(v1beta1.WebhookActionCreate),
+		string(v1beta1.WebhookActionUpdate),
+		string(v1beta1.WebhookActionApply),
+		string(v1beta1.WebhookActionDelete),
+	}, string(action))
 }
 
 type Handler struct {
@@ -80,11 +90,11 @@ func (h *Handler) parseBody(r *http.Request) (*Body, error) {
 		}
 	}
 
-	if body.Action != hookutil.ActionApply && body.Action != hookutil.ActionDelete {
+	if !isValidWebhookAction(body.Action) {
 		return nil, httputil.Response{
 			StatusCode: http.StatusBadRequest,
 			Errors: []httputil.Error{
-				{Description: "Action must be one of [apply, delete]", Field: "action"},
+				{Description: "Invalid action", Field: "action"},
 			},
 		}
 	}

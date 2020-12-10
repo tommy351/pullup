@@ -60,7 +60,7 @@ func (h *Handler) handlePushEventBeta(ctx context.Context, event *github.PushEve
 	}
 
 	return h.ResourceTemplateClient.Handle(ctx, &hookutil.ResourceTemplateOptions{
-		Action:  hookutil.ActionApply,
+		Action:  v1beta1.WebhookActionApply,
 		Event:   event,
 		Webhook: hook,
 	})

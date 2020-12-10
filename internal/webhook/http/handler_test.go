@@ -186,7 +186,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: "a",
 				Name:      "b",
-				Action:    hookutil.ActionApply,
+				Action:    v1beta1.WebhookActionApply,
 			})
 		})
 
@@ -203,12 +203,84 @@ var _ = Describe("Handler", func() {
 		})
 	})
 
+	When("action = create", func() {
+		BeforeEach(func() {
+			req = newRequest(&Body{
+				Namespace: namespaceMap.GetRandom("test"),
+				Name:      "foobar",
+				Action:    v1beta1.WebhookActionCreate,
+			})
+		})
+
+		When("resource template exists", func() {
+			testSuccess("resource-template-exists")
+			testGolden()
+
+			It("should record AlreadyExists event", func() {
+				Expect(mgr.WaitForEvent(testenv.EventData{
+					Type:    corev1.EventTypeNormal,
+					Reason:  hookutil.ReasonAlreadyExists,
+					Message: "Resource template already exists: foobar-rt",
+				})).To(BeTrue())
+			})
+		})
+
+		When("resource template does not exist", func() {
+			testSuccess("resource-template-not-exist")
+			testGolden()
+
+			It("should record Created event", func() {
+				Expect(mgr.WaitForEvent(testenv.EventData{
+					Type:    corev1.EventTypeNormal,
+					Reason:  hookutil.ReasonCreated,
+					Message: "Created resource template: foobar-rt",
+				})).To(BeTrue())
+			})
+		})
+	})
+
+	When("action = update", func() {
+		BeforeEach(func() {
+			req = newRequest(&Body{
+				Namespace: namespaceMap.GetRandom("test"),
+				Name:      "foobar",
+				Action:    v1beta1.WebhookActionUpdate,
+			})
+		})
+
+		When("resource template exists", func() {
+			testSuccess("resource-template-exists")
+			testGolden()
+
+			It("should record Updated event", func() {
+				Expect(mgr.WaitForEvent(testenv.EventData{
+					Type:    corev1.EventTypeNormal,
+					Reason:  hookutil.ReasonUpdated,
+					Message: "Updated resource template: foobar-rt",
+				})).To(BeTrue())
+			})
+		})
+
+		When("resource template does not exist", func() {
+			testSuccess("resource-template-not-exist")
+			testGolden()
+
+			It("should record NotExist event", func() {
+				Expect(mgr.WaitForEvent(testenv.EventData{
+					Type:    corev1.EventTypeNormal,
+					Reason:  hookutil.ReasonNotExist,
+					Message: "Resource template does not exist: foobar-rt",
+				})).To(BeTrue())
+			})
+		})
+	})
+
 	When("action = apply", func() {
 		BeforeEach(func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    hookutil.ActionApply,
+				Action:    v1beta1.WebhookActionApply,
 			})
 		})
 
@@ -244,7 +316,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    hookutil.ActionDelete,
+				Action:    v1beta1.WebhookActionDelete,
 			})
 		})
 
@@ -298,7 +370,7 @@ var _ = Describe("Handler", func() {
 				req = newRequest(&Body{
 					Namespace: namespaceMap.GetRandom("test"),
 					Name:      "foobar",
-					Action:    hookutil.ActionApply,
+					Action:    v1beta1.WebhookActionApply,
 					Data: extv1.JSON{
 						Raw: testutil.MustMarshalJSON(map[string]interface{}{
 							"foo": "bar",
@@ -320,7 +392,7 @@ var _ = Describe("Handler", func() {
 				req = newRequest(&Body{
 					Namespace: namespaceMap.GetRandom("test"),
 					Name:      "foobar",
-					Action:    hookutil.ActionApply,
+					Action:    v1beta1.WebhookActionApply,
 					Data: extv1.JSON{
 						Raw: testutil.MustMarshalJSON(map[string]interface{}{
 							"foo": true,
@@ -351,7 +423,7 @@ var _ = Describe("Handler", func() {
 				req = newRequest(&Body{
 					Namespace: namespaceMap.GetRandom("test"),
 					Name:      "foobar",
-					Action:    hookutil.ActionApply,
+					Action:    v1beta1.WebhookActionApply,
 				})
 			})
 
@@ -381,7 +453,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    hookutil.ActionApply,
+				Action:    v1beta1.WebhookActionApply,
 			})
 		})
 
@@ -409,7 +481,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    hookutil.ActionApply,
+				Action:    v1beta1.WebhookActionApply,
 			})
 		})
 

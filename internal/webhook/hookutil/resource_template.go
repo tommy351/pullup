@@ -28,6 +28,7 @@ import (
 const (
 	ReasonCreated        = "Created"
 	ReasonCreateFailed   = "CreateFailed"
+	ReasonAlreadyExists  = "AlreadyExists"
 	ReasonUpdated        = "Updated"
 	ReasonUpdateFailed   = "UpdateFailed"
 	ReasonDeleted        = "Deleted"
@@ -36,20 +37,13 @@ const (
 	ReasonNotExist       = "NotExist"
 )
 
-type ResourceTemplateAction string
-
-const (
-	ActionApply  ResourceTemplateAction = "apply"
-	ActionDelete ResourceTemplateAction = "delete"
-)
-
 var (
 	ErrInvalidResourceTemplateAction = errors.New("invalid action")
 	ErrResourceNameRequired          = errors.New("resourceName is required")
 )
 
 type ResourceTemplateOptions struct {
-	Action              ResourceTemplateAction
+	Action              v1beta1.WebhookAction
 	Event               interface{}
 	Webhook             Webhook
 	DefaultResourceName string
@@ -84,9 +78,13 @@ func (r *ResourceTemplateClient) Handle(ctx context.Context, options *ResourceTe
 	}
 
 	switch options.Action {
-	case ActionApply:
+	case v1beta1.WebhookActionCreate:
+		result = r.create(ctx, rt, options)
+	case v1beta1.WebhookActionUpdate:
+		result = r.update(ctx, rt, options)
+	case v1beta1.WebhookActionApply:
 		result = r.apply(ctx, rt, options)
-	case ActionDelete:
+	case v1beta1.WebhookActionDelete:
 		result = r.delete(ctx, rt, options)
 	default:
 		return ErrInvalidResourceTemplateAction
@@ -173,14 +171,16 @@ func (r *ResourceTemplateClient) renderResourceName(rt *v1beta1.ResourceTemplate
 	return name, nil
 }
 
-func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) controller.Result {
-	if err := r.Client.Create(ctx, rt); err == nil {
-		return controller.Result{
-			Object:  options.Webhook,
-			Message: fmt.Sprintf("Created resource template: %s", rt.Name),
-			Reason:  ReasonCreated,
+func (r *ResourceTemplateClient) create(ctx context.Context, rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) controller.Result {
+	if err := r.Client.Create(ctx, rt); err != nil {
+		if kerrors.IsAlreadyExists(err) {
+			return controller.Result{
+				Object:  options.Webhook,
+				Message: fmt.Sprintf("Resource template already exists: %s", rt.Name),
+				Reason:  ReasonAlreadyExists,
+			}
 		}
-	} else if !kerrors.IsAlreadyExists(err) {
+
 		return controller.Result{
 			Object: options.Webhook,
 			Error:  fmt.Errorf("failed to create resource template: %w", err),
@@ -188,6 +188,14 @@ func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.Resource
 		}
 	}
 
+	return controller.Result{
+		Object:  options.Webhook,
+		Message: fmt.Sprintf("Created resource template: %s", rt.Name),
+		Reason:  ReasonCreated,
+	}
+}
+
+func (r *ResourceTemplateClient) update(ctx context.Context, rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) controller.Result {
 	patchValue, err := json.Marshal(rt.Spec)
 	if err != nil {
 		return controller.Result{
@@ -213,6 +221,14 @@ func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.Resource
 	}
 
 	if err := r.Client.Patch(ctx, rt, client.RawPatch(types.JSONPatchType, patch)); err != nil {
+		if kerrors.IsNotFound(err) {
+			return controller.Result{
+				Object:  options.Webhook,
+				Message: fmt.Sprintf("Resource template does not exist: %s", rt.Name),
+				Reason:  ReasonNotExist,
+			}
+		}
+
 		return controller.Result{
 			Object: options.Webhook,
 			Error:  fmt.Errorf("failed to patch resource template: %w", err),
@@ -225,6 +241,15 @@ func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.Resource
 		Message: fmt.Sprintf("Updated resource template: %s", rt.Name),
 		Reason:  ReasonUpdated,
 	}
+}
+
+func (r *ResourceTemplateClient) apply(ctx context.Context, rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) controller.Result {
+	result := r.create(ctx, rt, options)
+	if result.Reason != ReasonAlreadyExists {
+		return result
+	}
+
+	return r.update(ctx, rt, options)
 }
 
 func (r *ResourceTemplateClient) delete(ctx context.Context, rt *v1beta1.ResourceTemplate, options *ResourceTemplateOptions) controller.Result {
