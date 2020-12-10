@@ -1,6 +1,8 @@
 package fakegithub
 
 import (
+	"fmt"
+
 	"github.com/google/go-github/v32/github"
 	"k8s.io/utils/pointer"
 )
@@ -79,5 +81,21 @@ func SetPullRequestAction(action string) PullRequestEventModifier {
 func SetPullRequestBranch(branch string) PullRequestEventModifier {
 	return func(event *github.PullRequestEvent) {
 		event.PullRequest.Base.Ref = pointer.StringPtr(branch)
+	}
+}
+
+func SetPullRequestLabels(labels []string) PullRequestEventModifier {
+	return func(event *github.PullRequestEvent) {
+		event.PullRequest.Labels = make([]*github.Label, len(labels))
+
+		for i, label := range labels {
+			event.PullRequest.Labels[i] = &github.Label{
+				URL:         pointer.StringPtr(fmt.Sprintf("https://github.com/foo/bar/labels/%s", label)),
+				Name:        pointer.StringPtr(label),
+				Description: pointer.StringPtr(fmt.Sprintf("Description for label %q", label)),
+				Color:       pointer.StringPtr("123456"),
+				Default:     pointer.BoolPtr(false),
+			}
+		}
 	}
 }

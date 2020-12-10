@@ -48,6 +48,7 @@ type GitHubPushEventFilter struct {
 
 type GitHubPullRequestEventFilter struct {
 	Branches *WebhookFilter               `json:"branches,omitempty"`
+	Labels   *WebhookFilter               `json:"labels,omitempty"`
 	Types    []GitHubPullRequestEventType `json:"types,omitempty"`
 }
 

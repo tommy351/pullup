@@ -40,14 +40,14 @@ func (h *Handler) handlePushEventBeta(ctx context.Context, event *github.PushEve
 
 	switch ref.Type {
 	case gitutil.RefTypeBranch:
-		if (repo.Push.Branches == nil && repo.Push.Tags != nil) || !hookutil.FilterWebhook(repo.Push.Branches, ref.Name) {
+		if (repo.Push.Branches == nil && repo.Push.Tags != nil) || !hookutil.FilterWebhook(repo.Push.Branches, []string{ref.Name}) {
 			logger.V(log.Debug).Info("Skipped on this branch", "branch", ref.Name)
 
 			return nil
 		}
 
 	case gitutil.RefTypeTag:
-		if repo.Push.Tags == nil || !hookutil.FilterWebhook(repo.Push.Tags, ref.Name) {
+		if repo.Push.Tags == nil || !hookutil.FilterWebhook(repo.Push.Tags, []string{ref.Name}) {
 			logger.V(log.Debug).Info("Skipped on this tag", "tag", ref.Name)
 
 			return nil

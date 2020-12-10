@@ -39,3 +39,13 @@ func (h *Handler) handlePullRequestEvent(ctx context.Context, event *github.Pull
 
 	return nil
 }
+
+func getPullRequestLabels(pr *github.PullRequest) (result []string) {
+	for _, label := range pr.Labels {
+		if label != nil && label.Name != nil {
+			result = append(result, *label.Name)
+		}
+	}
+
+	return
+}

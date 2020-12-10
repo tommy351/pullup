@@ -34,6 +34,11 @@ func (in *GitHubPullRequestEventFilter) DeepCopyInto(out *GitHubPullRequestEvent
 		*out = new(WebhookFilter)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Labels != nil {
+		in, out := &in.Labels, &out.Labels
+		*out = new(WebhookFilter)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Types != nil {
 		in, out := &in.Types, &out.Types
 		*out = make([]GitHubPullRequestEventType, len(*in))

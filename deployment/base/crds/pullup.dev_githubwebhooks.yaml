@@ -93,6 +93,17 @@ spec:
                                 type: string
                               type: array
                           type: object
+                        labels:
+                          properties:
+                            exclude:
+                              items:
+                                type: string
+                              type: array
+                            include:
+                              items:
+                                type: string
+                              type: array
+                          type: object
                         types:
                           items:
                             enum:

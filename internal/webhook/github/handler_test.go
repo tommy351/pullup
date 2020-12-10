@@ -676,6 +676,72 @@ var _ = Describe("Handler", func() {
 					testTriggered()
 				})
 			})
+
+			When("labels.include is set", func() {
+				name := "beta/pull-request-label-include"
+
+				When("exact match", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"foo"})))
+					testSuccess(name)
+					testTriggered()
+				})
+
+				When("match by regex", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"bar-5"})))
+					testSuccess(name)
+					testTriggered()
+				})
+
+				When("not match", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"abc"})))
+					testSuccess(name)
+					testSkipped()
+				})
+			})
+
+			When("labels.exclude is set", func() {
+				name := "beta/pull-request-label-exclude"
+
+				When("exact match", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"foo"})))
+					testSuccess(name)
+					testSkipped()
+				})
+
+				When("match by regex", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"bar-5"})))
+					testSuccess(name)
+					testSkipped()
+				})
+
+				When("not match", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"abc"})))
+					testSuccess(name)
+					testTriggered()
+				})
+			})
+
+			When("types is set", func() {
+				name := "beta/pull-request-type"
+
+				When("action = labeled", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("labeled")))
+					testSuccess(name)
+					testTriggered()
+				})
+
+				When("action = unlabeled", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("unlabeled")))
+					testSuccess(name)
+					testSkipped()
+				})
+
+				When("action = opened", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+					testSuccess(name)
+					testSkipped()
+				})
+			})
 		})
 	})
 })

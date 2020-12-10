@@ -7,13 +7,13 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 )
 
-func FilterByConditions(conditions []string, text string) bool {
+func FilterByConditions(conditions []string, input string) bool {
 	for _, c := range conditions {
 		if strings.HasPrefix(c, "/") && strings.HasSuffix(c, "/") {
-			if matched, _ := regexp.MatchString(c[1:len(c)-1], text); matched {
+			if matched, _ := regexp.MatchString(c[1:len(c)-1], input); matched {
 				return true
 			}
-		} else if c == text {
+		} else if c == input {
 			return true
 		}
 	}
@@ -21,17 +21,33 @@ func FilterByConditions(conditions []string, text string) bool {
 	return false
 }
 
-func FilterWebhook(filter *v1beta1.WebhookFilter, text string) bool {
+func FilterWebhook(filter *v1beta1.WebhookFilter, input []string) bool {
 	if filter == nil {
 		return true
 	}
 
-	if len(filter.Include) > 0 && !FilterByConditions(filter.Include, text) {
-		return false
+	if len(filter.Include) > 0 {
+		included := false
+
+		for _, s := range input {
+			if FilterByConditions(filter.Include, s) {
+				included = true
+
+				break
+			}
+		}
+
+		if !included {
+			return false
+		}
 	}
 
-	if len(filter.Exclude) > 0 && FilterByConditions(filter.Exclude, text) {
-		return false
+	if len(filter.Exclude) > 0 {
+		for _, s := range input {
+			if FilterByConditions(filter.Exclude, s) {
+				return false
+			}
+		}
 	}
 
 	return true

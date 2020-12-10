@@ -37,10 +37,20 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 		return nil
 	}
 
-	if branch := event.PullRequest.Base.GetRef(); !hookutil.FilterWebhook(repo.PullRequest.Branches, branch) {
+	if branch := event.PullRequest.Base.GetRef(); !hookutil.FilterWebhook(repo.PullRequest.Branches, []string{branch}) {
 		logger.V(log.Debug).Info("Skipped on this branch", "branch", branch)
 
 		return nil
+	}
+
+	if filter := repo.PullRequest.Labels; filter != nil {
+		labels := getPullRequestLabels(event.PullRequest)
+
+		if !hookutil.FilterWebhook(filter, labels) {
+			logger.V(log.Debug).Info("Skipped on this label", "labels", labels)
+
+			return nil
+		}
 	}
 
 	options := &hookutil.ResourceTemplateOptions{
