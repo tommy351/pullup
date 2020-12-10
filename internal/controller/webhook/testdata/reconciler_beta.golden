@@ -7,13 +7,6 @@
     creationTimestamp: null
     name: bar-46
     namespace: foo
-    ownerReferences:
-    - apiVersion: pullup.dev/v1beta1
-      blockOwnerDeletion: true
-      controller: true
-      kind: HTTPWebhook
-      name: bar
-      uid: ""
     selfLink: /apis/pullup.dev/v1beta1/namespaces/foo/resourcetemplates/bar-46
   spec:
     data:
@@ -33,13 +26,6 @@
     creationTimestamp: null
     name: bar-64
     namespace: foo
-    ownerReferences:
-    - apiVersion: pullup.dev/v1beta1
-      blockOwnerDeletion: true
-      controller: true
-      kind: HTTPWebhook
-      name: bar
-      uid: ""
     selfLink: /apis/pullup.dev/v1beta1/namespaces/foo/resourcetemplates/bar-64
   spec:
     data:

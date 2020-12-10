@@ -15,12 +15,6 @@ kind: ResourceTemplate
 metadata:
   name: bar-46
   namespace: foo
-  ownerReferences:
-    - apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
-      name: bar
-      controller: true
-      blockOwnerDeletion: true
 spec:
   webhookRef:
     apiVersion: pullup.dev/v1beta1
@@ -35,12 +29,6 @@ kind: ResourceTemplate
 metadata:
   name: bar-64
   namespace: foo
-  ownerReferences:
-    - apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
-      name: bar
-      controller: true
-      blockOwnerDeletion: true
 spec:
   webhookRef:
     apiVersion: pullup.dev/v1beta1

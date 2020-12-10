@@ -26,7 +26,7 @@ import (
 // +kubebuilder:rbac:groups=pullup.dev,resources=httpwebhooks,verbs=get;list;watch
 // +kubebuilder:rbac:groups=pullup.dev,resources=githubwebhooks,verbs=get;list;watch
 
-const ownerRefUIDField = "metadata.ownerReferences.uid"
+const webhookRefField = "spec.webhookRef"
 
 var ErrObjectNotWebhook = errors.New("object is not a webhook")
 
@@ -54,11 +54,11 @@ type BetaReconcilerFactory struct {
 }
 
 func NewBetaReconcilerFactory(conf BetaReconcilerConfig, mgr manager.Manager) (*BetaReconcilerFactory, error) {
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1beta1.ResourceTemplate{}, ownerRefUIDField, func(obj runtime.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1beta1.ResourceTemplate{}, webhookRefField, func(obj runtime.Object) []string {
 		var result []string
 
-		for _, ref := range obj.(*v1beta1.ResourceTemplate).OwnerReferences {
-			result = append(result, string(ref.UID))
+		if ref := obj.(*v1beta1.ResourceTemplate).Spec.WebhookRef; ref != nil {
+			result = append(result, objectRefString(ref))
 		}
 
 		return result
@@ -113,9 +113,15 @@ func (r *BetaReconciler) Reconcile(req reconcile.Request) (reconcile.Result, err
 		return reconcile.Result{}, ErrObjectNotWebhook
 	}
 
+	apiVersion, kind := webhook.GetObjectKind().GroupVersionKind().ToAPIVersionAndKind()
+
 	list := new(v1beta1.ResourceTemplateList)
 	err := r.Client.List(ctx, list, client.InNamespace(webhook.GetNamespace()), client.MatchingFields(map[string]string{
-		ownerRefUIDField: string(webhook.GetUID()),
+		webhookRefField: objectRefString(&v1beta1.ObjectReference{
+			APIVersion: apiVersion,
+			Kind:       kind,
+			Name:       webhook.GetName(),
+		}),
 	}))
 	if err != nil {
 		return reconcile.Result{Requeue: true}, fmt.Errorf("failed to list resource templates: %w", err)
@@ -178,4 +184,8 @@ func (r *BetaReconciler) patchResource(ctx context.Context, webhook hookutil.Web
 		Message: fmt.Sprintf("Patched resource template %q", rt.Name),
 		Reason:  ReasonPatched,
 	}
+}
+
+func objectRefString(ref *v1beta1.ObjectReference) string {
+	return fmt.Sprintf("apiVersion=%s, kind=%s, name=%s", ref.APIVersion, ref.Kind, ref.Name)
 }
