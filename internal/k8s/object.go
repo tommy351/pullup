@@ -1,11 +1,14 @@
 package k8s
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func ToUnstructured(data interface{}) (*unstructured.Unstructured, error) {
@@ -71,4 +74,26 @@ func MapObjects(input []runtime.Object, fn func(runtime.Object) error) ([]runtim
 	}
 
 	return output, nil
+}
+
+func GetObject(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
+	obj, err := scheme.New(gvk)
+	if err != nil {
+		if !runtime.IsNotRegisteredError(err) {
+			return nil, fmt.Errorf("failed to create a new API object: %w", err)
+		}
+
+		un := new(unstructured.Unstructured)
+		un.SetGroupVersionKind(gvk)
+		obj = un
+	}
+
+	// Use APIReader to disable the cache
+	if err := reader.Get(ctx, key, obj); err != nil {
+		return nil, fmt.Errorf("failed to get resource: %w", err)
+	}
+
+	obj.GetObjectKind().SetGroupVersionKind(gvk)
+
+	return obj, nil
 }

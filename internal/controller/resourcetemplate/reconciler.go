@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/wire"
 	"github.com/tommy351/pullup/internal/controller"
+	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -163,25 +164,7 @@ func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.Re
 }
 
 func (r *Reconciler) getObject(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
-	obj, err := r.Scheme.New(gvk)
-	if err != nil {
-		if !runtime.IsNotRegisteredError(err) {
-			return nil, fmt.Errorf("failed to create a new API object: %w", err)
-		}
-
-		un := new(unstructured.Unstructured)
-		un.SetGroupVersionKind(gvk)
-		obj = un
-	}
-
-	// Use APIReader to disable the cache
-	if err := r.APIReader.Get(ctx, key, obj); err != nil {
-		return nil, fmt.Errorf("failed to get resource: %w", err)
-	}
-
-	obj.GetObjectKind().SetGroupVersionKind(gvk)
-
-	return obj, nil
+	return k8s.GetObject(ctx, r.APIReader, r.Scheme, gvk, key)
 }
 
 func (r *Reconciler) newEmptyObject(gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
