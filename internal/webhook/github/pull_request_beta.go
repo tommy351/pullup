@@ -53,16 +53,16 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 		}
 	}
 
-	options := &hookutil.ResourceTemplateOptions{
-		Action:              v1beta1.WebhookActionApply,
-		Event:               event,
-		Webhook:             hook,
-		DefaultResourceName: "{{ .webhook.metadata.name }}-{{ .event.number }}",
+	options := &hookutil.TriggerOptions{
+		Action:   v1beta1.ActionApply,
+		Event:    event,
+		Source:   hook,
+		Triggers: hook.Spec.Triggers,
 	}
 
 	if eventAction == "closed" {
-		options.Action = v1beta1.WebhookActionDelete
+		options.Action = v1beta1.ActionDelete
 	}
 
-	return h.ResourceTemplateClient.Handle(ctx, options)
+	return h.TriggerHandler.Handle(ctx, options)
 }

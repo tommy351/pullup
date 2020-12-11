@@ -3,7 +3,7 @@
 //go:generate wire
 //+build !wireinject
 
-package webhook
+package trigger
 
 import (
 	"github.com/go-logr/logr"
@@ -13,14 +13,14 @@ import (
 
 // Injectors from wire.go:
 
-func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
+func NewReconcilerConfig(mgr manager.Manager, logger logr.Logger) ReconcilerConfig {
 	client := controller.NewClient(mgr)
-	webhookLogger := NewLogger(logger)
+	triggerLogger := NewLogger(logger)
 	eventRecorder := controller.NewEventRecorder(mgr)
-	reconciler := &Reconciler{
+	reconcilerConfig := ReconcilerConfig{
 		Client:   client,
-		Logger:   webhookLogger,
+		Logger:   triggerLogger,
 		Recorder: eventRecorder,
 	}
-	return reconciler
+	return reconcilerConfig
 }

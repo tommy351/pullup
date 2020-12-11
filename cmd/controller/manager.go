@@ -7,6 +7,7 @@ import (
 	"github.com/tommy351/pullup/cmd"
 	"github.com/tommy351/pullup/internal/controller/resourceset"
 	"github.com/tommy351/pullup/internal/controller/resourcetemplate"
+	"github.com/tommy351/pullup/internal/controller/trigger"
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
@@ -38,9 +39,9 @@ func NewControllerManager(restConf *rest.Config, scheme *runtime.Scheme, conf cm
 func NewManager(
 	mgr manager.Manager,
 	rs *resourceset.Reconciler,
-	hook *webhook.AlphaReconciler,
+	hook *webhook.Reconciler,
 	rt *resourcetemplate.Reconciler,
-	factory *webhook.BetaReconcilerFactory,
+	trigger *trigger.Reconciler,
 ) (*Manager, error) {
 	err := builder.
 		ControllerManagedBy(mgr).
@@ -48,7 +49,7 @@ func NewManager(
 		Owns(&v1alpha1.ResourceSet{}).
 		Complete(hook)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build the Webhook controller: %w", err)
+		return nil, fmt.Errorf("failed to build Webhook controller: %w", err)
 	}
 
 	err = builder.
@@ -56,7 +57,7 @@ func NewManager(
 		For(&v1alpha1.ResourceSet{}).
 		Complete(rs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build the ResourceSet controller: %w", err)
+		return nil, fmt.Errorf("failed to build ResourceSet controller: %w", err)
 	}
 
 	err = builder.
@@ -64,15 +65,16 @@ func NewManager(
 		For(&v1beta1.ResourceTemplate{}).
 		Complete(rt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build the ResourceTemplate controller: %w", err)
+		return nil, fmt.Errorf("failed to build ResourceTemplate controller: %w", err)
 	}
 
-	if err := factory.Build(mgr, &v1beta1.HTTPWebhook{}); err != nil {
-		return nil, fmt.Errorf("failed to build the HTTPWebhook controller: %w", err)
-	}
-
-	if err := factory.Build(mgr, &v1beta1.GitHubWebhook{}); err != nil {
-		return nil, fmt.Errorf("failed to build the HTTPWebhook controller: %w", err)
+	err = builder.
+		ControllerManagedBy(mgr).
+		For(&v1beta1.Trigger{}).
+		Owns(&v1beta1.ResourceTemplate{}).
+		Complete(trigger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build Trigger controller: %w", err)
 	}
 
 	return &Manager{Manager: mgr}, nil

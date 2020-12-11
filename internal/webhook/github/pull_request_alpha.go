@@ -127,7 +127,7 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 
 	patch, err := json.Marshal([]v1beta1.JSONPatch{
 		{
-			Operation: "replace",
+			Operation: v1beta1.JSONPatchOpReplace,
 			Path:      "/spec",
 			Value:     &extv1.JSON{Raw: patchValue},
 		},

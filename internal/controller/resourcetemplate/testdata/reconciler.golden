@@ -69,6 +69,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when merge is given should match the golden file" = '''
@@ -147,6 +148,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when merge with apiVersion, kind and name set should match the golden file" = '''
@@ -220,6 +222,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when merge with apiVersion, kind and name should match the golden file" = '''
@@ -332,6 +335,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when metadata is a template string should match the golden file" = '''
@@ -401,6 +405,7 @@
     - apiVersion: v1
       kind: Pod
       name: bar
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when multi patches should match the golden file" = '''
@@ -493,9 +498,11 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     - apiVersion: v1
       kind: ConfigMap
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when original and current resource exists should match the golden file" = '''
@@ -564,6 +571,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when original resource exists should match the golden file" = '''
@@ -627,6 +635,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when resource is not controlled should match the golden file" = '''
@@ -647,6 +656,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when resource is unchanged should match the golden file" = '''
@@ -672,6 +682,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when targetName is given should match the golden file" = '''
@@ -740,6 +751,160 @@
     - apiVersion: v1
       kind: Pod
       name: foo-new
+      namespace: test
+    lastUpdateTime: null
+'''
+"Reconciler when trigger not found should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/foo-rt
+  spec:
+    containers:
+    - env:
+      - name: TRIGGER_NAME
+        value: <no value>
+      image: nginx:alpine
+      imagePullPolicy: IfNotPresent
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
+- apiVersion: pullup.dev/v1beta1
+  kind: ResourceTemplate
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foo-rt
+  spec:
+    data: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      merge:
+        spec:
+          containers:
+          - env:
+            - name: TRIGGER_NAME
+              value: '{{ .trigger.metadata.name }}'
+            image: nginx:alpine
+            name: nginx
+  status:
+    active:
+    - apiVersion: v1
+      kind: Pod
+      name: foo-rt
+      namespace: test
+    lastUpdateTime: null
+'''
+"Reconciler when triggerRef is given should match the golden file" = '''
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ResourceTemplate
+      name: foo-rt
+      uid: ""
+    selfLink: /api/v1/namespaces/test/pods/foo-rt
+  spec:
+    containers:
+    - env:
+      - name: TRIGGER_NAME
+        value: http-hook
+      image: nginx:alpine
+      imagePullPolicy: IfNotPresent
+      name: nginx
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  status:
+    phase: Pending
+    qosClass: BestEffort
+- apiVersion: pullup.dev/v1beta1
+  kind: ResourceTemplate
+  metadata:
+    creationTimestamp: null
+    name: foo-rt
+    namespace: test
+    selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foo-rt
+  spec:
+    data: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      merge:
+        spec:
+          containers:
+          - env:
+            - name: TRIGGER_NAME
+              value: '{{ .trigger.metadata.name }}'
+            image: nginx:alpine
+            name: nginx
+    triggerRef:
+      apiVersion: pullup.dev/v1beta1
+      kind: Trigger
+      name: http-hook
+      namespace: test
+  status:
+    active:
+    - apiVersion: v1
+      kind: Pod
+      name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when updating status should match the golden file" = '''
@@ -800,6 +965,7 @@
     - apiVersion: test.pullup.dev/v1
       kind: Job
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when using CRD should match the golden file" = '''
@@ -839,6 +1005,7 @@
     - apiVersion: test.pullup.dev/v1
       kind: Job
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when using resource in template should match the golden file" = '''
@@ -912,6 +1079,7 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''
 "Reconciler when webhook not found should match the golden file" = '''
@@ -1133,5 +1301,6 @@
     - apiVersion: v1
       kind: Pod
       name: foo-rt
+      namespace: test
     lastUpdateTime: null
 '''

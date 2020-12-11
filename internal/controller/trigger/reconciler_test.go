@@ -1,4 +1,4 @@
-package webhook
+package trigger
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,6 @@ import (
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
-	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,14 +14,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = Describe("BetaReconciler", func() {
+var _ = Describe("Reconciler", func() {
 	var (
-		reconciler   reconcile.Reconciler
+		reconciler   *Reconciler
 		mgr          *testenv.Manager
 		result       reconcile.Result
 		err          error
 		namespaceMap *random.NamespaceMap
-		conf         BetaReconcilerConfig
+		conf         ReconcilerConfig
 	)
 
 	BeforeEach(func() {
@@ -30,12 +29,11 @@ var _ = Describe("BetaReconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		conf = NewBetaReconcilerConfig(mgr, log.Log)
-		factory, err := NewBetaReconcilerFactory(conf, mgr)
+		conf = NewReconcilerConfig(mgr, log.Log)
+		reconciler, err = NewReconciler(conf, mgr)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(mgr.Initialize()).To(Succeed())
 
-		reconciler = factory.NewReconciler(&v1beta1.HTTPWebhook{})
 		namespaceMap = random.NewNamespaceMap()
 	})
 
@@ -52,7 +50,7 @@ var _ = Describe("BetaReconciler", func() {
 		})
 	})
 
-	When("webhook does not exist", func() {
+	When("trigger does not exist", func() {
 		It("should not requeue", func() {
 			Expect(result).To(Equal(reconcile.Result{}))
 		})
@@ -62,24 +60,19 @@ var _ = Describe("BetaReconciler", func() {
 		})
 
 		It("should not change anything", func() {
-			Expect(testenv.GetChanges(conf.Client)).To(BeEmpty())
+			Expect(testenv.GetChanges(reconciler.Client)).To(BeEmpty())
 		})
 	})
 
-	// nolint: dupl
 	When("patch success", func() {
 		var data []runtime.Object
 
 		BeforeEach(func() {
 			var err error
-			data, err = k8s.LoadObjects(testenv.GetScheme(), "testdata/http-webhook-success.yml")
+			data, err = k8s.LoadObjects(testenv.GetScheme(), "testdata/success.yml")
 			Expect(err).NotTo(HaveOccurred())
 
-			data, err = k8s.MapObjects(data, func(obj runtime.Object) error {
-				namespaceMap.SetObject(obj)
-
-				return nil
-			})
+			data, err = k8s.MapObjects(data, namespaceMap.SetObject)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(testenv.CreateObjects(data)).To(Succeed())
 		})
@@ -97,15 +90,11 @@ var _ = Describe("BetaReconciler", func() {
 		})
 
 		It("should match the golden file", func() {
-			changes := testenv.GetChanges(conf.Client)
+			changes := testenv.GetChanges(reconciler.Client)
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 
-			objects, err = k8s.MapObjects(objects, func(obj runtime.Object) error {
-				namespaceMap.RestoreObject(obj)
-
-				return nil
-			})
+			objects, err = k8s.MapObjects(objects, namespaceMap.RestoreObject)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(objects).To(golden.MatchObject())
 		})

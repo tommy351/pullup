@@ -7,6 +7,7 @@ PATH="${PROJECT_ROOT}/assets/bin:${PATH}"
 CRDS=(
   webhooks
   resourcesets
+  triggers
   resourcetemplates
   httpwebhooks
   githubwebhooks

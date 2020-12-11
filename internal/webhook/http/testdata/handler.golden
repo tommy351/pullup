@@ -11,21 +11,18 @@
     - apiVersion: pullup.dev/v1beta1
       blockOwnerDeletion: true
       controller: true
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
       uid: ""
     selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foobar-rt
   spec:
     data:
       event: null
-    patches:
-    - apiVersion: v1
-      kind: Pod
-      sourceName: foo
-    webhookRef:
+    triggerRef:
       apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
+      namespace: test
   status: {}
 '''
 "Handler when action = apply when resource template exists should match the golden file" = '''
@@ -39,14 +36,11 @@
   spec:
     data:
       event: null
-    patches:
-    - apiVersion: v1
-      kind: Pod
-      sourceName: foo
-    webhookRef:
+    triggerRef:
       apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
+      namespace: test
   status: {}
 '''
 "Handler when action = create when resource template does not exist should match the golden file" = '''
@@ -60,21 +54,18 @@
     - apiVersion: pullup.dev/v1beta1
       blockOwnerDeletion: true
       controller: true
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
       uid: ""
     selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foobar-rt
   spec:
     data:
       event: null
-    patches:
-    - apiVersion: v1
-      kind: Pod
-      sourceName: foo
-    webhookRef:
+    triggerRef:
       apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
+      namespace: test
   status: {}
 '''
 "Handler when action = create when resource template exists should match the golden file" = '''
@@ -94,18 +85,12 @@
   spec:
     data:
       event: null
-    patches:
-    - apiVersion: v1
-      kind: Pod
-      sourceName: foo
-    webhookRef:
+    triggerRef:
       apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
+      namespace: test
   status: {}
-'''
-"Handler when request body is valid when resource template does not exist should match the golden file" = '''
-[]
 '''
 "Handler when schema is given when data matches the schema should match the golden file" = '''
 - apiVersion: pullup.dev/v1beta1
@@ -118,7 +103,7 @@
     - apiVersion: pullup.dev/v1beta1
       blockOwnerDeletion: true
       controller: true
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
       uid: ""
     selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foobar-bar
@@ -127,13 +112,10 @@
       event:
         bar: 123
         foo: bar
-    patches:
-    - apiVersion: v1
-      kind: Pod
-      sourceName: foo
-    webhookRef:
+    triggerRef:
       apiVersion: pullup.dev/v1beta1
-      kind: HTTPWebhook
+      kind: Trigger
       name: foobar
+      namespace: test
   status: {}
 '''

@@ -1,6 +1,6 @@
 ---
 apiVersion: pullup.dev/v1beta1
-kind: HTTPWebhook
+kind: Trigger
 metadata:
   name: bar
   namespace: foo
@@ -16,9 +16,10 @@ metadata:
   name: bar-46
   namespace: foo
 spec:
-  webhookRef:
+  triggerRef:
     apiVersion: pullup.dev/v1beta1
-    kind: HTTPWebhook
+    kind: Trigger
+    namespace: foo
     name: bar
   data:
     event: {}
@@ -30,9 +31,10 @@ metadata:
   name: bar-64
   namespace: foo
 spec:
-  webhookRef:
+  triggerRef:
     apiVersion: pullup.dev/v1beta1
-    kind: HTTPWebhook
+    kind: Trigger
+    namespace: foo
     name: bar
   data:
     event: {}

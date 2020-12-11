@@ -17,10 +17,6 @@ type HTTPWebhook struct {
 	Spec   HTTPWebhookSpec   `json:"spec,omitempty"`
 }
 
-func (in *HTTPWebhook) GetSpec() WebhookSpec {
-	return in.Spec.WebhookSpec
-}
-
 // +kubebuilder:object:root=true
 
 type HTTPWebhookList struct {
@@ -31,12 +27,12 @@ type HTTPWebhookList struct {
 }
 
 type HTTPWebhookSpec struct {
-	WebhookSpec `json:",inline"`
+	EventSourceSpec `json:",inline"`
 
 	Schema      *extv1.JSON  `json:"schema,omitempty"`
 	SecretToken *SecretValue `json:"secretToken,omitempty"`
 }
 
 type HTTPWebhookStatus struct {
-	WebhookStatus `json:",inline"`
+	EventSourceStatus `json:",inline"`
 }

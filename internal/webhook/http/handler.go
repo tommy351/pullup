@@ -9,7 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/wire"
 	"github.com/tommy351/pullup/internal/httputil"
-	"github.com/tommy351/pullup/internal/slice"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	"github.com/xeipuuv/gojsonschema"
@@ -31,24 +30,15 @@ var HandlerSet = wire.NewSet(
 )
 
 type Body struct {
-	Namespace string                `json:"namespace"`
-	Name      string                `json:"name"`
-	Action    v1beta1.WebhookAction `json:"action"`
-	Data      extv1.JSON            `json:"data"`
-}
-
-func isValidWebhookAction(action v1beta1.WebhookAction) bool {
-	return slice.IncludeString([]string{
-		string(v1beta1.WebhookActionCreate),
-		string(v1beta1.WebhookActionUpdate),
-		string(v1beta1.WebhookActionApply),
-		string(v1beta1.WebhookActionDelete),
-	}, string(action))
+	Namespace string         `json:"namespace"`
+	Name      string         `json:"name"`
+	Action    v1beta1.Action `json:"action"`
+	Data      extv1.JSON     `json:"data"`
 }
 
 type Handler struct {
-	Client                 client.Client
-	ResourceTemplateClient hookutil.ResourceTemplateClient
+	Client         client.Client
+	TriggerHandler hookutil.TriggerHandler
 }
 
 func (h *Handler) parseBody(r *http.Request) (*Body, error) {
@@ -90,7 +80,7 @@ func (h *Handler) parseBody(r *http.Request) (*Body, error) {
 		}
 	}
 
-	if !isValidWebhookAction(body.Action) {
+	if !v1beta1.IsActionValid(body.Action) {
 		return nil, httputil.Response{
 			StatusCode: http.StatusBadRequest,
 			Errors: []httputil.Error{
@@ -207,13 +197,14 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	err = h.ResourceTemplateClient.Handle(r.Context(), &hookutil.ResourceTemplateOptions{
-		Action:  body.Action,
-		Event:   body.Data,
-		Webhook: hook,
+	err = h.TriggerHandler.Handle(r.Context(), &hookutil.TriggerOptions{
+		Source:   hook,
+		Triggers: hook.Spec.Triggers,
+		Action:   body.Action,
+		Event:    body.Data,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to %s resource template: %w", body.Action, err)
+		return fmt.Errorf("trigger failed: %w", err)
 	}
 
 	return httputil.JSON(w, http.StatusOK, &httputil.Response{})

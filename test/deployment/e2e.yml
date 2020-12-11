@@ -16,6 +16,7 @@ rules:
       - githubwebhooks
       - resourcesets
       - resourcetemplates
+      - triggers
     verbs:
       - get
       - create

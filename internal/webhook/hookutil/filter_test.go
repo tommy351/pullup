@@ -21,7 +21,7 @@ var _ = DescribeTable("FilterByConditions", func(conditions []string, input stri
 
 var _ = Describe("FilterWebhook", func() {
 	DescribeTable("include only", func(input []string, expected bool) {
-		filter := &v1beta1.WebhookFilter{
+		filter := &v1beta1.EventSourceFilter{
 			Include: []string{"abc", `/^a\db$/`},
 		}
 		Expect(FilterWebhook(filter, input)).To(Equal(expected))
@@ -35,7 +35,7 @@ var _ = Describe("FilterWebhook", func() {
 	)
 
 	DescribeTable("exclude only", func(input []string, expected bool) {
-		filter := &v1beta1.WebhookFilter{
+		filter := &v1beta1.EventSourceFilter{
 			Exclude: []string{"abc", `/^a\db$/`},
 		}
 		Expect(FilterWebhook(filter, input)).To(Equal(expected))
@@ -49,7 +49,7 @@ var _ = Describe("FilterWebhook", func() {
 	)
 
 	DescribeTable("include & exclude", func(input []string, expected bool) {
-		filter := &v1beta1.WebhookFilter{
+		filter := &v1beta1.EventSourceFilter{
 			Include: []string{"abc", `/a[bc]/`},
 			Exclude: []string{"ac"},
 		}

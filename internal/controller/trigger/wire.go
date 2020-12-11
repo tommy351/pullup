@@ -1,6 +1,6 @@
 // +build wireinject
 
-package webhook
+package trigger
 
 import (
 	"github.com/go-logr/logr"
@@ -9,11 +9,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
+func NewReconcilerConfig(mgr manager.Manager, logger logr.Logger) ReconcilerConfig {
 	wire.Build(
 		controller.NewClient,
 		controller.NewEventRecorder,
-		ReconcilerSet,
+		ReconcilerConfigSet,
 	)
-	return nil
+	return ReconcilerConfig{}
 }

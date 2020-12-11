@@ -55,15 +55,15 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	githubConfig := conf.GitHub
 	client := controller.NewClient(manager)
 	eventRecorder := hookutil.NewEventRecorder(manager)
-	resourceTemplateClient := hookutil.ResourceTemplateClient{
+	triggerHandler := hookutil.TriggerHandler{
 		Client:   client,
 		Recorder: eventRecorder,
 	}
 	handlerConfig := github.HandlerConfig{
-		Config:                 githubConfig,
-		Client:                 client,
-		Recorder:               eventRecorder,
-		ResourceTemplateClient: resourceTemplateClient,
+		Config:         githubConfig,
+		Client:         client,
+		Recorder:       eventRecorder,
+		TriggerHandler: triggerHandler,
 	}
 	handler, err := github.NewHandler(handlerConfig, manager)
 	if err != nil {
@@ -72,8 +72,8 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 		return nil, nil, err
 	}
 	httpHandler := &http.Handler{
-		Client:                 client,
-		ResourceTemplateClient: resourceTemplateClient,
+		Client:         client,
+		TriggerHandler: triggerHandler,
 	}
 	server := &webhook.Server{
 		Config:        webhookConfig,

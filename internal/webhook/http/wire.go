@@ -13,7 +13,7 @@ func NewHandler(mgr manager.Manager) *Handler {
 	wire.Build(
 		controller.NewClient,
 		hookutil.NewEventRecorder,
-		hookutil.ResourceTemplateClientSet,
+		hookutil.TriggerHandlerSet,
 		HandlerSet,
 	)
 	return nil

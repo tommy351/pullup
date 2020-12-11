@@ -21,7 +21,7 @@ var ServerSet = wire.NewSet(
 	hookutil.NewEventRecorder,
 	hookutil.NewFieldIndexer,
 	controller.NewClient,
-	hookutil.ResourceTemplateClientSet,
+	hookutil.TriggerHandlerSet,
 	github.HandlerSet,
 	httphook.HandlerSet,
 	wire.Struct(new(Server), "*"),

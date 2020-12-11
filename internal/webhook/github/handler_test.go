@@ -54,11 +54,7 @@ var _ = Describe("Handler", func() {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
-		data, err = k8s.MapObjects(data, func(obj runtime.Object) error {
-			namespaceMap.SetObject(obj)
-
-			return nil
-		})
+		data, err = k8s.MapObjects(data, namespaceMap.SetObject)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(testenv.CreateObjects(data)).To(Succeed())
 
@@ -74,11 +70,7 @@ var _ = Describe("Handler", func() {
 			objects, err := testenv.GetChangedObjects(getChanges())
 			Expect(err).NotTo(HaveOccurred())
 
-			objects, err = k8s.MapObjects(objects, func(obj runtime.Object) error {
-				namespaceMap.RestoreObject(obj)
-
-				return nil
-			})
+			objects, err = k8s.MapObjects(objects, namespaceMap.RestoreObject)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(objects).To(golden.MatchObject())
 		})
@@ -433,22 +425,6 @@ var _ = Describe("Handler", func() {
 					testSkipped()
 				})
 
-				When("resourceName is not given", func() {
-					var data []runtime.Object
-
-					BeforeEach(func() {
-						data = loadTestData("beta/without-resource-name")
-					})
-
-					AfterEach(func() {
-						Expect(testenv.DeleteObjects(data)).To(Succeed())
-					})
-
-					It("should respond 400", func() {
-						Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
-					})
-				})
-
 				When("only tag filter is set", func() {
 					testSuccess("beta/push-tag-include")
 					testSkipped()
@@ -625,12 +601,6 @@ var _ = Describe("Handler", func() {
 
 					testSkipped()
 				})
-			})
-
-			When("resourceName is not given", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
-				testSuccess("beta/without-resource-name")
-				testGolden()
 			})
 
 			When("branches.include is set", func() {

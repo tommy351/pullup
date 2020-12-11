@@ -72,6 +72,14 @@ rules:
 - apiGroups:
   - pullup.dev
   resources:
+  - triggers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - pullup.dev
+  resources:
   - webhooks
   verbs:
   - get

@@ -7,7 +7,7 @@ metadata:
 spec:
   webhookRef:
     apiVersion: pullup.dev/v1beta1
-    kind: HTTPWebhook
+    kind: Trigger
     name: http-hook
   patches:
     - apiVersion: v1
@@ -18,5 +18,5 @@ spec:
             - name: nginx
               image: nginx:alpine
               env:
-                - name: WEBHOOK_NAME
-                  value: '{{ .webhook.metadata.name }}'
+                - name: TRIGGER_NAME
+                  value: '{{ .trigger.metadata.name }}'

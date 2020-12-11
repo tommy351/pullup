@@ -1,19 +1,11 @@
+---
 apiVersion: pullup.dev/v1beta1
-kind: HTTPWebhook
+kind: Trigger
 metadata:
   name: conf-ab
   namespace: test-pullup
 spec:
-  resourceName: '{{ .webhook.metadata.name }}-{{ .event.suffix }}'
-  schema:
-    type: object
-    properties:
-      suffix:
-        type: string
-      a:
-        type: string
-      b:
-        type: string
+  resourceName: '{{ .trigger.metadata.name }}-{{ .event.suffix }}'
   patches:
     - apiVersion: v1
       kind: ConfigMap
@@ -29,3 +21,24 @@ spec:
       merge:
         data:
           b: '{{ .event.b }}'
+---
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: conf-ab
+  namespace: test-pullup
+spec:
+  schema:
+    type: object
+    properties:
+      suffix:
+        type: string
+      a:
+        type: string
+      b:
+        type: string
+  triggers:
+    - ref:
+        apiVersion: pullup.dev/v1beta1
+        kind: Trigger
+        name: conf-ab

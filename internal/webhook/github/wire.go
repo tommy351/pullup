@@ -13,7 +13,7 @@ func NewHandlerConfig(conf Config, mgr manager.Manager) HandlerConfig {
 	wire.Build(
 		controller.NewClient,
 		hookutil.NewEventRecorder,
-		hookutil.ResourceTemplateClientSet,
+		hookutil.TriggerHandlerSet,
 		HandlerConfigSet,
 	)
 	return HandlerConfig{}

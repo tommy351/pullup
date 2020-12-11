@@ -6,27 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: resourcetemplates.pullup.dev
+  name: triggers.pullup.dev
 spec:
   group: pullup.dev
   names:
     categories:
     - all
     - pullup
-    kind: ResourceTemplate
-    listKind: ResourceTemplateList
-    plural: resourcetemplates
-    singular: resourcetemplate
+    kind: Trigger
+    listKind: TriggerList
+    plural: triggers
+    singular: trigger
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .spec.triggerRef.name
-      name: Trigger
-      type: string
-    - jsonPath: .status.lastUpdateTime
-      name: Last Update
-      type: date
-    name: v1beta1
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         properties:
@@ -40,8 +33,6 @@ spec:
             type: object
           spec:
             properties:
-              data:
-                x-kubernetes-preserve-unknown-fields: true
               patches:
                 items:
                   properties:
@@ -84,44 +75,14 @@ spec:
                   - kind
                   type: object
                 type: array
-              triggerRef:
-                properties:
-                  apiVersion:
-                    type: string
-                  kind:
-                    type: string
-                  name:
-                    type: string
-                  namespace:
-                    type: string
-                required:
-                - apiVersion
-                - kind
-                - name
-                type: object
+              resourceName:
+                type: string
+              schema:
+                x-kubernetes-preserve-unknown-fields: true
+            required:
+            - resourceName
             type: object
           status:
-            properties:
-              active:
-                items:
-                  properties:
-                    apiVersion:
-                      type: string
-                    kind:
-                      type: string
-                    name:
-                      type: string
-                    namespace:
-                      type: string
-                  required:
-                  - apiVersion
-                  - kind
-                  - name
-                  type: object
-                type: array
-              lastUpdateTime:
-                format: date-time
-                type: string
             type: object
         type: object
     served: true
