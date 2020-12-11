@@ -127,7 +127,7 @@ func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.Res
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) updateStatus(ctx context.Context, rt *v1beta1.ResourceTemplate, active []v1beta1.ResourceReference) error {
+func (r *Reconciler) updateStatus(ctx context.Context, rt *v1beta1.ResourceTemplate, active []v1beta1.ObjectReference) error {
 	now := metav1.Now()
 	rt.Status.LastUpdateTime = &now
 	rt.Status.Active = active
@@ -139,7 +139,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, rt *v1beta1.ResourceTempl
 	return nil
 }
 
-func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.ResourceTemplate, refs []v1beta1.ResourceReference) {
+func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.ResourceTemplate, refs []v1beta1.ObjectReference) {
 	for _, ref := range refs {
 		obj := new(unstructured.Unstructured)
 		obj.SetAPIVersion(ref.APIVersion)
@@ -514,21 +514,21 @@ func setOwnerReferences(obj runtime.Object, refs []metav1.OwnerReference) error 
 }
 
 type resourceActivity struct {
-	Active   []v1beta1.ResourceReference
-	Inactive []v1beta1.ResourceReference
+	Active   []v1beta1.ObjectReference
+	Inactive []v1beta1.ObjectReference
 }
 
 func getResourceActivity(rt *v1beta1.ResourceTemplate, patches []v1beta1.WebhookPatch) *resourceActivity {
 	var result resourceActivity
 
-	inactiveMap := make(map[v1beta1.ResourceReference]struct{})
+	inactiveMap := make(map[v1beta1.ObjectReference]struct{})
 
 	for _, ref := range rt.Status.Active {
 		inactiveMap[ref] = struct{}{}
 	}
 
 	for _, patch := range patches {
-		ref := v1beta1.ResourceReference{
+		ref := v1beta1.ObjectReference{
 			APIVersion: patch.APIVersion,
 			Kind:       patch.Kind,
 			Name:       patch.TargetName,

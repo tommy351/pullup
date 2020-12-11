@@ -42,12 +42,6 @@ type ResourceTemplateSpec struct {
 }
 
 type ResourceTemplateStatus struct {
-	LastUpdateTime *metav1.Time        `json:"lastUpdateTime,omitempty"`
-	Active         []ResourceReference `json:"active,omitempty"`
-}
-
-type ResourceReference struct {
-	APIVersion string `json:"apiVersion"`
-	Kind       string `json:"kind"`
-	Name       string `json:"name"`
+	LastUpdateTime *metav1.Time      `json:"lastUpdateTime,omitempty"`
+	Active         []ObjectReference `json:"active,omitempty"`
 }

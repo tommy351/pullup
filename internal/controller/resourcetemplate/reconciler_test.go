@@ -316,7 +316,7 @@ var _ = Describe("Reconciler", func() {
 
 			now := metav1.Now()
 			rt.Status.LastUpdateTime = &now
-			rt.Status.Active = []v1beta1.ResourceReference{
+			rt.Status.Active = []v1beta1.ObjectReference{
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",

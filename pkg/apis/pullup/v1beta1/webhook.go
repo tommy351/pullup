@@ -3,6 +3,7 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // +kubebuilder:validation:Enum=create;update;apply;delete
@@ -55,4 +56,8 @@ type ObjectReference struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
 	Name       string `json:"name"`
+}
+
+func (in ObjectReference) GroupVersionKind() schema.GroupVersionKind {
+	return schema.FromAPIVersionAndKind(in.APIVersion, in.Kind)
 }

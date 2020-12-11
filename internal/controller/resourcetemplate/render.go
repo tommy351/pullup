@@ -9,7 +9,6 @@ import (
 	"github.com/tommy351/pullup/internal/template"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -31,8 +30,7 @@ func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.Resou
 	}
 
 	if ref := rt.Spec.WebhookRef; ref != nil {
-		gvk := schema.FromAPIVersionAndKind(ref.APIVersion, ref.Kind)
-		webhook, err := r.getObject(ctx, gvk, types.NamespacedName{
+		webhook, err := r.getObject(ctx, ref.GroupVersionKind(), types.NamespacedName{
 			Namespace: rt.Namespace,
 			Name:      ref.Name,
 		})
