@@ -62,18 +62,6 @@ var _ = Describe("Handler", func() {
 		return testenv.GetChanges(handler.Client)
 	}
 
-	BeforeEach(func() {
-		var err error
-		mgr, err = testenv.NewManager()
-		Expect(err).NotTo(HaveOccurred())
-
-		handler = NewHandler(mgr)
-
-		Expect(mgr.Initialize()).To(Succeed())
-
-		namespaceMap = random.NewNamespaceMap()
-	})
-
 	testGolden := func() {
 		It("should match the golden file", func() {
 			objects, err := testenv.GetChangedObjects(getChanges())
@@ -101,9 +89,21 @@ var _ = Describe("Handler", func() {
 		})
 	}
 
+	BeforeEach(func() {
+		var err error
+		mgr, err = testenv.NewManager()
+		Expect(err).NotTo(HaveOccurred())
+
+		handler = NewHandler(mgr)
+
+		Expect(mgr.Initialize()).To(Succeed())
+
+		namespaceMap = random.NewNamespaceMap()
+	})
+
 	JustBeforeEach(func() {
 		recorder = httptest.NewRecorder()
-		httputil.NewHandler(handler.Handle)(recorder, req)
+		hookutil.NewHandler(handler.Handle).ServeHTTP(recorder, req)
 	})
 
 	AfterEach(func() {

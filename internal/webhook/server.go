@@ -72,7 +72,7 @@ func (s *Server) Start(stop <-chan struct{}) error {
 
 	for name, handler := range handlers {
 		router.
-			Handle("/webhooks/"+name, httputil.NewHandler(handler.Handle)).
+			Handle("/webhooks/"+name, hookutil.NewHandler(handler.Handle)).
 			Methods(http.MethodPost)
 	}
 

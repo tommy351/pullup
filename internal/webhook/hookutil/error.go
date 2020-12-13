@@ -2,6 +2,7 @@ package hookutil
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/xeipuuv/gojsonschema"
@@ -31,4 +32,16 @@ func (v ValidationErrors) Error() string {
 	}
 
 	return "validation errors:\n" + strings.Join(details, "\n")
+}
+
+type JSONSchemaValidateError struct {
+	err error
+}
+
+func (j JSONSchemaValidateError) Error() string {
+	return fmt.Sprintf("json schema validate failed: %s", j.err.Error())
+}
+
+func (j JSONSchemaValidateError) Unwrap() error {
+	return j.err
 }

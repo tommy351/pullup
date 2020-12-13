@@ -15,7 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/fakegithub"
 	"github.com/tommy351/pullup/internal/golden"
-	"github.com/tommy351/pullup/internal/httputil"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
@@ -132,7 +131,7 @@ var _ = Describe("Handler", func() {
 
 	JustBeforeEach(func() {
 		recorder = httptest.NewRecorder()
-		httputil.NewHandler(handler.Handle)(recorder, req)
+		hookutil.NewHandler(handler.Handle).ServeHTTP(recorder, req)
 	})
 
 	AfterEach(func() {

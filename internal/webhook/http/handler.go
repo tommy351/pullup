@@ -11,7 +11,6 @@ import (
 	"github.com/tommy351/pullup/internal/httputil"
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	"github.com/xeipuuv/gojsonschema"
 	corev1 "k8s.io/api/core/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -141,7 +140,6 @@ func (h *Handler) validateSecretToken(r *http.Request, hook *v1beta1.HTTPWebhook
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
-	logger := logr.FromContextOrDiscard(r.Context())
 	body, err := h.parseBody(r)
 	if err != nil {
 		return err
@@ -169,39 +167,16 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if schema := hook.Spec.Schema; schema != nil && schema.Raw != nil {
-		rawData := body.Data.Raw
-		if rawData == nil {
-			rawData = []byte("null")
-		}
-
-		docLoader := gojsonschema.NewBytesLoader(rawData)
-		schemaLoader := gojsonschema.NewBytesLoader(schema.Raw)
-		result, err := gojsonschema.Validate(schemaLoader, docLoader)
-		if err != nil {
-			logger.Error(err, "JSON schema validate error")
-
-			return httputil.Response{
-				StatusCode: http.StatusBadRequest,
-				Errors: []httputil.Error{
-					{Description: "Failed to validate against JSON schema"},
-				},
-			}
-		}
-
-		if !result.Valid() {
-			return httputil.Response{
-				StatusCode: http.StatusBadRequest,
-				Errors:     httputil.NewErrorsForJSONSchema(result.Errors()),
-			}
-		}
+	data, err := hookutil.ValidateJSONSchema(hook.Spec.Schema, &body.Data)
+	if err != nil {
+		return fmt.Errorf("validate failed: %w", err)
 	}
 
 	err = h.TriggerHandler.Handle(r.Context(), &hookutil.TriggerOptions{
 		Source:   hook,
 		Triggers: hook.Spec.Triggers,
 		Action:   body.Action,
-		Event:    body.Data,
+		Event:    data,
 	})
 	if err != nil {
 		return fmt.Errorf("trigger failed: %w", err)

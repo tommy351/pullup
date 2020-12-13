@@ -11,7 +11,6 @@ import (
 	"github.com/tommy351/pullup/internal/jsonutil"
 	"github.com/tommy351/pullup/internal/template"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	"github.com/xeipuuv/gojsonschema"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
@@ -185,19 +184,12 @@ func (t *TriggerHandler) renderData(st *v1beta1.EventSourceTrigger, trigger *v1b
 		eventBuf = []byte(transformed)
 	}
 
-	if trigger.Spec.Schema != nil && trigger.Spec.Schema.Raw != nil {
-		result, err := gojsonschema.Validate(
-			gojsonschema.NewBytesLoader(trigger.Spec.Schema.Raw),
-			gojsonschema.NewBytesLoader(eventBuf),
-		)
-		if err != nil {
-			return extv1.JSON{}, fmt.Errorf("failed to validate against trigger schema: %w", err)
-		}
-
-		if !result.Valid() {
-			return extv1.JSON{}, JSONSchemaValidationErrors(result.Errors())
-		}
+	result, err := ValidateJSONSchema(trigger.Spec.Schema, &extv1.JSON{Raw: eventBuf})
+	if err != nil {
+		return extv1.JSON{}, err
 	}
+
+	eventBuf = result.Raw
 
 	return render()
 }
