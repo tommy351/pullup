@@ -60,14 +60,11 @@ func (h *Handler) handlePushEventBeta(ctx context.Context, event *github.PushEve
 	}
 
 	options := &hookutil.TriggerOptions{
-		Action:   v1beta1.ActionApply,
-		Event:    event,
-		Source:   hook,
-		Triggers: hook.Spec.Triggers,
-	}
-
-	if hook.Spec.Action != "" {
-		options.Action = hook.Spec.Action
+		DefaultAction: v1beta1.ActionApply,
+		Action:        hook.Spec.Action,
+		Event:         event,
+		Source:        hook,
+		Triggers:      hook.Spec.Triggers,
 	}
 
 	return h.TriggerHandler.Handle(ctx, options)

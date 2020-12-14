@@ -528,4 +528,115 @@ var _ = Describe("TriggerHandler", func() {
 			Expect(errors.Is(err, ErrInvalidAction)).To(BeTrue())
 		})
 	})
+
+	When("default action is given", func() {
+		BeforeEach(func() {
+			options = &TriggerOptions{
+				DefaultAction: v1beta1.ActionCreate,
+				Source:        webhook,
+				Triggers: []v1beta1.EventSourceTrigger{
+					{
+						Ref: v1beta1.ObjectReference{
+							APIVersion: "pullup.dev/v1beta1",
+							Kind:       "Trigger",
+							Name:       "trigger-a",
+						},
+					},
+				},
+			}
+		})
+
+		When("action is empty", func() {
+			testSuccess("resource-not-exist")
+
+			It("should create the resource", func() {
+				Expect(getChanges()).To(ContainElement(testenv.Change{
+					Type: "create",
+					NamespacedName: types.NamespacedName{
+						Name:      "trigger-a",
+						Namespace: namespaceMap.GetRandom("test"),
+					},
+					GroupVersionKind: v1beta1.GroupVersion.WithKind("ResourceTemplate"),
+				}))
+			})
+		})
+
+		When("action is not empty", func() {
+			BeforeEach(func() {
+				options.Action = v1beta1.ActionUpdate
+			})
+
+			testSuccess("resource-not-exist")
+
+			It("should not have any changes", func() {
+				Expect(getChanges()).To(BeEmpty())
+			})
+		})
+	})
+
+	When("action is a template string", func() {
+		BeforeEach(func() {
+			options = &TriggerOptions{
+				Action: "{{ .event.foo }}",
+				Source: webhook,
+				Triggers: []v1beta1.EventSourceTrigger{
+					{
+						Ref: v1beta1.ObjectReference{
+							APIVersion: "pullup.dev/v1beta1",
+							Kind:       "Trigger",
+							Name:       "trigger-a",
+						},
+					},
+				},
+				Event: map[string]interface{}{
+					"foo": "create",
+				},
+			}
+		})
+
+		testSuccess("resource-not-exist")
+
+		It("should create the resource", func() {
+			Expect(getChanges()).To(ContainElement(testenv.Change{
+				Type: "create",
+				NamespacedName: types.NamespacedName{
+					Name:      "trigger-a",
+					Namespace: namespaceMap.GetRandom("test"),
+				},
+				GroupVersionKind: v1beta1.GroupVersion.WithKind("ResourceTemplate"),
+			}))
+		})
+	})
+
+	When("access default action in action template", func() {
+		BeforeEach(func() {
+			options = &TriggerOptions{
+				Action:        "{{ .action }}",
+				DefaultAction: v1beta1.ActionCreate,
+				Source:        webhook,
+				Triggers: []v1beta1.EventSourceTrigger{
+					{
+						Ref: v1beta1.ObjectReference{
+							APIVersion: "pullup.dev/v1beta1",
+							Kind:       "Trigger",
+							Name:       "trigger-a",
+						},
+					},
+				},
+			}
+		})
+
+		testSuccess("resource-not-exist")
+
+		It("should create the resource", func() {
+			Expect(getChanges()).To(ContainElement(testenv.Change{
+				Type: "create",
+				NamespacedName: types.NamespacedName{
+					Name:      "trigger-a",
+					Namespace: namespaceMap.GetRandom("test"),
+				},
+				GroupVersionKind: v1beta1.GroupVersion.WithKind("ResourceTemplate"),
+			}))
+		})
+	})
 })

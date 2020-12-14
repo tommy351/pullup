@@ -525,6 +525,15 @@ var _ = Describe("Handler", func() {
 					})
 				})
 			})
+
+			When("action is set", func() {
+				setPushEvent(fakegithub.NewPushEvent())
+				testSuccess("beta/action")
+
+				It("should not have any changes", func() {
+					Expect(getChanges()).To(BeEmpty())
+				})
+			})
 		})
 
 		When("event type = pull_request", func() {
@@ -717,6 +726,15 @@ var _ = Describe("Handler", func() {
 					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 					testSuccess(name)
 					testSkipped()
+				})
+			})
+
+			When("action is set", func() {
+				setPullRequestEvent(fakegithub.NewPullRequestEvent())
+				testSuccess("beta/action")
+
+				It("should not have any changes", func() {
+					Expect(getChanges()).To(BeEmpty())
 				})
 			})
 		})

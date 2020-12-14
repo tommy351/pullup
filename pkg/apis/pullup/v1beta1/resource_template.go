@@ -9,6 +9,7 @@ const (
 	DataKeyEvent    = "event"
 	DataKeyResource = "resource"
 	DataKeyTrigger  = "trigger"
+	DataKeyAction   = "action"
 )
 
 // +kubebuilder:object:root=true

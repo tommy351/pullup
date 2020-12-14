@@ -547,4 +547,20 @@ var _ = Describe("Handler", func() {
 			})
 		})
 	})
+
+	When("action is given", func() {
+		BeforeEach(func() {
+			req = newRequest(&Body{
+				Namespace: namespaceMap.GetRandom("test"),
+				Name:      "foobar",
+				Action:    v1beta1.ActionCreate,
+			})
+		})
+
+		testSuccess("action")
+
+		It("should not have any changes", func() {
+			Expect(getChanges()).To(BeEmpty())
+		})
+	})
 })

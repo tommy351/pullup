@@ -56,10 +56,11 @@ type RenderedTrigger struct {
 }
 
 type TriggerOptions struct {
-	Source   TriggerSource
-	Triggers []v1beta1.EventSourceTrigger
-	Action   v1beta1.Action
-	Event    interface{}
+	Source        TriggerSource
+	Triggers      []v1beta1.EventSourceTrigger
+	DefaultAction v1beta1.Action
+	Action        v1beta1.Action
+	Event         interface{}
 }
 
 type TriggerHandler struct {
@@ -68,6 +69,11 @@ type TriggerHandler struct {
 }
 
 func (t *TriggerHandler) Handle(ctx context.Context, options *TriggerOptions) error {
+	action, err := t.renderAction(options)
+	if err != nil {
+		return err
+	}
+
 	triggers := make([]*RenderedTrigger, len(options.Triggers))
 
 	for i, trigger := range options.Triggers {
@@ -83,12 +89,40 @@ func (t *TriggerHandler) Handle(ctx context.Context, options *TriggerOptions) er
 	for _, trigger := range triggers {
 		trigger := trigger
 
-		if err := t.handleTrigger(ctx, trigger, options); err != nil {
+		if err := t.handleTrigger(ctx, trigger, action, options); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (t *TriggerHandler) renderAction(options *TriggerOptions) (v1beta1.Action, error) {
+	action := options.Action
+	if action == "" {
+		action = options.DefaultAction
+	}
+
+	buf, err := json.Marshal(map[string]interface{}{
+		v1beta1.DataKeyEvent:  options.Event,
+		v1beta1.DataKeyAction: options.DefaultAction,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal data: %w", err)
+	}
+
+	result, err := template.RenderFromJSON(string(action), extv1.JSON{Raw: buf})
+	if err != nil {
+		return "", fmt.Errorf("failed to render action: %w", err)
+	}
+
+	action = v1beta1.Action(result)
+
+	if !v1beta1.IsActionValid(action) {
+		return "", ErrInvalidAction
+	}
+
+	return action, nil
 }
 
 func (t *TriggerHandler) renderTrigger(ctx context.Context, st *v1beta1.EventSourceTrigger, options *TriggerOptions) (*RenderedTrigger, error) {
@@ -215,11 +249,11 @@ func (t *TriggerHandler) finalizeData(data extv1.JSON) (extv1.JSON, error) {
 	return extv1.JSON{Raw: buf}, nil
 }
 
-func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTrigger, options *TriggerOptions) error {
+func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTrigger, action v1beta1.Action, options *TriggerOptions) error {
 	var result controller.Result
 	logger := logr.FromContextOrDiscard(ctx)
 
-	switch options.Action {
+	switch action {
 	case v1beta1.ActionCreate:
 		result = t.createResource(ctx, trigger.ResourceTemplate)
 	case v1beta1.ActionUpdate:

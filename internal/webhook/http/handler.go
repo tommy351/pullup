@@ -173,14 +173,11 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	options := &hookutil.TriggerOptions{
-		Source:   hook,
-		Triggers: hook.Spec.Triggers,
-		Action:   body.Action,
-		Event:    data,
-	}
-
-	if hook.Spec.Action != "" {
-		options.Action = hook.Spec.Action
+		Source:        hook,
+		Triggers:      hook.Spec.Triggers,
+		DefaultAction: body.Action,
+		Action:        hook.Spec.Action,
+		Event:         data,
 	}
 
 	if err := h.TriggerHandler.Handle(r.Context(), options); err != nil {

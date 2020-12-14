@@ -54,18 +54,15 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 	}
 
 	options := &hookutil.TriggerOptions{
-		Action:   v1beta1.ActionApply,
-		Event:    event,
-		Source:   hook,
-		Triggers: hook.Spec.Triggers,
+		Action:        hook.Spec.Action,
+		DefaultAction: v1beta1.ActionApply,
+		Event:         event,
+		Source:        hook,
+		Triggers:      hook.Spec.Triggers,
 	}
 
 	if eventAction == "closed" {
-		options.Action = v1beta1.ActionDelete
-	}
-
-	if hook.Spec.Action != "" {
-		options.Action = hook.Spec.Action
+		options.DefaultAction = v1beta1.ActionDelete
 	}
 
 	return h.TriggerHandler.Handle(ctx, options)
