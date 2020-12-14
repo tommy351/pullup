@@ -1,5 +1,11 @@
 ---
 apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: foobar
+  namespace: test
+---
+apiVersion: pullup.dev/v1beta1
 kind: GitHubWebhook
 metadata:
   name: foobar
@@ -7,3 +13,8 @@ metadata:
 spec:
   repositories:
     - name: foo/bar
+  triggers:
+    - ref:
+        apiVersion: pullup.dev/v1beta1
+        kind: Trigger
+        name: foobar

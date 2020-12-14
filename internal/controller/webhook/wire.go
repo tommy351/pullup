@@ -9,21 +9,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-func NewAlphaReconciler(mgr manager.Manager, logger logr.Logger) *AlphaReconciler {
+func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 	wire.Build(
 		controller.NewClient,
 		controller.NewEventRecorder,
-		AlphaReconcilerSet,
+		ReconcilerSet,
 	)
 	return nil
-}
-
-func NewBetaReconcilerConfig(mgr manager.Manager, logger logr.Logger) BetaReconcilerConfig {
-	wire.Build(
-		controller.NewClient,
-		controller.NewEventRecorder,
-		NewLogger,
-		BetaReconcilerConfigSet,
-	)
-	return BetaReconcilerConfig{}
 }

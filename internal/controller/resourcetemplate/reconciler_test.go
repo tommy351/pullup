@@ -33,11 +33,7 @@ var _ = Describe("Reconciler", func() {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
-		data, err = k8s.MapObjects(data, func(obj runtime.Object) error {
-			namespaceMap.SetObject(obj)
-
-			return nil
-		})
+		data, err = k8s.MapObjects(data, namespaceMap.SetObject)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(testenv.CreateObjects(data)).To(Succeed())
 
@@ -90,11 +86,7 @@ var _ = Describe("Reconciler", func() {
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 
-			objects, err = k8s.MapObjects(objects, func(obj runtime.Object) error {
-				namespaceMap.RestoreObject(obj)
-
-				return nil
-			})
+			objects, err = k8s.MapObjects(objects, namespaceMap.RestoreObject)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(objects).To(golden.MatchObject())
 		})
@@ -320,16 +312,19 @@ var _ = Describe("Reconciler", func() {
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
+					Namespace:  namespaceMap.GetRandom("test"),
 					Name:       "abc",
 				},
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
+					Namespace:  namespaceMap.GetRandom("test"),
 					Name:       "def",
 				},
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
+					Namespace:  namespaceMap.GetRandom("test"),
 					Name:       "xyz",
 				},
 			}
@@ -346,13 +341,13 @@ var _ = Describe("Reconciler", func() {
 		})
 	})
 
-	When("webhookRef is given", func() {
-		testSuccess("webhook-ref")
+	When("triggerRef is given", func() {
+		testSuccess("trigger-ref")
 		testGolden()
 	})
 
-	When("webhook not found", func() {
-		testSuccess("webhook-not-found")
+	When("trigger not found", func() {
+		testSuccess("trigger-not-found")
 		testGolden()
 	})
 

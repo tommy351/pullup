@@ -14,7 +14,7 @@ type Response struct {
 }
 
 func (r Response) Error() string {
-	return fmt.Sprintf("response status %d", r.StatusCode)
+	return fmt.Sprintf("response status: %d", r.StatusCode)
 }
 
 type Error struct {

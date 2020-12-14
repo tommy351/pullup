@@ -44,7 +44,7 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 	}
 
 	if filter := repo.PullRequest.Labels; filter != nil {
-		labels := getPullRequestLabels(event.PullRequest)
+		labels := getPullRequestEventLabels(event)
 
 		if !hookutil.FilterWebhook(filter, labels) {
 			logger.V(log.Debug).Info("Skipped on this label", "labels", labels)
@@ -53,16 +53,17 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 		}
 	}
 
-	options := &hookutil.ResourceTemplateOptions{
-		Action:              v1beta1.WebhookActionApply,
-		Event:               event,
-		Webhook:             hook,
-		DefaultResourceName: "{{ .webhook.metadata.name }}-{{ .event.number }}",
+	options := &hookutil.TriggerOptions{
+		Action:        hook.Spec.Action,
+		DefaultAction: v1beta1.ActionApply,
+		Event:         event,
+		Source:        hook,
+		Triggers:      hook.Spec.Triggers,
 	}
 
 	if eventAction == "closed" {
-		options.Action = v1beta1.WebhookActionDelete
+		options.DefaultAction = v1beta1.ActionDelete
 	}
 
-	return h.ResourceTemplateClient.Handle(ctx, options)
+	return h.TriggerHandler.Handle(ctx, options)
 }

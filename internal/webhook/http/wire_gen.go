@@ -16,13 +16,13 @@ import (
 func NewHandler(mgr manager.Manager) *Handler {
 	client := controller.NewClient(mgr)
 	eventRecorder := hookutil.NewEventRecorder(mgr)
-	resourceTemplateClient := hookutil.ResourceTemplateClient{
+	triggerHandler := hookutil.TriggerHandler{
 		Client:   client,
 		Recorder: eventRecorder,
 	}
 	handler := &Handler{
-		Client:                 client,
-		ResourceTemplateClient: resourceTemplateClient,
+		Client:         client,
+		TriggerHandler: triggerHandler,
 	}
 	return handler
 }

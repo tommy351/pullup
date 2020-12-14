@@ -3,9 +3,9 @@ package hookutil
 import (
 	"testing"
 
-	"github.com/tommy351/pullup/internal/testutil"
+	"github.com/tommy351/pullup/internal/testenv"
 )
 
 func Test(t *testing.T) {
-	testutil.RunSpecs(t, "hookutil")
+	testenv.RunSpecsInEnvironment(t, "hookutil")
 }

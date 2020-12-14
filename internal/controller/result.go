@@ -12,7 +12,6 @@ type Result struct {
 	Reason    string
 	Requeue   bool
 	Message   string
-	Object    runtime.Object
 }
 
 func (r Result) GetEventType() string {
@@ -39,6 +38,6 @@ func (r Result) GetMessage() string {
 	return ""
 }
 
-func (r Result) RecordEvent(recorder record.EventRecorder) {
-	recorder.Event(r.Object, r.GetEventType(), r.Reason, r.GetMessage())
+func (r Result) RecordEvent(recorder record.EventRecorder, object runtime.Object) {
+	recorder.Event(object, r.GetEventType(), r.Reason, r.GetMessage())
 }

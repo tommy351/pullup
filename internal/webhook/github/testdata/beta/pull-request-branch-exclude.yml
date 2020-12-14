@@ -1,5 +1,17 @@
 ---
 apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  resourceName: "{{ .trigger.metadata.name }}"
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      targetName: foobar
+---
+apiVersion: pullup.dev/v1beta1
 kind: GitHubWebhook
 metadata:
   name: foobar
@@ -12,7 +24,8 @@ spec:
           exclude:
             - foo
             - /bar-\d/
-  patches:
-    - apiVersion: v1
-      kind: Pod
-      targetName: foobar
+  triggers:
+    - ref:
+        apiVersion: pullup.dev/v1beta1
+        kind: Trigger
+        name: foobar

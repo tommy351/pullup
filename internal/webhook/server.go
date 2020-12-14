@@ -21,7 +21,7 @@ var ServerSet = wire.NewSet(
 	hookutil.NewEventRecorder,
 	hookutil.NewFieldIndexer,
 	controller.NewClient,
-	hookutil.ResourceTemplateClientSet,
+	hookutil.TriggerHandlerSet,
 	github.HandlerSet,
 	httphook.HandlerSet,
 	wire.Struct(new(Server), "*"),
@@ -72,7 +72,7 @@ func (s *Server) Start(stop <-chan struct{}) error {
 
 	for name, handler := range handlers {
 		router.
-			Handle("/webhooks/"+name, httputil.NewHandler(handler.Handle)).
+			Handle("/webhooks/"+name, hookutil.NewHandler(handler.Handle)).
 			Methods(http.MethodPost)
 	}
 

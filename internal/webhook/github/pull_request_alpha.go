@@ -51,7 +51,7 @@ func (h *Handler) handlePullRequestEventAlpha(ctx context.Context, event *github
 		return nil
 	}
 
-	result.RecordEvent(h.Recorder)
+	result.RecordEvent(h.Recorder, hook)
 
 	if err := result.Error; err != nil {
 		logger.Error(err, result.GetMessage())
@@ -96,7 +96,6 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 
 	if rs.Name, err = getResourceName(event, hook, rs); err != nil {
 		return controller.Result{
-			Object: hook,
 			Error:  fmt.Errorf("failed to generate resource name: %w", err),
 			Reason: hookutil.ReasonInvalidWebhook,
 		}
@@ -104,13 +103,11 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 
 	if err := h.Client.Create(ctx, rs); err == nil {
 		return controller.Result{
-			Object:  hook,
 			Message: fmt.Sprintf("Created resource set: %s", rs.Name),
 			Reason:  hookutil.ReasonCreated,
 		}
 	} else if !errors.IsAlreadyExists(err) {
 		return controller.Result{
-			Object: hook,
 			Error:  fmt.Errorf("failed to create resource set: %w", err),
 			Reason: hookutil.ReasonCreateFailed,
 		}
@@ -119,7 +116,6 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 	patchValue, err := json.Marshal(rs.Spec)
 	if err != nil {
 		return controller.Result{
-			Object: hook,
 			Error:  fmt.Errorf("failed to marshal patch value: %w", err),
 			Reason: hookutil.ReasonUpdateFailed,
 		}
@@ -127,14 +123,13 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 
 	patch, err := json.Marshal([]v1beta1.JSONPatch{
 		{
-			Operation: "replace",
+			Operation: v1beta1.JSONPatchOpReplace,
 			Path:      "/spec",
 			Value:     &extv1.JSON{Raw: patchValue},
 		},
 	})
 	if err != nil {
 		return controller.Result{
-			Object: hook,
 			Error:  fmt.Errorf("failed to marshal resource set spec: %w", err),
 			Reason: hookutil.ReasonUpdateFailed,
 		}
@@ -142,14 +137,12 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 
 	if err := h.Client.Patch(ctx, rs, client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return controller.Result{
-			Object: hook,
 			Error:  fmt.Errorf("failed to patch resource set: %w", err),
 			Reason: hookutil.ReasonUpdateFailed,
 		}
 	}
 
 	return controller.Result{
-		Object:  hook,
 		Message: fmt.Sprintf("Updated resource set: %s", rs.Name),
 		Reason:  hookutil.ReasonUpdated,
 	}
@@ -164,14 +157,12 @@ func (h *Handler) deleteResourceSets(ctx context.Context, event *github.PullRequ
 		}))
 	if err != nil {
 		return controller.Result{
-			Object: hook,
 			Error:  fmt.Errorf("failed to delete resource set: %w", err),
 			Reason: hookutil.ReasonDeleteFailed,
 		}
 	}
 
 	return controller.Result{
-		Object:  hook,
 		Message: "Deleted resource sets",
 		Reason:  hookutil.ReasonDeleted,
 	}

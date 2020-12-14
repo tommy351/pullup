@@ -10,6 +10,7 @@ import (
 	"github.com/tommy351/pullup/internal/controller"
 	"github.com/tommy351/pullup/internal/controller/resourceset"
 	"github.com/tommy351/pullup/internal/controller/resourcetemplate"
+	"github.com/tommy351/pullup/internal/controller/trigger"
 	"github.com/tommy351/pullup/internal/controller/webhook"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/log"
@@ -58,7 +59,7 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		Recorder: eventRecorder,
 	}
 	webhookLogger := webhook.NewLogger(logrLogger)
-	alphaReconciler := &webhook.AlphaReconciler{
+	webhookReconciler := &webhook.Reconciler{
 		Client:   client,
 		Logger:   webhookLogger,
 		Recorder: eventRecorder,
@@ -72,18 +73,19 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 		Recorder:  eventRecorder,
 		APIReader: reader,
 	}
-	betaReconcilerConfig := webhook.BetaReconcilerConfig{
+	triggerLogger := trigger.NewLogger(logrLogger)
+	reconcilerConfig := trigger.ReconcilerConfig{
 		Client:   client,
-		Logger:   webhookLogger,
+		Logger:   triggerLogger,
 		Recorder: eventRecorder,
 	}
-	betaReconcilerFactory, err := webhook.NewBetaReconcilerFactory(betaReconcilerConfig, manager)
+	triggerReconciler, err := trigger.NewReconciler(reconcilerConfig, manager)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	mainManager, err := NewManager(manager, reconciler, alphaReconciler, resourcetemplateReconciler, betaReconcilerFactory)
+	mainManager, err := NewManager(manager, reconciler, webhookReconciler, resourcetemplateReconciler, triggerReconciler)
 	if err != nil {
 		cleanup2()
 		cleanup()

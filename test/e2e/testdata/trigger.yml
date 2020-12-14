@@ -1,0 +1,39 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: conf-ab
+  namespace: test-pullup
+spec:
+  resourceName: '{{ .trigger.metadata.name }}-a1b2c3'
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      sourceName: conf-a
+      targetName: conf-a-a1b2c3
+    - apiVersion: v1
+      kind: ConfigMap
+      sourceName: conf-b
+      targetName: conf-b-a1b2c3
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: conf-ab-a1b2c3
+  namespace: test-pullup
+spec:
+  triggerRef:
+    apiVersion: pullup.dev/v1beta1
+    kind: Trigger
+    namespace: test-pullup
+    name: conf-ab
+  data: {}
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      sourceName: conf-a
+      targetName: conf-a-a1b2c3
+    - apiVersion: v1
+      kind: ConfigMap
+      sourceName: conf-b
+      targetName: conf-b-a1b2c3

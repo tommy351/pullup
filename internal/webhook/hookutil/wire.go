@@ -1,15 +1,18 @@
+// +build wireinject
+
 package hookutil
 
 import (
-	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/google/wire"
+	"github.com/tommy351/pullup/internal/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-func NewEventRecorder(mgr manager.Manager) record.EventRecorder {
-	return mgr.GetEventRecorderFor("pullup-webhook")
-}
-
-func NewFieldIndexer(mgr manager.Manager) client.FieldIndexer {
-	return mgr.GetFieldIndexer()
+func NewTriggerHandler(mgr manager.Manager) *TriggerHandler {
+	wire.Build(
+		controller.NewClient,
+		NewEventRecorder,
+		TriggerHandlerSet,
+	)
+	return nil
 }

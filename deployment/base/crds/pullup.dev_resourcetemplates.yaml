@@ -20,11 +20,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.webhookRef.kind
-      name: Webhook Kind
-      type: string
-    - jsonPath: .spec.webhookRef.name
-      name: Webhook Name
+    - jsonPath: .spec.triggerRef.name
+      name: Trigger
       type: string
     - jsonPath: .status.lastUpdateTime
       name: Last Update
@@ -87,13 +84,15 @@ spec:
                   - kind
                   type: object
                 type: array
-              webhookRef:
+              triggerRef:
                 properties:
                   apiVersion:
                     type: string
                   kind:
                     type: string
                   name:
+                    type: string
+                  namespace:
                     type: string
                 required:
                 - apiVersion
@@ -111,6 +110,8 @@ spec:
                     kind:
                       type: string
                     name:
+                      type: string
+                    namespace:
                       type: string
                   required:
                   - apiVersion

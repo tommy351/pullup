@@ -7,15 +7,15 @@ import (
 
 const (
 	DataKeyEvent    = "event"
-	DataKeyWebhook  = "webhook"
 	DataKeyResource = "resource"
+	DataKeyTrigger  = "trigger"
+	DataKeyAction   = "action"
 )
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=all;pullup
-// +kubebuilder:printcolumn:name="Webhook Kind",type=string,JSONPath=`.spec.webhookRef.kind`
-// +kubebuilder:printcolumn:name="Webhook Name",type=string,JSONPath=`.spec.webhookRef.name`
+// +kubebuilder:printcolumn:name="Trigger",type=string,JSONPath=`.spec.triggerRef.name`
 // +kubebuilder:printcolumn:name="Last Update",type=date,JSONPath=`.status.lastUpdateTime`
 
 type ResourceTemplate struct {
@@ -36,8 +36,8 @@ type ResourceTemplateList struct {
 }
 
 type ResourceTemplateSpec struct {
-	WebhookRef *ObjectReference `json:"webhookRef,omitempty"`
-	Patches    []WebhookPatch   `json:"patches,omitempty"`
+	TriggerRef *ObjectReference `json:"triggerRef,omitempty"`
+	Patches    []TriggerPatch   `json:"patches,omitempty"`
 	Data       extv1.JSON       `json:"data,omitempty"`
 }
 

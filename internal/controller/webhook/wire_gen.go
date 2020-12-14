@@ -13,26 +13,14 @@ import (
 
 // Injectors from wire.go:
 
-func NewAlphaReconciler(mgr manager.Manager, logger logr.Logger) *AlphaReconciler {
+func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
 	client := controller.NewClient(mgr)
 	webhookLogger := NewLogger(logger)
 	eventRecorder := controller.NewEventRecorder(mgr)
-	alphaReconciler := &AlphaReconciler{
+	reconciler := &Reconciler{
 		Client:   client,
 		Logger:   webhookLogger,
 		Recorder: eventRecorder,
 	}
-	return alphaReconciler
-}
-
-func NewBetaReconcilerConfig(mgr manager.Manager, logger logr.Logger) BetaReconcilerConfig {
-	client := controller.NewClient(mgr)
-	webhookLogger := NewLogger(logger)
-	eventRecorder := controller.NewEventRecorder(mgr)
-	betaReconcilerConfig := BetaReconcilerConfig{
-		Client:   client,
-		Logger:   webhookLogger,
-		Recorder: eventRecorder,
-	}
-	return betaReconcilerConfig
+	return reconciler
 }

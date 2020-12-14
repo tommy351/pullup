@@ -1,15 +1,11 @@
+---
 apiVersion: pullup.dev/v1beta1
-kind: HTTPWebhook
+kind: Trigger
 metadata:
   name: http-server
   namespace: test-pullup
 spec:
-  resourceName: '{{ .webhook.metadata.name }}-{{ .event.suffix }}'
-  schema:
-    type: object
-    properties:
-      suffix:
-        type: string
+  resourceName: '{{ .trigger.metadata.name }}-{{ .event.suffix }}'
   patches:
     - apiVersion: apps/v1
       kind: Deployment
@@ -36,3 +32,20 @@ spec:
         spec:
           selector:
             app: '{{ .resource.metadata.name }}'
+---
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: http-server
+  namespace: test-pullup
+spec:
+  schema:
+    type: object
+    properties:
+      suffix:
+        type: string
+  triggers:
+    - ref:
+        apiVersion: pullup.dev/v1beta1
+        kind: Trigger
+        name: http-server

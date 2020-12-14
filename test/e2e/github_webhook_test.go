@@ -70,7 +70,7 @@ var _ = Describe("GitHubWebhook", func() {
 		})
 
 		When("action = opened", func() {
-			event := fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened"))
+			event := fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened"))
 			name := fmt.Sprintf("%s-%d", webhookName, event.GetNumber())
 
 			BeforeEach(func() {
@@ -86,8 +86,8 @@ var _ = Describe("GitHubWebhook", func() {
 		})
 
 		When("action = closed", func() {
-			openedEvent := fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened"))
-			closedEvent := fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("closed"))
+			openedEvent := fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened"))
+			closedEvent := fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("closed"))
 			name := fmt.Sprintf("%s-%d", webhookName, openedEvent.GetNumber())
 
 			BeforeEach(func() {

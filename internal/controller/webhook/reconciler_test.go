@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = Describe("AlphaReconciler", func() {
+var _ = Describe("Reconciler", func() {
 	var (
-		reconciler   *AlphaReconciler
+		reconciler   *Reconciler
 		mgr          *testenv.Manager
 		result       reconcile.Result
 		err          error
@@ -28,7 +28,7 @@ var _ = Describe("AlphaReconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewAlphaReconciler(mgr, log.Log)
+		reconciler = NewReconciler(mgr, log.Log)
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()
@@ -61,7 +61,6 @@ var _ = Describe("AlphaReconciler", func() {
 		})
 	})
 
-	// nolint: dupl
 	When("patch success", func() {
 		var data []runtime.Object
 
@@ -70,11 +69,7 @@ var _ = Describe("AlphaReconciler", func() {
 			data, err = k8s.LoadObjects(testenv.GetScheme(), "testdata/success.yml")
 			Expect(err).NotTo(HaveOccurred())
 
-			data, err = k8s.MapObjects(data, func(obj runtime.Object) error {
-				namespaceMap.SetObject(obj)
-
-				return nil
-			})
+			data, err = k8s.MapObjects(data, namespaceMap.SetObject)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(testenv.CreateObjects(data)).To(Succeed())
 		})
@@ -96,11 +91,7 @@ var _ = Describe("AlphaReconciler", func() {
 			objects, err := testenv.GetChangedObjects(changes)
 			Expect(err).NotTo(HaveOccurred())
 
-			objects, err = k8s.MapObjects(objects, func(obj runtime.Object) error {
-				namespaceMap.RestoreObject(obj)
-
-				return nil
-			})
+			objects, err = k8s.MapObjects(objects, namespaceMap.RestoreObject)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(objects).To(golden.MatchObject())
 		})

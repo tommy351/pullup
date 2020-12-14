@@ -51,11 +51,7 @@ var _ = Describe("Handler", func() {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
-		data, err = k8s.MapObjects(data, func(obj runtime.Object) error {
-			namespaceMap.SetObject(obj)
-
-			return nil
-		})
+		data, err = k8s.MapObjects(data, namespaceMap.SetObject)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(testenv.CreateObjects(data)).To(Succeed())
 
@@ -66,28 +62,12 @@ var _ = Describe("Handler", func() {
 		return testenv.GetChanges(handler.Client)
 	}
 
-	BeforeEach(func() {
-		var err error
-		mgr, err = testenv.NewManager()
-		Expect(err).NotTo(HaveOccurred())
-
-		handler = NewHandler(mgr)
-
-		Expect(mgr.Initialize()).To(Succeed())
-
-		namespaceMap = random.NewNamespaceMap()
-	})
-
 	testGolden := func() {
 		It("should match the golden file", func() {
 			objects, err := testenv.GetChangedObjects(getChanges())
 			Expect(err).NotTo(HaveOccurred())
 
-			objects, err = k8s.MapObjects(objects, func(obj runtime.Object) error {
-				namespaceMap.RestoreObject(obj)
-
-				return nil
-			})
+			objects, err = k8s.MapObjects(objects, namespaceMap.RestoreObject)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(objects).To(golden.MatchObject())
 		})
@@ -109,9 +89,21 @@ var _ = Describe("Handler", func() {
 		})
 	}
 
+	BeforeEach(func() {
+		var err error
+		mgr, err = testenv.NewManager()
+		Expect(err).NotTo(HaveOccurred())
+
+		handler = NewHandler(mgr)
+
+		Expect(mgr.Initialize()).To(Succeed())
+
+		namespaceMap = random.NewNamespaceMap()
+	})
+
 	JustBeforeEach(func() {
 		recorder = httptest.NewRecorder()
-		httputil.NewHandler(handler.Handle)(recorder, req)
+		hookutil.NewHandler(handler.Handle).ServeHTTP(recorder, req)
 	})
 
 	AfterEach(func() {
@@ -186,7 +178,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: "a",
 				Name:      "b",
-				Action:    v1beta1.WebhookActionApply,
+				Action:    v1beta1.ActionApply,
 			})
 		})
 
@@ -208,7 +200,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    v1beta1.WebhookActionCreate,
+				Action:    v1beta1.ActionCreate,
 			})
 		})
 
@@ -244,7 +236,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    v1beta1.WebhookActionUpdate,
+				Action:    v1beta1.ActionUpdate,
 			})
 		})
 
@@ -280,7 +272,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    v1beta1.WebhookActionApply,
+				Action:    v1beta1.ActionApply,
 			})
 		})
 
@@ -316,7 +308,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    v1beta1.WebhookActionDelete,
+				Action:    v1beta1.ActionDelete,
 			})
 		})
 
@@ -370,7 +362,7 @@ var _ = Describe("Handler", func() {
 				req = newRequest(&Body{
 					Namespace: namespaceMap.GetRandom("test"),
 					Name:      "foobar",
-					Action:    v1beta1.WebhookActionApply,
+					Action:    v1beta1.ActionApply,
 					Data: extv1.JSON{
 						Raw: testutil.MustMarshalJSON(map[string]interface{}{
 							"foo": "bar",
@@ -392,7 +384,7 @@ var _ = Describe("Handler", func() {
 				req = newRequest(&Body{
 					Namespace: namespaceMap.GetRandom("test"),
 					Name:      "foobar",
-					Action:    v1beta1.WebhookActionApply,
+					Action:    v1beta1.ActionApply,
 					Data: extv1.JSON{
 						Raw: testutil.MustMarshalJSON(map[string]interface{}{
 							"foo": true,
@@ -423,7 +415,7 @@ var _ = Describe("Handler", func() {
 				req = newRequest(&Body{
 					Namespace: namespaceMap.GetRandom("test"),
 					Name:      "foobar",
-					Action:    v1beta1.WebhookActionApply,
+					Action:    v1beta1.ActionApply,
 				})
 			})
 
@@ -453,7 +445,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    v1beta1.WebhookActionApply,
+				Action:    v1beta1.ActionApply,
 			})
 		})
 
@@ -481,7 +473,7 @@ var _ = Describe("Handler", func() {
 			req = newRequest(&Body{
 				Namespace: namespaceMap.GetRandom("test"),
 				Name:      "foobar",
-				Action:    v1beta1.WebhookActionApply,
+				Action:    v1beta1.ActionApply,
 			})
 		})
 
@@ -553,6 +545,22 @@ var _ = Describe("Handler", func() {
 					},
 				})))
 			})
+		})
+	})
+
+	When("action is given", func() {
+		BeforeEach(func() {
+			req = newRequest(&Body{
+				Namespace: namespaceMap.GetRandom("test"),
+				Name:      "foobar",
+				Action:    v1beta1.ActionCreate,
+			})
+		})
+
+		testSuccess("action")
+
+		It("should not have any changes", func() {
+			Expect(getChanges()).To(BeEmpty())
 		})
 	})
 })

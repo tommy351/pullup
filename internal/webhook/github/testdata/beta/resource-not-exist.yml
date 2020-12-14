@@ -1,13 +1,24 @@
 ---
 apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  resourceName: "{{ .trigger.metadata.name }}"
+---
+apiVersion: pullup.dev/v1beta1
 kind: GitHubWebhook
 metadata:
   name: foobar
   namespace: test
 spec:
-  resourceName: "{{ .webhook.metadata.name }}"
   repositories:
     - name: foo/bar
       push: {}
       pullRequest: {}
-
+  triggers:
+    - ref:
+        apiVersion: pullup.dev/v1beta1
+        kind: Trigger
+        name: foobar

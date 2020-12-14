@@ -40,6 +40,18 @@ func (h *Handler) handlePullRequestEvent(ctx context.Context, event *github.Pull
 	return nil
 }
 
+func getPullRequestEventLabels(event *github.PullRequestEvent) []string {
+	if label := event.Label; label != nil && label.Name != nil {
+		return []string{*label.Name}
+	}
+
+	if pr := event.PullRequest; pr != nil {
+		return getPullRequestLabels(pr)
+	}
+
+	return nil
+}
+
 func getPullRequestLabels(pr *github.PullRequest) (result []string) {
 	for _, label := range pr.Labels {
 		if label != nil && label.Name != nil {

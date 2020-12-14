@@ -13,8 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.ResourceTemplate) ([]v1beta1.WebhookPatch, error) {
-	output := make([]v1beta1.WebhookPatch, len(rt.Spec.Patches))
+func (r *Reconciler) renderTriggerPatches(ctx context.Context, rt *v1beta1.ResourceTemplate) ([]v1beta1.TriggerPatch, error) {
+	output := make([]v1beta1.TriggerPatch, len(rt.Spec.Patches))
 	raw := rt.Spec.Data.Raw
 	if raw == nil {
 		raw = []byte("{}")
@@ -29,7 +29,7 @@ func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.Resou
 		v1beta1.DataKeyResource: rt,
 	}
 
-	if ref := rt.Spec.WebhookRef; ref != nil {
+	if ref := rt.Spec.TriggerRef; ref != nil {
 		webhook, err := r.getObject(ctx, ref.GroupVersionKind(), types.NamespacedName{
 			Namespace: rt.Namespace,
 			Name:      ref.Name,
@@ -39,7 +39,7 @@ func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.Resou
 		}
 
 		if webhook != nil {
-			addedKeys[v1beta1.DataKeyWebhook] = webhook
+			addedKeys[v1beta1.DataKeyTrigger] = webhook
 		}
 	}
 
@@ -54,7 +54,7 @@ func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.Resou
 
 	for i, patch := range rt.Spec.Patches {
 		patch := patch
-		result, err := r.renderWebhookPatch(rt, &patch, data)
+		result, err := r.renderTriggerPatch(rt, &patch, data)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +65,7 @@ func (r *Reconciler) renderWebhookPatches(ctx context.Context, rt *v1beta1.Resou
 	return output, nil
 }
 
-func (r *Reconciler) renderWebhookPatch(rt *v1beta1.ResourceTemplate, patch *v1beta1.WebhookPatch, data interface{}) (*v1beta1.WebhookPatch, error) {
+func (r *Reconciler) renderTriggerPatch(rt *v1beta1.ResourceTemplate, patch *v1beta1.TriggerPatch, data interface{}) (*v1beta1.TriggerPatch, error) {
 	var err error
 	result := patch.DeepCopy()
 

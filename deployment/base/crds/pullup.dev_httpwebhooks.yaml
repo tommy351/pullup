@@ -33,49 +33,12 @@ spec:
             type: object
           spec:
             properties:
-              patches:
-                items:
-                  properties:
-                    apiVersion:
-                      type: string
-                    jsonPatch:
-                      items:
-                        properties:
-                          from:
-                            type: string
-                          op:
-                            enum:
-                            - add
-                            - remove
-                            - replace
-                            - copy
-                            - move
-                            - test
-                            type: string
-                          path:
-                            type: string
-                          value:
-                            x-kubernetes-preserve-unknown-fields: true
-                        required:
-                        - op
-                        - path
-                        type: object
-                      type: array
-                    kind:
-                      type: string
-                    merge:
-                      type: object
-                      x-kubernetes-preserve-unknown-fields: true
-                    sourceName:
-                      type: string
-                    targetName:
-                      type: string
-                  required:
-                  - apiVersion
-                  - kind
-                  type: object
-                type: array
-              resourceName:
+              action:
+                enum:
+                - create
+                - update
+                - apply
+                - delete
                 type: string
               schema:
                 x-kubernetes-preserve-unknown-fields: true
@@ -97,6 +60,30 @@ spec:
                     - key
                     type: object
                 type: object
+              triggers:
+                items:
+                  properties:
+                    ref:
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - apiVersion
+                      - kind
+                      - name
+                      type: object
+                    transform:
+                      x-kubernetes-preserve-unknown-fields: true
+                  required:
+                  - ref
+                  type: object
+                type: array
             type: object
           status:
             type: object

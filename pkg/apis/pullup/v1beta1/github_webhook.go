@@ -16,10 +16,6 @@ type GitHubWebhook struct {
 	Spec   GitHubWebhookSpec   `json:"spec,omitempty"`
 }
 
-func (in *GitHubWebhook) GetSpec() WebhookSpec {
-	return in.Spec.WebhookSpec
-}
-
 // +kubebuilder:object:root=true
 
 type GitHubWebhookList struct {
@@ -30,7 +26,7 @@ type GitHubWebhookList struct {
 }
 
 type GitHubWebhookSpec struct {
-	WebhookSpec `json:",inline"`
+	EventSourceSpec `json:",inline"`
 
 	Repositories []GitHubRepository `json:"repositories"`
 }
@@ -42,13 +38,13 @@ type GitHubRepository struct {
 }
 
 type GitHubPushEventFilter struct {
-	Branches *WebhookFilter `json:"branches,omitempty"`
-	Tags     *WebhookFilter `json:"tags,omitempty"`
+	Branches *EventSourceFilter `json:"branches,omitempty"`
+	Tags     *EventSourceFilter `json:"tags,omitempty"`
 }
 
 type GitHubPullRequestEventFilter struct {
-	Branches *WebhookFilter               `json:"branches,omitempty"`
-	Labels   *WebhookFilter               `json:"labels,omitempty"`
+	Branches *EventSourceFilter           `json:"branches,omitempty"`
+	Labels   *EventSourceFilter           `json:"labels,omitempty"`
 	Types    []GitHubPullRequestEventType `json:"types,omitempty"`
 }
 
@@ -56,5 +52,5 @@ type GitHubPullRequestEventFilter struct {
 type GitHubPullRequestEventType string
 
 type GitHubWebhookStatus struct {
-	WebhookStatus `json:",inline"`
+	EventSourceStatus `json:",inline"`
 }

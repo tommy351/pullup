@@ -1,3 +1,19 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: conf-pull-request
+  namespace: test-pullup
+spec:
+  resourceName: '{{ .trigger.metadata.name }}-{{ .event.number }}'
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      sourceName: conf-a
+      merge:
+        data:
+          a: '{{ .event.number }}'
+---
 apiVersion: pullup.dev/v1beta1
 kind: GitHubWebhook
 metadata:
@@ -7,10 +23,8 @@ spec:
   repositories:
     - name: foo/bar
       pullRequest: {}
-  patches:
-    - apiVersion: v1
-      kind: ConfigMap
-      sourceName: conf-a
-      merge:
-        data:
-          a: '{{ .event.number }}'
+  triggers:
+    - ref:
+        apiVersion: pullup.dev/v1beta1
+        kind: Trigger
+        name: conf-pull-request

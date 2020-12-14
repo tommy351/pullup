@@ -80,9 +80,9 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	return r.handleResourceTemplate(logr.NewContext(ctx, logger), rt)
 }
 
-func (r *Reconciler) handleResult(ctx context.Context, result controller.Result) (reconcile.Result, error) {
+func (r *Reconciler) handleResult(ctx context.Context, rt *v1beta1.ResourceTemplate, result controller.Result) (reconcile.Result, error) {
 	logger := logr.FromContextOrDiscard(ctx)
-	result.RecordEvent(r.Recorder)
+	result.RecordEvent(r.Recorder, rt)
 
 	if err := result.Error; err != nil {
 		logger.Error(result.Error, result.GetMessage())
@@ -94,10 +94,9 @@ func (r *Reconciler) handleResult(ctx context.Context, result controller.Result)
 }
 
 func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.ResourceTemplate) (reconcile.Result, error) {
-	patches, err := r.renderWebhookPatches(ctx, rt)
+	patches, err := r.renderTriggerPatches(ctx, rt)
 	if err != nil {
-		return r.handleResult(ctx, controller.Result{
-			Object: rt,
+		return r.handleResult(ctx, rt, controller.Result{
 			Error:  err,
 			Reason: ReasonInvalidPatch,
 		})
@@ -106,8 +105,7 @@ func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.Res
 	activity := getResourceActivity(rt, patches)
 
 	if err := r.updateStatus(ctx, rt, activity.Active); err != nil {
-		return r.handleResult(ctx, controller.Result{
-			Object:  rt,
+		return r.handleResult(ctx, rt, controller.Result{
 			Error:   err,
 			Reason:  ReasonFailed,
 			Requeue: true,
@@ -119,7 +117,7 @@ func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.Res
 	for _, patch := range patches {
 		patch := patch
 
-		if result, err := r.handleResult(ctx, r.applyResource(ctx, rt, &patch)); err != nil {
+		if result, err := r.handleResult(ctx, rt, r.applyResource(ctx, rt, &patch)); err != nil {
 			return result, err
 		}
 	}
@@ -144,18 +142,16 @@ func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.Re
 		obj := new(unstructured.Unstructured)
 		obj.SetAPIVersion(ref.APIVersion)
 		obj.SetKind(ref.Kind)
-		obj.SetNamespace(rt.Namespace)
+		obj.SetNamespace(ref.Namespace)
 		obj.SetName(ref.Name)
 
 		if err := r.Client.Delete(ctx, obj); err == nil {
-			_, _ = r.handleResult(ctx, controller.Result{
-				Object:  rt,
+			_, _ = r.handleResult(ctx, rt, controller.Result{
 				Message: fmt.Sprintf("Deleted resource: %s", getObjectName(obj)),
 				Reason:  ReasonDeleted,
 			})
 		} else if !errors.IsNotFound(err) {
-			_, _ = r.handleResult(ctx, controller.Result{
-				Object: rt,
+			_, _ = r.handleResult(ctx, rt, controller.Result{
 				Error:  fmt.Errorf("failed to delete resource: %w", err),
 				Reason: ReasonDeleteFailed,
 			})
@@ -186,7 +182,7 @@ func (r *Reconciler) newEmptyObject(gvk schema.GroupVersionKind, key client.Obje
 	return obj, nil
 }
 
-func (r *Reconciler) patchObject(input runtime.Object, patch *v1beta1.WebhookPatch) (runtime.Object, error) {
+func (r *Reconciler) patchObject(input runtime.Object, patch *v1beta1.TriggerPatch) (runtime.Object, error) {
 	inputBuf, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal object: %w", err)
@@ -256,11 +252,10 @@ func (r *Reconciler) newUpdatePatch(original, desired, current runtime.Object) (
 	return newStrategicMergePatchForUpdate(originalBuf, desiredBuf, currentBuf, current)
 }
 
-func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemplate, patch *v1beta1.WebhookPatch) controller.Result {
+func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemplate, patch *v1beta1.TriggerPatch) controller.Result {
 	gvk, err := getPatchGVK(patch)
 	if err != nil {
 		return controller.Result{
-			Object: rt,
 			Error:  err,
 			Reason: ReasonInvalidPatch,
 		}
@@ -275,7 +270,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	if originalName.Name != "" {
 		if original, err = r.getObject(ctx, gvk, originalName); err != nil && !errors.IsNotFound(err) {
 			return controller.Result{
-				Object:  rt,
 				Error:   fmt.Errorf("failed to get original resource: %w", err),
 				Reason:  ReasonFailed,
 				Requeue: true,
@@ -286,7 +280,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	if original == nil {
 		if original, err = r.newEmptyObject(gvk, types.NamespacedName{Namespace: rt.Namespace}); err != nil {
 			return controller.Result{
-				Object: rt,
 				Error:  err,
 				Reason: ReasonFailed,
 			}
@@ -296,7 +289,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	desired, err := r.patchObject(original, patch)
 	if err != nil {
 		return controller.Result{
-			Object: rt,
 			Error:  err,
 			Reason: ReasonInvalidPatch,
 		}
@@ -309,7 +301,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	current, err := r.getObject(ctx, gvk, currentName)
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.Result{
-			Object:  rt,
 			Error:   fmt.Errorf("failed to get current resource: %w", err),
 			Reason:  ReasonFailed,
 			Requeue: true,
@@ -320,7 +311,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 		obj, err := cleanObjectForCreate(desired)
 		if err != nil {
 			return controller.Result{
-				Object: rt,
 				Error:  err,
 				Reason: ReasonFailed,
 			}
@@ -337,7 +327,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 			},
 		}); err != nil {
 			return controller.Result{
-				Object: rt,
 				Error:  err,
 				Reason: ReasonFailed,
 			}
@@ -345,7 +334,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 
 		if err := setObjectName(obj, currentName); err != nil {
 			return controller.Result{
-				Object: rt,
 				Error:  err,
 				Reason: ReasonFailed,
 			}
@@ -355,7 +343,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 
 		if err := r.Client.Create(ctx, obj); err != nil {
 			return controller.Result{
-				Object:  rt,
 				Error:   fmt.Errorf("failed to create resource: %w", err),
 				Reason:  ReasonCreateFailed,
 				Requeue: true,
@@ -368,7 +355,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 		obj.GetObjectKind().SetGroupVersionKind(gvk)
 
 		return controller.Result{
-			Object:  rt,
 			Message: fmt.Sprintf("Created resource: %s", getObjectName(obj)),
 			Reason:  ReasonCreated,
 		}
@@ -377,7 +363,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	if accessor, err := meta.Accessor(current); err == nil {
 		if !metav1.IsControlledBy(accessor, rt) {
 			return controller.Result{
-				Object:    rt,
 				EventType: corev1.EventTypeWarning,
 				Message:   fmt.Sprintf("Resource already exists and is not managed by pullup: %s", getObjectName(current)),
 				Reason:    ReasonResourceExists,
@@ -388,7 +373,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	updatePatch, err := r.newUpdatePatch(original, desired, current)
 	if err != nil {
 		return controller.Result{
-			Object: rt,
 			Error:  err,
 			Reason: ReasonFailed,
 		}
@@ -396,7 +380,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 
 	if updatePatch == nil {
 		return controller.Result{
-			Object:  rt,
 			Message: fmt.Sprintf("Skipped resource: %s", getObjectName(current)),
 			Reason:  ReasonUnchanged,
 		}
@@ -404,7 +387,6 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 
 	if err := r.Client.Patch(ctx, current, updatePatch); err != nil {
 		return controller.Result{
-			Object:  rt,
 			Error:   fmt.Errorf("failed to patch resource: %w", err),
 			Reason:  ReasonPatchFailed,
 			Requeue: true,
@@ -412,13 +394,12 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	}
 
 	return controller.Result{
-		Object:  rt,
 		Message: fmt.Sprintf("Patched resource: %s", getObjectName(current)),
 		Reason:  ReasonPatched,
 	}
 }
 
-func getPatchGVK(patch *v1beta1.WebhookPatch) (schema.GroupVersionKind, error) {
+func getPatchGVK(patch *v1beta1.TriggerPatch) (schema.GroupVersionKind, error) {
 	gv, err := schema.ParseGroupVersion(patch.APIVersion)
 	if err != nil {
 		return schema.GroupVersionKind{}, fmt.Errorf("invalid API version: %w", err)
@@ -518,7 +499,7 @@ type resourceActivity struct {
 	Inactive []v1beta1.ObjectReference
 }
 
-func getResourceActivity(rt *v1beta1.ResourceTemplate, patches []v1beta1.WebhookPatch) *resourceActivity {
+func getResourceActivity(rt *v1beta1.ResourceTemplate, patches []v1beta1.TriggerPatch) *resourceActivity {
 	var result resourceActivity
 
 	inactiveMap := make(map[v1beta1.ObjectReference]struct{})
@@ -531,6 +512,7 @@ func getResourceActivity(rt *v1beta1.ResourceTemplate, patches []v1beta1.Webhook
 		ref := v1beta1.ObjectReference{
 			APIVersion: patch.APIVersion,
 			Kind:       patch.Kind,
+			Namespace:  rt.Namespace,
 			Name:       patch.TargetName,
 		}
 		result.Active = append(result.Active, ref)

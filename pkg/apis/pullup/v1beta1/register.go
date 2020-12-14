@@ -22,6 +22,8 @@ func AddKnownTypes(scheme *runtime.Scheme) error {
 		&GitHubWebhookList{},
 		&HTTPWebhook{},
 		&HTTPWebhookList{},
+		&Trigger{},
+		&TriggerList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 

@@ -1,14 +1,26 @@
 ---
 apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: foobar
+  namespace: test
+spec:
+  resourceName: "{{ .trigger.metadata.name }}-{{ .event.foo }}"
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
+---
+apiVersion: pullup.dev/v1beta1
 kind: HTTPWebhook
 metadata:
   name: foobar
   namespace: test
 spec:
-  resourceName: "{{ .webhook.metadata.name }}-{{ .event.foo }}"
-  patches:
-    - apiVersion: v1
-      kind: Pod
-      sourceName: foo
+  triggers:
+    - ref:
+        apiVersion: pullup.dev/v1beta1
+        kind: Trigger
+        name: foobar
   schema:
     type: what

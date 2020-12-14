@@ -3,6 +3,7 @@ resources:
   - crds/pullup.dev_httpwebhooks.yaml
   - crds/pullup.dev_resourcesets.yaml
   - crds/pullup.dev_resourcetemplates.yaml
+  - crds/pullup.dev_triggers.yaml
   - crds/pullup.dev_webhooks.yaml
   - rbac/role.yaml
   - service-account.yml

@@ -23,7 +23,7 @@ func AddMapKeys(input []byte, values map[string]interface{}) ([]byte, error) {
 		}
 
 		patches = append(patches, v1beta1.JSONPatch{
-			Operation: "add",
+			Operation: v1beta1.JSONPatchOpAdd,
 			Path:      "/" + k,
 			Value:     &extv1.JSON{Raw: buf},
 		})
@@ -45,4 +45,22 @@ func AddMapKeys(input []byte, values map[string]interface{}) ([]byte, error) {
 	}
 
 	return result, nil
+}
+
+func PickKeys(input []byte, keys []string) ([]byte, error) {
+	var inputMap map[string]json.RawMessage
+
+	if err := json.Unmarshal(input, &inputMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal data: %w", err)
+	}
+
+	outputMap := map[string]json.RawMessage{}
+
+	for _, key := range keys {
+		if v, ok := inputMap[key]; ok {
+			outputMap[key] = v
+		}
+	}
+
+	return json.Marshal(outputMap)
 }

@@ -21,7 +21,7 @@ func FilterByConditions(conditions []string, input string) bool {
 	return false
 }
 
-func FilterWebhook(filter *v1beta1.WebhookFilter, input []string) bool {
+func FilterWebhook(filter *v1beta1.EventSourceFilter, input []string) bool {
 	if filter == nil {
 		return true
 	}
