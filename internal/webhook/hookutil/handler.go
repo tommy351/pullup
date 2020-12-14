@@ -17,6 +17,7 @@ func NewHandler(handler httputil.Handler) http.Handler {
 				jsve JSONSchemaValidationErrors
 				ve   ValidationErrors
 				jse  JSONSchemaValidateError
+				tnfe TriggerNotFoundError
 			)
 
 			switch {
@@ -47,6 +48,14 @@ func NewHandler(handler httputil.Handler) http.Handler {
 					StatusCode: http.StatusBadRequest,
 					Errors: []httputil.Error{
 						{Description: "Failed to validate against JSON schema"},
+					},
+				}
+
+			case errors.As(err, &tnfe):
+				return httputil.Response{
+					StatusCode: http.StatusBadRequest,
+					Errors: []httputil.Error{
+						{Description: "Trigger not found"},
 					},
 				}
 

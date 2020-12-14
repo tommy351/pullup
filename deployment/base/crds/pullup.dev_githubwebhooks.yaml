@@ -33,6 +33,13 @@ spec:
             type: object
           spec:
             properties:
+              action:
+                enum:
+                - create
+                - update
+                - apply
+                - delete
+                type: string
               repositories:
                 items:
                   properties:
@@ -114,13 +121,6 @@ spec:
               triggers:
                 items:
                   properties:
-                    action:
-                      enum:
-                      - create
-                      - update
-                      - apply
-                      - delete
-                      type: string
                     ref:
                       properties:
                         apiVersion:

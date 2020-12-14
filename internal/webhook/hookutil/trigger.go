@@ -51,7 +51,6 @@ type TriggerSource interface {
 }
 
 type RenderedTrigger struct {
-	Action           v1beta1.Action
 	ResourceTemplate *v1beta1.ResourceTemplate
 	Trigger          *v1beta1.Trigger
 }
@@ -101,11 +100,14 @@ func (t *TriggerHandler) renderTrigger(ctx context.Context, st *v1beta1.EventSou
 	}
 
 	if err := t.Client.Get(ctx, triggerKey, trigger); err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, TriggerNotFoundError{key: triggerKey, err: err}
+		}
+
 		return nil, fmt.Errorf("failed to get Trigger: %w", err)
 	}
 
 	result := &RenderedTrigger{
-		Action:  st.Action,
 		Trigger: trigger,
 		ResourceTemplate: &v1beta1.ResourceTemplate{
 			ObjectMeta: metav1.ObjectMeta{
@@ -128,16 +130,13 @@ func (t *TriggerHandler) renderTrigger(ctx context.Context, st *v1beta1.EventSou
 					Namespace:  trigger.Namespace,
 					Name:       trigger.Name,
 				},
+				Patches: trigger.Spec.Patches,
 			},
 		},
 	}
 
 	data, err := t.renderData(st, trigger, options)
 	if err != nil {
-		return nil, err
-	}
-
-	if result.Action, err = t.renderAction(st, data, options); err != nil {
 		return nil, err
 	}
 
@@ -194,26 +193,6 @@ func (t *TriggerHandler) renderData(st *v1beta1.EventSourceTrigger, trigger *v1b
 	return render()
 }
 
-func (t *TriggerHandler) renderAction(st *v1beta1.EventSourceTrigger, data extv1.JSON, options *TriggerOptions) (v1beta1.Action, error) {
-	action := st.Action
-	if action == "" {
-		action = options.Action
-	}
-
-	result, err := template.RenderFromJSON(string(action), data)
-	if err != nil {
-		return "", fmt.Errorf("failed to render action: %w", err)
-	}
-
-	action = v1beta1.Action(result)
-
-	if !v1beta1.IsActionValid(action) {
-		return "", ErrInvalidAction
-	}
-
-	return action, nil
-}
-
 func (t *TriggerHandler) renderName(trigger *v1beta1.Trigger, data extv1.JSON) (string, error) {
 	name, err := template.RenderFromJSON(trigger.Spec.ResourceName, data)
 	if err != nil {
@@ -240,7 +219,7 @@ func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTri
 	var result controller.Result
 	logger := logr.FromContextOrDiscard(ctx)
 
-	switch trigger.Action {
+	switch options.Action {
 	case v1beta1.ActionCreate:
 		result = t.createResource(ctx, trigger.ResourceTemplate)
 	case v1beta1.ActionUpdate:
@@ -250,7 +229,7 @@ func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTri
 	case v1beta1.ActionDelete:
 		result = t.deleteResource(ctx, trigger.ResourceTemplate)
 	default:
-		return nil
+		return ErrInvalidAction
 	}
 
 	result.Object = trigger.Trigger
@@ -278,7 +257,7 @@ func (t *TriggerHandler) recordSourceEvent(object runtime.Object, input *control
 		r.Error = fmt.Errorf("trigger failed: %w", err)
 		r.Reason = ReasonTriggerFailed
 	} else {
-		r.Message = fmt.Sprintf("Triggered: %s", triggerRef)
+		r.Message = fmt.Sprintf("Triggered: %s", triggerRef.NamespacedName())
 		r.Reason = ReasonTriggered
 	}
 

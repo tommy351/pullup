@@ -172,13 +172,18 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("validate failed: %w", err)
 	}
 
-	err = h.TriggerHandler.Handle(r.Context(), &hookutil.TriggerOptions{
+	options := &hookutil.TriggerOptions{
 		Source:   hook,
 		Triggers: hook.Spec.Triggers,
 		Action:   body.Action,
 		Event:    data,
-	})
-	if err != nil {
+	}
+
+	if hook.Spec.Action != "" {
+		options.Action = hook.Spec.Action
+	}
+
+	if err := h.TriggerHandler.Handle(r.Context(), options); err != nil {
 		return fmt.Errorf("trigger failed: %w", err)
 	}
 

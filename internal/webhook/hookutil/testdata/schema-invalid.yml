@@ -1,0 +1,13 @@
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: trigger-a
+  namespace: test
+spec:
+  resourceName: trigger-a
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
+  schema:
+    type: what

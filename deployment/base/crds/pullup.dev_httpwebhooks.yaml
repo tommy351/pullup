@@ -33,6 +33,13 @@ spec:
             type: object
           spec:
             properties:
+              action:
+                enum:
+                - create
+                - update
+                - apply
+                - delete
+                type: string
               schema:
                 x-kubernetes-preserve-unknown-fields: true
               secretToken:
@@ -56,13 +63,6 @@ spec:
               triggers:
                 items:
                   properties:
-                    action:
-                      enum:
-                      - create
-                      - update
-                      - apply
-                      - delete
-                      type: string
                     ref:
                       properties:
                         apiVersion:

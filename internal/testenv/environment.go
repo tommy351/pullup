@@ -67,6 +67,8 @@ func (e *Environment) NewManager() (*Manager, error) {
 	m, err := manager.New(e.config, manager.Options{
 		Scheme:           e.scheme,
 		EventBroadcaster: broadcaster,
+		// Disable metrics server
+		MetricsBindAddress: "0",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a manager: %w", err)

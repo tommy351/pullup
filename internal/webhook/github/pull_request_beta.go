@@ -64,5 +64,9 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 		options.Action = v1beta1.ActionDelete
 	}
 
+	if hook.Spec.Action != "" {
+		options.Action = hook.Spec.Action
+	}
+
 	return h.TriggerHandler.Handle(ctx, options)
 }

@@ -18,6 +18,10 @@
   spec:
     data:
       event: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger
@@ -36,6 +40,10 @@
   spec:
     data:
       event: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger
@@ -61,6 +69,10 @@
   spec:
     data:
       event: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger
@@ -85,6 +97,10 @@
   spec:
     data:
       event: null
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger
@@ -112,6 +128,10 @@
       event:
         bar: 123
         foo: bar
+    patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: foo
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger
