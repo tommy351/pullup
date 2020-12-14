@@ -44,7 +44,7 @@ func (h *Handler) handlePullRequestEventBeta(ctx context.Context, event *github.
 	}
 
 	if filter := repo.PullRequest.Labels; filter != nil {
-		labels := getPullRequestLabels(event.PullRequest)
+		labels := getPullRequestEventLabels(event)
 
 		if !hookutil.FilterWebhook(filter, labels) {
 			logger.V(log.Debug).Info("Skipped on this label", "labels", labels)

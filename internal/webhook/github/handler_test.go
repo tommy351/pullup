@@ -179,7 +179,7 @@ var _ = Describe("Handler", func() {
 
 		When("event type is pull request", func() {
 			When("no matching webhooks", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 
 				It("should respond 200", func() {
 					Expect(recorder).To(HaveHTTPStatus(http.StatusOK))
@@ -191,17 +191,17 @@ var _ = Describe("Handler", func() {
 			})
 
 			When("action = opened", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 				testApplySuccess()
 			})
 
 			When("action = reopened", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("reopened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("reopened")))
 				testApplySuccess()
 			})
 
 			When("action = synchronize", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("synchronize")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("synchronize")))
 				testApplySuccess()
 			})
 
@@ -231,7 +231,7 @@ var _ = Describe("Handler", func() {
 					})
 				}
 
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("closed")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("closed")))
 
 				AfterEach(func() {
 					Expect(testenv.DeleteObjects(data)).To(Succeed())
@@ -301,7 +301,7 @@ var _ = Describe("Handler", func() {
 			When("resource name is set", func() {
 				name := "alpha/resource-name"
 
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 				testSuccess(name)
 				testGolden()
 			})
@@ -311,19 +311,19 @@ var _ = Describe("Handler", func() {
 					name := "alpha/branch-include"
 
 					When("exact match", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("foo")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("foo")))
 						testSuccess(name)
 						testTriggered()
 					})
 
 					When("match by regex", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("bar-5")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("bar-5")))
 						testSuccess(name)
 						testTriggered()
 					})
 
 					When("not match", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("baz")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("baz")))
 						testSuccess(name)
 						testSkipped()
 					})
@@ -333,19 +333,19 @@ var _ = Describe("Handler", func() {
 					name := "alpha/branch-exclude"
 
 					When("exact match", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("foo")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("foo")))
 						testSuccess(name)
 						testSkipped()
 					})
 
 					When("match by regex", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("bar-5")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("bar-5")))
 						testSuccess(name)
 						testSkipped()
 					})
 
 					When("not match", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("baz")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("baz")))
 						testSuccess(name)
 						testTriggered()
 					})
@@ -355,19 +355,19 @@ var _ = Describe("Handler", func() {
 					name := "alpha/branch-include-exclude"
 
 					When("match include", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("ab")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("ab")))
 						testSuccess(name)
 						testTriggered()
 					})
 
 					When("match both include and exclude", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("ac")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("ac")))
 						testSuccess(name)
 						testSkipped()
 					})
 
 					When("not match include", func() {
-						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("a")))
+						setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("a")))
 						testSuccess(name)
 						testSkipped()
 					})
@@ -433,19 +433,19 @@ var _ = Describe("Handler", func() {
 					name := "beta/push-branch-include"
 
 					When("exact match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushBranch("foo")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventBranch("foo")))
 						testSuccess(name)
 						testTriggered()
 					})
 
 					When("match by regex", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushBranch("bar-5")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventBranch("bar-5")))
 						testSuccess(name)
 						testTriggered()
 					})
 
 					When("not match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushBranch("abc")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventBranch("abc")))
 						testSuccess(name)
 						testSkipped()
 					})
@@ -455,19 +455,19 @@ var _ = Describe("Handler", func() {
 					name := "beta/push-branch-exclude"
 
 					When("exact match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushBranch("foo")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventBranch("foo")))
 						testSuccess(name)
 						testSkipped()
 					})
 
 					When("match by regex", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushBranch("bar-5")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventBranch("bar-5")))
 						testSuccess(name)
 						testSkipped()
 					})
 
 					When("not match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushBranch("abc")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventBranch("abc")))
 						testSuccess(name)
 						testTriggered()
 					})
@@ -476,7 +476,7 @@ var _ = Describe("Handler", func() {
 
 			When("pushing a tag", func() {
 				When("tag filter is not set", func() {
-					setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushTag("foo")))
+					setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventTag("foo")))
 					testSuccess("beta/resource-not-exist")
 					testSkipped()
 				})
@@ -485,19 +485,19 @@ var _ = Describe("Handler", func() {
 					name := "beta/push-tag-include"
 
 					When("exact match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushTag("foo")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventTag("foo")))
 						testSuccess(name)
 						testTriggered()
 					})
 
 					When("match by regex", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushTag("bar-5")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventTag("bar-5")))
 						testSuccess(name)
 						testTriggered()
 					})
 
 					When("not match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushTag("abc")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventTag("abc")))
 						testSuccess(name)
 						testSkipped()
 					})
@@ -507,19 +507,19 @@ var _ = Describe("Handler", func() {
 					name := "beta/push-tag-exclude"
 
 					When("exact match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushTag("foo")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventTag("foo")))
 						testSuccess(name)
 						testSkipped()
 					})
 
 					When("match by regex", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushTag("bar-5")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventTag("bar-5")))
 						testSuccess(name)
 						testSkipped()
 					})
 
 					When("not match", func() {
-						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushTag("abc")))
+						setPushEvent(fakegithub.NewPushEvent(fakegithub.SetPushEventTag("abc")))
 						testSuccess(name)
 						testTriggered()
 					})
@@ -529,13 +529,13 @@ var _ = Describe("Handler", func() {
 
 		When("event type = pull_request", func() {
 			When("push event filter is not set", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 				testSuccess("beta/without-event-filters")
 				testSkipped()
 			})
 
 			When("no matching webhooks", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 
 				It("should respond 200", func() {
 					Expect(recorder).To(HaveHTTPStatus(http.StatusOK))
@@ -545,24 +545,24 @@ var _ = Describe("Handler", func() {
 			})
 
 			When("action = opened", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 				testApplySuccess()
 			})
 
 			When("action = reopened", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("reopened")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("reopened")))
 				testApplySuccess()
 			})
 
 			When("action = synchronize", func() {
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("synchronize")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("synchronize")))
 				testApplySuccess()
 			})
 
 			When("action = closed", func() {
 				var data []runtime.Object
 
-				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("closed")))
+				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("closed")))
 
 				AfterEach(func() {
 					Expect(testenv.DeleteObjects(data)).To(Succeed())
@@ -606,19 +606,19 @@ var _ = Describe("Handler", func() {
 				name := "beta/pull-request-branch-include"
 
 				When("exact match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("foo")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("foo")))
 					testSuccess(name)
 					testTriggered()
 				})
 
 				When("match by regex", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("bar-5")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("bar-5")))
 					testSuccess(name)
 					testTriggered()
 				})
 
 				When("not match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("abc")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("abc")))
 					testSuccess(name)
 					testSkipped()
 				})
@@ -628,19 +628,19 @@ var _ = Describe("Handler", func() {
 				name := "beta/pull-request-branch-exclude"
 
 				When("exact match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("foo")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("foo")))
 					testSuccess(name)
 					testSkipped()
 				})
 
 				When("match by regex", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("bar-5")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("bar-5")))
 					testSuccess(name)
 					testSkipped()
 				})
 
 				When("not match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestBranch("abc")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventBranch("abc")))
 					testSuccess(name)
 					testTriggered()
 				})
@@ -650,21 +650,29 @@ var _ = Describe("Handler", func() {
 				name := "beta/pull-request-label-include"
 
 				When("exact match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"foo"})))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventLabels([]string{"foo"})))
 					testSuccess(name)
 					testTriggered()
 				})
 
 				When("match by regex", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"bar-5"})))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventLabels([]string{"bar-5"})))
 					testSuccess(name)
 					testTriggered()
 				})
 
 				When("not match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"abc"})))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventLabels([]string{"abc"})))
 					testSuccess(name)
 					testSkipped()
+				})
+
+				When("label is present in pull request event", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(
+						fakegithub.SetPullRequestEventTriggeredLabel("foo"),
+					))
+					testSuccess(name)
+					testTriggered()
 				})
 			})
 
@@ -672,19 +680,19 @@ var _ = Describe("Handler", func() {
 				name := "beta/pull-request-label-exclude"
 
 				When("exact match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"foo"})))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventLabels([]string{"foo"})))
 					testSuccess(name)
 					testSkipped()
 				})
 
 				When("match by regex", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"bar-5"})))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventLabels([]string{"bar-5"})))
 					testSuccess(name)
 					testSkipped()
 				})
 
 				When("not match", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestLabels([]string{"abc"})))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventLabels([]string{"abc"})))
 					testSuccess(name)
 					testTriggered()
 				})
@@ -694,19 +702,19 @@ var _ = Describe("Handler", func() {
 				name := "beta/pull-request-type"
 
 				When("action = labeled", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("labeled")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("labeled")))
 					testSuccess(name)
 					testTriggered()
 				})
 
 				When("action = unlabeled", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("unlabeled")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("unlabeled")))
 					testSuccess(name)
 					testSkipped()
 				})
 
 				When("action = opened", func() {
-					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestAction("opened")))
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("opened")))
 					testSuccess(name)
 					testSkipped()
 				})
