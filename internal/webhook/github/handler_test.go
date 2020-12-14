@@ -683,6 +683,15 @@ var _ = Describe("Handler", func() {
 					testSuccess(name)
 					testTriggered()
 				})
+
+				When("label set in both event and pull request entity", func() {
+					setPullRequestEvent(fakegithub.NewPullRequestEvent(
+						fakegithub.SetPullRequestEventTriggeredLabel("abc"),
+						fakegithub.SetPullRequestEventLabels([]string{"foo"}),
+					))
+					testSuccess(name)
+					testSkipped()
+				})
 			})
 
 			When("labels.exclude is set", func() {
