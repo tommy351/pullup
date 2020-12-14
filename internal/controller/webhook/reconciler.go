@@ -73,7 +73,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		set := set
 		result := r.patchResourceSet(ctx, hook, &set)
 
-		result.RecordEvent(r.Recorder)
+		result.RecordEvent(r.Recorder, hook)
 
 		if err := result.Error; err != nil {
 			logger.Error(err, result.GetMessage())
@@ -91,7 +91,6 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 	patchValue, err := json.Marshal(webhook.Spec.Resources)
 	if err != nil {
 		return controller.Result{
-			Object: webhook,
 			Error:  fmt.Errorf("failed to marshal json patch: %w", err),
 			Reason: ReasonPatchFailed,
 		}
@@ -106,7 +105,6 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 	})
 	if err != nil {
 		return controller.Result{
-			Object: webhook,
 			Error:  fmt.Errorf("failed to marshal json patch: %w", err),
 			Reason: ReasonPatchFailed,
 		}
@@ -114,7 +112,6 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 
 	if err := r.Client.Patch(ctx, set, client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return controller.Result{
-			Object:  webhook,
 			Error:   fmt.Errorf("failed to patch the resource set: %w", err),
 			Reason:  ReasonPatchFailed,
 			Requeue: true,
@@ -122,7 +119,6 @@ func (r *Reconciler) patchResourceSet(ctx context.Context, webhook *v1alpha1.Web
 	}
 
 	return controller.Result{
-		Object:  webhook,
 		Message: fmt.Sprintf("Patched resource set %q", set.Name),
 		Reason:  ReasonPatched,
 	}

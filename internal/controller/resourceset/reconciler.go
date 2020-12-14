@@ -80,7 +80,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	for _, res := range set.Spec.Resources {
 		res := res
 		result := r.applyResource(ctx, set, &res)
-		result.RecordEvent(r.Recorder)
+		result.RecordEvent(r.Recorder, set)
 
 		if err := result.Error; err != nil {
 			logger.Error(err, result.GetMessage())
@@ -110,7 +110,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	gv, err := schema.ParseGroupVersion(res.GetAPIVersion())
 	if err != nil {
 		return controller.Result{
-			Object: set,
 			Error:  fmt.Errorf("invalid API version: %w", err),
 			Reason: ReasonInvalidResource,
 		}
@@ -125,7 +124,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	renderedObj, err := newTemplateReducer(set).Reduce(res.Object)
 	if err != nil {
 		return controller.Result{
-			Object: set,
 			Error:  fmt.Errorf("failed to render template: %w", err),
 			Reason: ReasonInvalidResource,
 		}
@@ -137,7 +135,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	})
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.Result{
-			Object:  set,
 			Error:   fmt.Errorf("failed to get original resource: %w", err),
 			Reason:  ReasonFailed,
 			Requeue: true,
@@ -150,7 +147,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	})
 	if err != nil && !errors.IsNotFound(err) {
 		return controller.Result{
-			Object:  set,
 			Error:   fmt.Errorf("failed to get last applied resource: %w", err),
 			Reason:  ReasonFailed,
 			Requeue: true,
@@ -159,7 +155,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	if applied != nil && !metav1.IsControlledBy(applied, set) {
 		return controller.Result{
-			Object: set,
 			Error:  NotManagedByPullupError{Resource: applied},
 			Reason: ReasonResourceExists,
 		}
@@ -224,7 +219,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	patch, err := reducers.Reduce(nil)
 	if err != nil {
 		return controller.Result{
-			Object: set,
 			Error:  fmt.Errorf("failed to reduce patches: %w", err),
 			Reason: ReasonInvalidResource,
 		}
@@ -239,7 +233,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	if applied != nil {
 		if equal(data, applied) {
 			return controller.Result{
-				Object:  set,
 				Reason:  ReasonUnchanged,
 				Message: fmt.Sprintf("Skipped resource %s", getResourceName(data)),
 			}
@@ -247,7 +240,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 		if err := r.Client.Update(ctx, data); err != nil {
 			return controller.Result{
-				Object:  set,
 				Error:   fmt.Errorf("failed to update resource: %w", err),
 				Reason:  ReasonUpdateFailed,
 				Requeue: true,
@@ -255,7 +247,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 		}
 
 		return controller.Result{
-			Object:  set,
 			Reason:  ReasonUpdated,
 			Message: fmt.Sprintf("Updated resource %s", getResourceName(data)),
 		}
@@ -263,7 +254,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 
 	if err := r.Client.Create(ctx, data); err != nil {
 		return controller.Result{
-			Object:  set,
 			Error:   fmt.Errorf("failed to create resource: %w", err),
 			Reason:  ReasonCreateFailed,
 			Requeue: true,
@@ -271,7 +261,6 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 	}
 
 	return controller.Result{
-		Object:  set,
 		Reason:  ReasonCreated,
 		Message: fmt.Sprintf("Created resource %s", getResourceName(data)),
 	}

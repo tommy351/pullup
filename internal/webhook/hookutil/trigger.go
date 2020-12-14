@@ -266,8 +266,7 @@ func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTri
 		return ErrInvalidAction
 	}
 
-	result.Object = trigger.Trigger
-	result.RecordEvent(t.Recorder)
+	result.RecordEvent(t.Recorder, trigger.Trigger)
 
 	t.recordSourceEvent(options.Source, &result, trigger.ResourceTemplate.Spec.TriggerRef)
 
@@ -283,19 +282,21 @@ func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTri
 }
 
 func (t *TriggerHandler) recordSourceEvent(object runtime.Object, input *controller.Result, triggerRef *v1beta1.ObjectReference) {
-	r := controller.Result{
-		Object: object,
-	}
+	var r controller.Result
 
 	if err := input.Error; err != nil {
-		r.Error = fmt.Errorf("trigger failed: %w", err)
-		r.Reason = ReasonTriggerFailed
+		r = controller.Result{
+			Error:  fmt.Errorf("trigger failed: %w", err),
+			Reason: ReasonTriggerFailed,
+		}
 	} else {
-		r.Message = fmt.Sprintf("Triggered: %s", triggerRef.NamespacedName())
-		r.Reason = ReasonTriggered
+		r = controller.Result{
+			Message: fmt.Sprintf("Triggered: %s", triggerRef.NamespacedName()),
+			Reason:  ReasonTriggered,
+		}
 	}
 
-	r.RecordEvent(t.Recorder)
+	r.RecordEvent(t.Recorder, object)
 }
 
 func (t *TriggerHandler) createResource(ctx context.Context, rt *v1beta1.ResourceTemplate) controller.Result {

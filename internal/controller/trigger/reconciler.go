@@ -111,7 +111,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		rt := rt
 		result := r.patchResource(ctx, trigger, &rt)
 
-		result.RecordEvent(r.Recorder)
+		result.RecordEvent(r.Recorder, trigger)
 
 		if err := result.Error; err != nil {
 			logger.Error(err, result.GetMessage())
@@ -129,7 +129,6 @@ func (r *Reconciler) patchResource(ctx context.Context, trigger *v1beta1.Trigger
 	patchesBuf, err := json.Marshal(trigger.Spec.Patches)
 	if err != nil {
 		return controller.Result{
-			Object: trigger,
 			Error:  fmt.Errorf("failed to marshal patches: %w", err),
 			Reason: ReasonPatchFailed,
 		}
@@ -144,7 +143,6 @@ func (r *Reconciler) patchResource(ctx context.Context, trigger *v1beta1.Trigger
 	})
 	if err != nil {
 		return controller.Result{
-			Object: trigger,
 			Error:  fmt.Errorf("failed to marshal json patch: %w", err),
 			Reason: ReasonPatchFailed,
 		}
@@ -152,7 +150,6 @@ func (r *Reconciler) patchResource(ctx context.Context, trigger *v1beta1.Trigger
 
 	if err := r.Client.Patch(ctx, rt, client.RawPatch(types.JSONPatchType, patch)); err != nil {
 		return controller.Result{
-			Object:  trigger,
 			Error:   fmt.Errorf("failed to patch resource template: %w", err),
 			Reason:  ReasonPatchFailed,
 			Requeue: true,
@@ -160,7 +157,6 @@ func (r *Reconciler) patchResource(ctx context.Context, trigger *v1beta1.Trigger
 	}
 
 	return controller.Result{
-		Object:  trigger,
 		Message: fmt.Sprintf("Patched resource template %q", rt.Name),
 		Reason:  ReasonPatched,
 	}
