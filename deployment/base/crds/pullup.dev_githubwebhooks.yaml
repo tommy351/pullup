@@ -121,25 +121,14 @@ spec:
               triggers:
                 items:
                   properties:
-                    ref:
-                      properties:
-                        apiVersion:
-                          type: string
-                        kind:
-                          type: string
-                        name:
-                          type: string
-                        namespace:
-                          type: string
-                      required:
-                      - apiVersion
-                      - kind
-                      - name
-                      type: object
+                    name:
+                      type: string
+                    namespace:
+                      type: string
                     transform:
                       x-kubernetes-preserve-unknown-fields: true
                   required:
-                  - ref
+                  - name
                   type: object
                 type: array
             required:

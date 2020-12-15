@@ -18,10 +18,7 @@ metadata:
   namespace: test
 spec:
   triggers:
-    - ref:
-        apiVersion: pullup.dev/v1beta1
-        kind: Trigger
-        name: foobar
+    - name: foobar
 ---
 apiVersion: pullup.dev/v1beta1
 kind: ResourceTemplate

@@ -24,7 +24,4 @@ spec:
     - name: foo/bar
       push: {}
   triggers:
-    - ref:
-        apiVersion: pullup.dev/v1beta1
-        kind: Trigger
-        name: conf-push
+    - name: conf-push

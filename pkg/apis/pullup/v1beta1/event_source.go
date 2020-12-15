@@ -10,8 +10,9 @@ type EventSourceSpec struct {
 type EventSourceStatus struct{}
 
 type EventSourceTrigger struct {
-	Ref       ObjectReference `json:"ref"`
-	Transform *extv1.JSON     `json:"transform,omitempty"`
+	Name      string      `json:"name"`
+	Namespace string      `json:"namespace,omitempty"`
+	Transform *extv1.JSON `json:"transform,omitempty"`
 }
 
 type EventSourceFilter struct {

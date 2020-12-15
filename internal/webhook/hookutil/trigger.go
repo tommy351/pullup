@@ -127,7 +127,10 @@ func (t *TriggerHandler) renderAction(options *TriggerOptions) (v1beta1.Action, 
 
 func (t *TriggerHandler) renderTrigger(ctx context.Context, st *v1beta1.EventSourceTrigger, options *TriggerOptions) (*RenderedTrigger, error) {
 	trigger := new(v1beta1.Trigger)
-	triggerKey := st.Ref.NamespacedName()
+	triggerKey := types.NamespacedName{
+		Name:      st.Name,
+		Namespace: st.Namespace,
+	}
 
 	if triggerKey.Namespace == "" {
 		triggerKey.Namespace = options.Source.GetNamespace()

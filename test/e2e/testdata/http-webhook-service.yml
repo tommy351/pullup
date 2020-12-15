@@ -45,7 +45,4 @@ spec:
       suffix:
         type: string
   triggers:
-    - ref:
-        apiVersion: pullup.dev/v1beta1
-        kind: Trigger
-        name: http-server
+    - name: http-server

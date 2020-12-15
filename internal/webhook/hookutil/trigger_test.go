@@ -116,13 +116,7 @@ var _ = Describe("TriggerHandler", func() {
 			options = &TriggerOptions{
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
+					{Name: "trigger-a"},
 				},
 			}
 		})
@@ -277,13 +271,7 @@ var _ = Describe("TriggerHandler", func() {
 				Action: v1beta1.ActionApply,
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-xyz",
-						},
-					},
+					{Name: "trigger-xyz"},
 				},
 			}
 		})
@@ -305,20 +293,8 @@ var _ = Describe("TriggerHandler", func() {
 				Action: v1beta1.ActionApply,
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-b",
-						},
-					},
+					{Name: "trigger-a"},
+					{Name: "trigger-b"},
 				},
 			}
 		})
@@ -362,12 +338,8 @@ var _ = Describe("TriggerHandler", func() {
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
 					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "foobar",
-							Namespace:  namespaceMap.GetRandom("test2"),
-						},
+						Name:      "foobar",
+						Namespace: namespaceMap.GetRandom("test2"),
 					},
 				},
 			}
@@ -386,13 +358,7 @@ var _ = Describe("TriggerHandler", func() {
 				Action: v1beta1.ActionApply,
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
+					{Name: "trigger-a"},
 				},
 			}
 		})
@@ -450,13 +416,7 @@ var _ = Describe("TriggerHandler", func() {
 				Action: v1beta1.ActionApply,
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
+					{Name: "trigger-a"},
 				},
 			}
 		})
@@ -482,11 +442,7 @@ var _ = Describe("TriggerHandler", func() {
 				},
 				Triggers: []v1beta1.EventSourceTrigger{
 					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
+						Name: "trigger-a",
 						Transform: &extv1.JSON{Raw: testutil.MustMarshalJSON(map[string]interface{}{
 							"foo": "{{ .event.bar }}",
 							"bar": "{{ .event.foo }}",
@@ -509,13 +465,7 @@ var _ = Describe("TriggerHandler", func() {
 				Action: "foo",
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
+					{Name: "trigger-a"},
 				},
 			}
 		})
@@ -535,13 +485,7 @@ var _ = Describe("TriggerHandler", func() {
 				DefaultAction: v1beta1.ActionCreate,
 				Source:        webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
+					{Name: "trigger-a"},
 				},
 			}
 		})
@@ -580,13 +524,7 @@ var _ = Describe("TriggerHandler", func() {
 				Action: "{{ .event.foo }}",
 				Source: webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
+					{Name: "trigger-a"},
 				},
 				Event: map[string]interface{}{
 					"foo": "create",
@@ -615,13 +553,7 @@ var _ = Describe("TriggerHandler", func() {
 				DefaultAction: v1beta1.ActionCreate,
 				Source:        webhook,
 				Triggers: []v1beta1.EventSourceTrigger{
-					{
-						Ref: v1beta1.ObjectReference{
-							APIVersion: "pullup.dev/v1beta1",
-							Kind:       "Trigger",
-							Name:       "trigger-a",
-						},
-					},
+					{Name: "trigger-a"},
 				},
 			}
 		})
