@@ -17,6 +17,7 @@ const (
 // +kubebuilder:resource:categories=all;pullup
 // +kubebuilder:printcolumn:name="Trigger",type=string,JSONPath=`.spec.triggerRef.name`
 // +kubebuilder:printcolumn:name="Last Update",type=date,JSONPath=`.status.lastUpdateTime`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 type ResourceTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
