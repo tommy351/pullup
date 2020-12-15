@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // +kubebuilder:rbac:groups="",namespace=pullup,resources=configmaps,verbs=get;create;update
@@ -72,6 +73,7 @@ func NewManager(
 		ControllerManagedBy(mgr).
 		For(&v1beta1.Trigger{}).
 		Owns(&v1beta1.ResourceTemplate{}).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(trigger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build Trigger controller: %w", err)
