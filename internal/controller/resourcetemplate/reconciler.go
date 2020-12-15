@@ -104,22 +104,22 @@ func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.Res
 
 	activity := getResourceActivity(rt, patches)
 
-	if err := r.updateStatus(ctx, rt, activity.Active); err != nil {
-		return r.handleResult(ctx, rt, controller.Result{
-			Error:   err,
-			Reason:  ReasonFailed,
-			Requeue: true,
-		})
-	}
-
-	r.deleteInactiveResources(ctx, rt, activity.Inactive)
-
 	for _, patch := range patches {
 		patch := patch
 
 		if result, err := r.handleResult(ctx, rt, r.applyResource(ctx, rt, &patch)); err != nil {
 			return result, err
 		}
+	}
+
+	r.deleteInactiveResources(ctx, rt, activity.Inactive)
+
+	if err := r.updateStatus(ctx, rt, activity.Active); err != nil {
+		return r.handleResult(ctx, rt, controller.Result{
+			Error:   err,
+			Reason:  ReasonFailed,
+			Requeue: true,
+		})
 	}
 
 	return reconcile.Result{}, nil
