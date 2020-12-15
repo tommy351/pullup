@@ -345,7 +345,7 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 			return controller.Result{
 				Error:   fmt.Errorf("failed to create resource: %w", err),
 				Reason:  ReasonCreateFailed,
-				Requeue: true,
+				Requeue: shouldRequeue(err),
 			}
 		}
 
@@ -389,7 +389,7 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 		return controller.Result{
 			Error:   fmt.Errorf("failed to patch resource: %w", err),
 			Reason:  ReasonPatchFailed,
-			Requeue: true,
+			Requeue: shouldRequeue(err),
 		}
 	}
 
@@ -524,4 +524,8 @@ func getResourceActivity(rt *v1beta1.ResourceTemplate, patches []v1beta1.Trigger
 	}
 
 	return &result
+}
+
+func shouldRequeue(err error) bool {
+	return !errors.IsInvalid(err)
 }

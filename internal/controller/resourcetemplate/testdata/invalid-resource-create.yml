@@ -1,0 +1,14 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  patches:
+    - apiVersion: v1
+      kind: Service
+      merge:
+        spec:
+          selector:
+            app: foo

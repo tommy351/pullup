@@ -1,0 +1,44 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: foo-rt
+  namespace: test
+spec:
+  patches:
+    - apiVersion: v1
+      kind: Service
+      sourceName: foo
+      jsonPatch:
+        - op: remove
+          path: /spec/ports
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: foo
+  namespace: test
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+  selector:
+    app: foo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: foo-rt
+  namespace: test
+  ownerReferences:
+    - apiVersion: pullup.dev/v1beta1
+      kind: ResourceTemplate
+      name: foo-rt
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+  selector:
+    app: foo-rt

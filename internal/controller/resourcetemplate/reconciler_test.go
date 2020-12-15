@@ -355,4 +355,12 @@ var _ = Describe("Reconciler", func() {
 		testSuccess("resource-in-template")
 		testGolden()
 	})
+
+	When("creating invalid resource", func() {
+		testError("invalid-resource-create", false)
+	})
+
+	When("updating invalid resource", func() {
+		testError("invalid-resource-update", false)
+	})
 })
