@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/santhosh-tekuri/jsonschema/v2"
 	"github.com/tommy351/pullup/internal/golden"
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/internal/random"
@@ -390,7 +391,7 @@ var _ = Describe("TriggerHandler", func() {
 			})
 
 			It("should return errors", func() {
-				var ve JSONSchemaValidationErrors
+				var ve *jsonschema.ValidationError
 				Expect(errors.As(err, &ve)).To(BeTrue())
 			})
 		})
@@ -401,7 +402,7 @@ var _ = Describe("TriggerHandler", func() {
 			})
 
 			It("should return errors", func() {
-				var ve JSONSchemaValidationErrors
+				var ve *jsonschema.ValidationError
 				Expect(errors.As(err, &ve)).To(BeTrue())
 			})
 		})
@@ -426,7 +427,7 @@ var _ = Describe("TriggerHandler", func() {
 		})
 
 		It("should return the error", func() {
-			var ve JSONSchemaValidateError
+			var ve *jsonschema.SchemaError
 			Expect(errors.As(err, &ve)).To(BeTrue())
 		})
 	})

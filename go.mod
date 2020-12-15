@@ -22,11 +22,11 @@ require (
 	github.com/onsi/gomega v1.10.3
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.8.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v2 v2.2.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/tommy351/goldga v0.2.0
-	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zenazn/goji v1.0.1
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/zap v1.16.0

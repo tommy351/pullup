@@ -401,8 +401,7 @@ var _ = Describe("Handler", func() {
 				Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
 					Errors: []httputil.Error{
 						{
-							Type:        "invalid_type",
-							Description: "Invalid type. Expected: string, given: boolean",
+							Description: "expected string, but got boolean",
 							Field:       "foo",
 						},
 					},
@@ -427,9 +426,7 @@ var _ = Describe("Handler", func() {
 				Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
 					Errors: []httputil.Error{
 						{
-							Type:        "invalid_type",
-							Description: "Invalid type. Expected: object, given: null",
-							Field:       "(root)",
+							Description: "expected object, but got null",
 						},
 					},
 				})))
@@ -460,7 +457,7 @@ var _ = Describe("Handler", func() {
 		It("should respond errors", func() {
 			Expect(recorder.Body.Bytes()).To(MatchJSON(testutil.MustMarshalJSON(&httputil.Response{
 				Errors: []httputil.Error{
-					{Description: "Failed to validate against JSON schema"},
+					{Description: "Invalid JSON schema"},
 				},
 			})))
 		})

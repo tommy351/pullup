@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/xeipuuv/gojsonschema"
 )
 
 type Response struct {
@@ -52,18 +50,6 @@ func JSON(w http.ResponseWriter, status int, data interface{}) error {
 	}
 
 	return nil
-}
-
-func NewErrorsForJSONSchema(errors []gojsonschema.ResultError) (result []Error) {
-	for _, err := range errors {
-		result = append(result, Error{
-			Type:        err.Type(),
-			Description: err.Description(),
-			Field:       err.Field(),
-		})
-	}
-
-	return
 }
 
 func NewValidationErrors(field string, errors []string) (result []Error) {

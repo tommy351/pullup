@@ -1,31 +1,38 @@
 package hookutil
 
 import (
-	"github.com/xeipuuv/gojsonschema"
+	"bytes"
+	"fmt"
+
+	"github.com/santhosh-tekuri/jsonschema/v2"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
-func ValidateJSONSchema(schema, doc *extv1.JSON) (*extv1.JSON, error) {
-	if schema == nil || schema.Raw == nil {
-		return doc, nil
+func ValidateJSONSchema(schemaJSON, docJSON *extv1.JSON) (*extv1.JSON, error) {
+	if schemaJSON == nil || schemaJSON.Raw == nil {
+		return docJSON, nil
 	}
 
 	docRaw := []byte("null")
 
-	if doc != nil && doc.Raw != nil {
-		docRaw = doc.Raw
+	if docJSON != nil && docJSON.Raw != nil {
+		docRaw = docJSON.Raw
 	}
 
-	result, err := gojsonschema.Validate(
-		gojsonschema.NewBytesLoader(schema.Raw),
-		gojsonschema.NewBytesLoader(docRaw),
-	)
+	compiler := jsonschema.NewCompiler()
+	url := "schema.json"
+
+	if err := compiler.AddResource(url, bytes.NewReader(schemaJSON.Raw)); err != nil {
+		return nil, fmt.Errorf("json schema load error: %w", err)
+	}
+
+	schema, err := compiler.Compile(url)
 	if err != nil {
-		return nil, JSONSchemaValidateError{err: err}
+		return nil, fmt.Errorf("json schema compile error: %w", err)
 	}
 
-	if !result.Valid() {
-		return nil, JSONSchemaValidationErrors(result.Errors())
+	if err := schema.Validate(bytes.NewReader(docRaw)); err != nil {
+		return nil, fmt.Errorf("json schema validate error: %w", err)
 	}
 
 	return &extv1.JSON{Raw: docRaw}, nil

@@ -61,48 +61,119 @@ var _ = Describe("NewHandler", func() {
 		})
 	})
 
-	When("error is JSONSchemaValidationErrors", func() {
+	When("error is jsonschema.ValidateError", func() {
 		var recorder *httptest.ResponseRecorder
 
-		BeforeEach(func() {
-			recorder = testHandler(func(w http.ResponseWriter, r *http.Request) error {
-				_, err := ValidateJSONSchema(
-					&extv1.JSON{
-						Raw: testutil.MustMarshalJSON(map[string]interface{}{
-							"type": "object",
-							"properties": map[string]interface{}{
-								"foo": map[string]interface{}{
-									"type": "string",
+		Context("single error", func() {
+			BeforeEach(func() {
+				recorder = testHandler(func(w http.ResponseWriter, r *http.Request) error {
+					_, err := ValidateJSONSchema(
+						&extv1.JSON{
+							Raw: testutil.MustMarshalJSON(map[string]interface{}{
+								"type": "object",
+								"properties": map[string]interface{}{
+									"foo": map[string]interface{}{
+										"type": "string",
+									},
 								},
-								"bar": map[string]interface{}{
-									"type": "string",
-								},
-							},
-						}),
-					},
-					&extv1.JSON{
-						Raw: testutil.MustMarshalJSON(map[string]interface{}{
-							"foo": 3,
-							"bar": 4,
-						}),
-					},
-				)
+							}),
+						},
+						&extv1.JSON{
+							Raw: testutil.MustMarshalJSON(map[string]interface{}{
+								"foo": true,
+							}),
+						},
+					)
 
-				return err
+					return err
+				})
+			})
+
+			It("should respond 400", func() {
+				Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
+			})
+
+			It("should respond errors", func() {
+				var res httputil.Response
+				Expect(json.NewDecoder(recorder.Body).Decode(&res)).To(Succeed())
+				Expect(res.Errors).To(ConsistOf([]httputil.Error{
+					{Field: "foo", Description: "expected string, but got boolean"},
+				}))
 			})
 		})
 
-		It("should respond 400", func() {
-			Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
+		Context("multi errors", func() {
+			BeforeEach(func() {
+				recorder = testHandler(func(w http.ResponseWriter, r *http.Request) error {
+					_, err := ValidateJSONSchema(
+						&extv1.JSON{
+							Raw: testutil.MustMarshalJSON(map[string]interface{}{
+								"type": "object",
+								"properties": map[string]interface{}{
+									"foo": map[string]interface{}{
+										"type": "string",
+									},
+									"bar": map[string]interface{}{
+										"type": "string",
+									},
+								},
+							}),
+						},
+						&extv1.JSON{
+							Raw: testutil.MustMarshalJSON(map[string]interface{}{
+								"foo": 3,
+								"bar": 4,
+							}),
+						},
+					)
+
+					return err
+				})
+			})
+
+			It("should respond 400", func() {
+				Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
+			})
+
+			It("should respond errors", func() {
+				var res httputil.Response
+				Expect(json.NewDecoder(recorder.Body).Decode(&res)).To(Succeed())
+				Expect(res.Errors).To(ConsistOf([]httputil.Error{
+					{Field: "foo", Description: "expected string, but got number"},
+					{Field: "bar", Description: "expected string, but got number"},
+				}))
+			})
 		})
 
-		It("should respond errors", func() {
-			var res httputil.Response
-			Expect(json.NewDecoder(recorder.Body).Decode(&res)).To(Succeed())
-			Expect(res.Errors).To(ConsistOf([]httputil.Error{
-				{Type: "invalid_type", Field: "foo", Description: "Invalid type. Expected: string, given: integer"},
-				{Type: "invalid_type", Field: "bar", Description: "Invalid type. Expected: string, given: integer"},
-			}))
+		Context("root error", func() {
+			BeforeEach(func() {
+				recorder = testHandler(func(w http.ResponseWriter, r *http.Request) error {
+					_, err := ValidateJSONSchema(
+						&extv1.JSON{
+							Raw: testutil.MustMarshalJSON(map[string]interface{}{
+								"type": "object",
+							}),
+						},
+						&extv1.JSON{
+							Raw: []byte("null"),
+						},
+					)
+
+					return err
+				})
+			})
+
+			It("should respond 400", func() {
+				Expect(recorder).To(HaveHTTPStatus(http.StatusBadRequest))
+			})
+
+			It("should respond errors", func() {
+				var res httputil.Response
+				Expect(json.NewDecoder(recorder.Body).Decode(&res)).To(Succeed())
+				Expect(res.Errors).To(ConsistOf([]httputil.Error{
+					{Description: "expected object, but got null"},
+				}))
+			})
 		})
 	})
 
@@ -129,12 +200,21 @@ var _ = Describe("NewHandler", func() {
 		})
 	})
 
-	When("error is JSONSchemaValidateError", func() {
+	When("error is jsonschema.SchemaError", func() {
 		var recorder *httptest.ResponseRecorder
 
 		BeforeEach(func() {
 			recorder = testHandler(func(w http.ResponseWriter, r *http.Request) error {
-				return JSONSchemaValidateError{}
+				_, err := ValidateJSONSchema(
+					&extv1.JSON{
+						Raw: testutil.MustMarshalJSON(map[string]interface{}{
+							"type": "what",
+						}),
+					},
+					&extv1.JSON{},
+				)
+
+				return err
 			})
 		})
 
@@ -145,7 +225,7 @@ var _ = Describe("NewHandler", func() {
 		It("should respond errors", func() {
 			Expect(recorder.Body).To(MatchJSON(testutil.MustMarshalJSON(httputil.Response{
 				Errors: []httputil.Error{
-					{Description: "Failed to validate against JSON schema"},
+					{Description: "Invalid JSON schema"},
 				},
 			})))
 		})
