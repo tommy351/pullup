@@ -3,7 +3,7 @@ package v1beta1
 import extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 type EventSourceSpec struct {
-	Action   Action               `json:"action,omitempty"`
+	Action   string               `json:"action,omitempty"`
 	Triggers []EventSourceTrigger `json:"triggers,omitempty"`
 }
 

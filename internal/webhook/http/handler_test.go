@@ -560,4 +560,25 @@ var _ = Describe("Handler", func() {
 			Expect(getChanges()).To(BeEmpty())
 		})
 	})
+
+	When("action is a template string", func() {
+		BeforeEach(func() {
+			req = newRequest(&Body{
+				Namespace: namespaceMap.GetRandom("test"),
+				Name:      "foobar",
+				Action:    v1beta1.ActionCreate,
+				Data: extv1.JSON{
+					Raw: testutil.MustMarshalJSON(map[string]interface{}{
+						"foo": "update",
+					}),
+				},
+			})
+		})
+
+		testSuccess("action-template")
+
+		It("should not have any changes", func() {
+			Expect(getChanges()).To(BeEmpty())
+		})
+	})
 })

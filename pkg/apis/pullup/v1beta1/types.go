@@ -8,17 +8,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// +kubebuilder:validation:Enum=create;update;apply;delete
-type Action string
-
 const (
-	ActionCreate Action = "create"
-	ActionUpdate Action = "update"
-	ActionApply  Action = "apply"
-	ActionDelete Action = "delete"
+	ActionCreate = "create"
+	ActionUpdate = "update"
+	ActionApply  = "apply"
+	ActionDelete = "delete"
 )
 
-func IsActionValid(action Action) bool {
+func IsActionValid(action string) bool {
 	switch action {
 	case ActionCreate, ActionUpdate, ActionApply, ActionDelete:
 		return true

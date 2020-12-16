@@ -34,11 +34,6 @@ spec:
           spec:
             properties:
               action:
-                enum:
-                - create
-                - update
-                - apply
-                - delete
                 type: string
               schema:
                 x-kubernetes-preserve-unknown-fields: true

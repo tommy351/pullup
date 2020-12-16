@@ -34,11 +34,6 @@ spec:
           spec:
             properties:
               action:
-                enum:
-                - create
-                - update
-                - apply
-                - delete
                 type: string
               repositories:
                 items:

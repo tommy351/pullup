@@ -29,10 +29,10 @@ var HandlerSet = wire.NewSet(
 )
 
 type Body struct {
-	Namespace string         `json:"namespace"`
-	Name      string         `json:"name"`
-	Action    v1beta1.Action `json:"action"`
-	Data      extv1.JSON     `json:"data"`
+	Namespace string     `json:"namespace"`
+	Name      string     `json:"name"`
+	Action    string     `json:"action"`
+	Data      extv1.JSON `json:"data"`
 }
 
 type Handler struct {

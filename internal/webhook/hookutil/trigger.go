@@ -58,8 +58,8 @@ type RenderedTrigger struct {
 type TriggerOptions struct {
 	Source        TriggerSource
 	Triggers      []v1beta1.EventSourceTrigger
-	DefaultAction v1beta1.Action
-	Action        v1beta1.Action
+	DefaultAction string
+	Action        string
 	Event         interface{}
 }
 
@@ -97,7 +97,7 @@ func (t *TriggerHandler) Handle(ctx context.Context, options *TriggerOptions) er
 	return nil
 }
 
-func (t *TriggerHandler) renderAction(options *TriggerOptions) (v1beta1.Action, error) {
+func (t *TriggerHandler) renderAction(options *TriggerOptions) (string, error) {
 	action := options.Action
 	if action == "" {
 		action = options.DefaultAction
@@ -111,12 +111,10 @@ func (t *TriggerHandler) renderAction(options *TriggerOptions) (v1beta1.Action, 
 		return "", fmt.Errorf("failed to marshal data: %w", err)
 	}
 
-	result, err := template.RenderFromJSON(string(action), extv1.JSON{Raw: buf})
+	action, err = template.RenderFromJSON(action, extv1.JSON{Raw: buf})
 	if err != nil {
 		return "", fmt.Errorf("failed to render action: %w", err)
 	}
-
-	action = v1beta1.Action(result)
 
 	if !v1beta1.IsActionValid(action) {
 		return "", ErrInvalidAction
@@ -252,7 +250,7 @@ func (t *TriggerHandler) finalizeData(data extv1.JSON) (extv1.JSON, error) {
 	return extv1.JSON{Raw: buf}, nil
 }
 
-func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTrigger, action v1beta1.Action, options *TriggerOptions) error {
+func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTrigger, action string, options *TriggerOptions) error {
 	var result controller.Result
 	logger := logr.FromContextOrDiscard(ctx)
 
