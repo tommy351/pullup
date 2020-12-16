@@ -18,8 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (h *Handler) handlePullRequestEventAlpha(ctx context.Context, event *github.PullRequestEvent, hook *v1alpha1.Webhook) error {
@@ -73,16 +73,6 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 				k8s.LabelWebhookName:       hook.Name,
 				k8s.LabelPullRequestNumber: strconv.Itoa(event.GetNumber()),
 			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         hook.APIVersion,
-					Kind:               hook.Kind,
-					Name:               hook.Name,
-					UID:                hook.UID,
-					Controller:         pointer.BoolPtr(true),
-					BlockOwnerDeletion: pointer.BoolPtr(true),
-				},
-			},
 		},
 		Spec: v1alpha1.ResourceSetSpec{
 			Resources: hook.Spec.Resources,
@@ -90,6 +80,13 @@ func (h *Handler) applyResourceSet(ctx context.Context, event *github.PullReques
 			Base:      branchToCommitAlpha(event.PullRequest.Base),
 			Head:      branchToCommitAlpha(event.PullRequest.Head),
 		},
+	}
+
+	if err := controllerutil.SetControllerReference(hook, rs, h.Client.Scheme()); err != nil {
+		return controller.Result{
+			Error:  fmt.Errorf("failed to set controller reference: %w", err),
+			Reason: hookutil.ReasonFailed,
+		}
 	}
 
 	var err error

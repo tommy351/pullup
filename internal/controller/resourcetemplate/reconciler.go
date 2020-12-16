@@ -21,8 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -302,18 +302,14 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	if current == nil {
 		obj := cleanObjectForCreate(desired)
 
-		obj.SetOwnerReferences([]metav1.OwnerReference{
-			{
-				APIVersion:         rt.APIVersion,
-				Kind:               rt.Kind,
-				Name:               rt.Name,
-				UID:                rt.UID,
-				BlockOwnerDeletion: pointer.BoolPtr(true),
-				Controller:         pointer.BoolPtr(true),
-			},
-		})
-
 		setObjectName(obj, currentName)
+
+		if err := controllerutil.SetControllerReference(rt, obj, r.Scheme); err != nil {
+			return controller.Result{
+				Error:  fmt.Errorf("failed to set controller reference: %w", err),
+				Reason: ReasonFailed,
+			}
+		}
 
 		gvk := obj.GetObjectKind().GroupVersionKind()
 

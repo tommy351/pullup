@@ -18,8 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // +kubebuilder:rbac:groups=pullup.dev,resources=triggers,verbs=get;list;watch
@@ -37,6 +37,7 @@ const (
 	ReasonNotExist       = "NotExist"
 	ReasonTriggered      = "Triggered"
 	ReasonTriggerFailed  = "TriggerFailed"
+	ReasonFailed         = "Failed"
 )
 
 // TriggerHandlerSet provides a TriggerHandler.
@@ -142,16 +143,6 @@ func (t *TriggerHandler) renderTrigger(ctx context.Context, st *v1beta1.EventSou
 		ResourceTemplate: &v1beta1.ResourceTemplate{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: trigger.Namespace,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion:         trigger.APIVersion,
-						Kind:               trigger.Kind,
-						Name:               trigger.Name,
-						UID:                trigger.UID,
-						Controller:         pointer.BoolPtr(true),
-						BlockOwnerDeletion: pointer.BoolPtr(true),
-					},
-				},
 			},
 			Spec: v1beta1.ResourceTemplateSpec{
 				TriggerRef: &v1beta1.ObjectReference{
@@ -163,6 +154,10 @@ func (t *TriggerHandler) renderTrigger(ctx context.Context, st *v1beta1.EventSou
 				Patches: trigger.Spec.Patches,
 			},
 		},
+	}
+
+	if err := controllerutil.SetControllerReference(trigger, result.ResourceTemplate, t.Client.Scheme()); err != nil {
+		return nil, fmt.Errorf("failed to set controller reference: %w", err)
 	}
 
 	data, err := t.renderData(st, trigger, options)
