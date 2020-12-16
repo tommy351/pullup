@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tommy351/pullup/internal/testutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
 )
@@ -40,8 +41,8 @@ var _ = Describe("HTTPWebhook", func() {
 
 			return http.DefaultClient.Do(req)
 		}).Should(And(
-			Not(BeNil()),
 			HaveHTTPStatus(http.StatusOK),
+			testutil.HaveHTTPHeader("Content-Type", "application/json"),
 		))
 	}
 

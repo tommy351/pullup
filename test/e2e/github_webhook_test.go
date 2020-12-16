@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/fakegithub"
+	"github.com/tommy351/pullup/internal/testutil"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -28,7 +29,10 @@ func sendGitHubRequest(event string, data interface{}) {
 		req.Header.Set("X-GitHub-Event", event)
 
 		return http.DefaultClient.Do(req)
-	}).Should(HaveHTTPStatus(http.StatusOK))
+	}).Should(And(
+		HaveHTTPStatus(http.StatusOK),
+		testutil.HaveHTTPHeader("Content-Type", "application/json"),
+	))
 }
 
 var _ = Describe("GitHubWebhook", func() {
