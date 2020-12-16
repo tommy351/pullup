@@ -19,6 +19,7 @@ import (
 )
 
 // +kubebuilder:rbac:groups="",namespace=pullup,resources=configmaps,verbs=get;create;update
+// +kubebuilder:rbac:groups="coordination.k8s.io",namespace=pullup,resources=leases,verbs=get;create;update
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;update;patch
 
 type Manager struct {

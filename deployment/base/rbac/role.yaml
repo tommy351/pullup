@@ -102,3 +102,11 @@ rules:
   - create
   - get
   - update
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - get
+  - update
