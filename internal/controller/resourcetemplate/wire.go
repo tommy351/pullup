@@ -12,7 +12,6 @@ func NewReconciler(mgr manager.Manager) *Reconciler {
 	wire.Build(
 		controller.NewClient,
 		controller.NewEventRecorder,
-		controller.NewScheme,
 		controller.NewAPIReader,
 		ReconcilerSet,
 	)

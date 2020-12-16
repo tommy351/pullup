@@ -14,12 +14,10 @@ import (
 
 func NewReconciler(mgr manager.Manager) *Reconciler {
 	client := controller.NewClient(mgr)
-	scheme := controller.NewScheme(mgr)
 	eventRecorder := controller.NewEventRecorder(mgr)
 	reader := controller.NewAPIReader(mgr)
 	reconciler := &Reconciler{
 		Client:    client,
-		Scheme:    scheme,
 		Recorder:  eventRecorder,
 		APIReader: reader,
 	}

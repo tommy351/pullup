@@ -51,7 +51,6 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	reader := controller.NewAPIReader(manager)
 	resourcetemplateReconciler := &resourcetemplate.Reconciler{
 		Client:    client,
-		Scheme:    scheme,
 		Recorder:  eventRecorder,
 		APIReader: reader,
 	}

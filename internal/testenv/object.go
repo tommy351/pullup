@@ -7,7 +7,6 @@ import (
 	"github.com/tommy351/pullup/internal/k8s"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,12 +45,7 @@ func setOwnerReferences(ctx context.Context, obj client.Object) error {
 				return fmt.Errorf("failed to get the resource: %w", err)
 			}
 
-			refMeta, err := meta.Accessor(refObj)
-			if err != nil {
-				return fmt.Errorf("failed to get the accessor: %w", err)
-			}
-
-			newRefs[i].UID = refMeta.GetUID()
+			newRefs[i].UID = refObj.GetUID()
 		}
 	}
 
@@ -113,12 +107,7 @@ func CreateObjects(objects []client.Object) error {
 	ctx := context.Background()
 
 	for _, obj := range objects {
-		metaObj, err := meta.Accessor(obj)
-		if err != nil {
-			return fmt.Errorf("failed to get the accessor: %w", err)
-		}
-
-		if ns := metaObj.GetNamespace(); ns != "" {
+		if ns := obj.GetNamespace(); ns != "" {
 			if err := createNamespace(ctx, ns); err != nil {
 				return err
 			}

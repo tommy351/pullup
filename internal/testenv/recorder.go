@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -111,16 +110,11 @@ func (r *recorderStatusClient) append(changeType string, obj client.Object) {
 		return
 	}
 
-	o, err := meta.Accessor(obj)
-	if err != nil {
-		return
-	}
-
 	r.changes = append(r.changes, Change{
 		GroupVersionKind: gvk,
 		NamespacedName: types.NamespacedName{
-			Namespace: o.GetNamespace(),
-			Name:      o.GetName(),
+			Namespace: obj.GetNamespace(),
+			Name:      obj.GetName(),
 		},
 		Type: changeType,
 	})

@@ -13,10 +13,8 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -50,7 +48,6 @@ var ReconcilerSet = wire.NewSet(
 
 type Reconciler struct {
 	Client    client.Client
-	Scheme    *runtime.Scheme
 	Recorder  record.EventRecorder
 	APIReader client.Reader
 }
@@ -164,11 +161,11 @@ func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.Re
 }
 
 func (r *Reconciler) getObject(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (client.Object, error) {
-	return k8s.GetObject(ctx, r.APIReader, r.Scheme, gvk, key)
+	return k8s.GetObject(ctx, r.APIReader, r.Client.Scheme(), gvk, key)
 }
 
 func (r *Reconciler) newEmptyObject(gvk schema.GroupVersionKind, key client.ObjectKey) (client.Object, error) {
-	obj, err := k8s.NewEmptyObject(r.Scheme, gvk)
+	obj, err := k8s.NewEmptyObject(r.Client.Scheme(), gvk)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a new object: %w", err)
 	}
@@ -304,7 +301,7 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 
 		setObjectName(obj, currentName)
 
-		if err := controllerutil.SetControllerReference(rt, obj, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(rt, obj, r.Client.Scheme()); err != nil {
 			return controller.Result{
 				Error:  fmt.Errorf("failed to set controller reference: %w", err),
 				Reason: ReasonFailed,
@@ -332,13 +329,11 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 		}
 	}
 
-	if accessor, err := meta.Accessor(current); err == nil {
-		if !metav1.IsControlledBy(accessor, rt) {
-			return controller.Result{
-				EventType: corev1.EventTypeWarning,
-				Message:   fmt.Sprintf("Resource already exists and is not managed by pullup: %s", getObjectName(current)),
-				Reason:    ReasonResourceExists,
-			}
+	if !metav1.IsControlledBy(current, rt) {
+		return controller.Result{
+			EventType: corev1.EventTypeWarning,
+			Message:   fmt.Sprintf("Resource already exists and is not managed by pullup: %s", getObjectName(current)),
+			Reason:    ReasonResourceExists,
 		}
 	}
 
