@@ -53,6 +53,13 @@ func (s *Server) Start(stop <-chan struct{}) error {
 
 	router.Use(middleware.SetLogger(s.Logger))
 
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	router.Use(middleware.Recovery(func(w http.ResponseWriter, r *http.Request, err error) {
 		logr.FromContextOrDiscard(r.Context()).Error(err, "Webhook server error",
 			"requestMethod", r.Method,
