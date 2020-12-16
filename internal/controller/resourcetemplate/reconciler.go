@@ -45,27 +45,18 @@ const (
 // ReconcilerSet provides a reconciler.
 // nolint: gochecknoglobals
 var ReconcilerSet = wire.NewSet(
-	NewLogger,
 	wire.Struct(new(Reconciler), "*"),
 )
 
-type Logger logr.Logger
-
-func NewLogger(logger logr.Logger) Logger {
-	return logger.WithName("controller").WithName("resourcetemplate")
-}
-
 type Reconciler struct {
 	Client    client.Client
-	Logger    Logger
 	Scheme    *runtime.Scheme
 	Recorder  record.EventRecorder
 	APIReader client.Reader
 }
 
-func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	rt := new(v1beta1.ResourceTemplate)
-	ctx := context.Background()
 
 	if err := r.Client.Get(ctx, req.NamespacedName, rt); err != nil {
 		if errors.IsNotFound(err) {
@@ -75,7 +66,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		return reconcile.Result{}, fmt.Errorf("failed to get resource template: %w", err)
 	}
 
-	logger := r.Logger.WithValues("resourceTemplate", rt)
+	logger := logr.FromContextOrDiscard(ctx)
 
 	return r.handleResourceTemplate(logr.NewContext(ctx, logger), rt)
 }
@@ -172,30 +163,22 @@ func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.Re
 	return deletedCount
 }
 
-func (r *Reconciler) getObject(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
+func (r *Reconciler) getObject(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (client.Object, error) {
 	return k8s.GetObject(ctx, r.APIReader, r.Scheme, gvk, key)
 }
 
-func (r *Reconciler) newEmptyObject(gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
-	obj, err := r.Scheme.New(gvk)
+func (r *Reconciler) newEmptyObject(gvk schema.GroupVersionKind, key client.ObjectKey) (client.Object, error) {
+	obj, err := k8s.NewEmptyObject(r.Scheme, gvk)
 	if err != nil {
-		if !runtime.IsNotRegisteredError(err) {
-			return nil, fmt.Errorf("failed to create a new API object: %w", err)
-		}
-
-		obj = new(unstructured.Unstructured)
+		return nil, fmt.Errorf("failed to create a new object: %w", err)
 	}
 
-	obj.GetObjectKind().SetGroupVersionKind(gvk)
-
-	if err := setObjectName(obj, key); err != nil {
-		return nil, err
-	}
+	setObjectName(obj, key)
 
 	return obj, nil
 }
 
-func (r *Reconciler) patchObject(input runtime.Object, patch *v1beta1.TriggerPatch) (runtime.Object, error) {
+func (r *Reconciler) patchObject(input client.Object, patch *v1beta1.TriggerPatch) (client.Object, error) {
 	inputBuf, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal object: %w", err)
@@ -221,13 +204,9 @@ func (r *Reconciler) patchObject(input runtime.Object, patch *v1beta1.TriggerPat
 	}
 
 	gvk := input.GetObjectKind().GroupVersionKind()
-	accessor, err := meta.Accessor(input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get accessor: %w", err)
-	}
 	name := types.NamespacedName{
-		Namespace: accessor.GetNamespace(),
-		Name:      accessor.GetName(),
+		Namespace: input.GetNamespace(),
+		Name:      input.GetName(),
 	}
 
 	output, err := r.newEmptyObject(gvk, name)
@@ -242,7 +221,7 @@ func (r *Reconciler) patchObject(input runtime.Object, patch *v1beta1.TriggerPat
 	return output, nil
 }
 
-func (r *Reconciler) newUpdatePatch(original, desired, current runtime.Object) (client.Patch, error) {
+func (r *Reconciler) newUpdatePatch(original, desired, current client.Object) (client.Patch, error) {
 	originalBuf, err := json.Marshal(original)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal original resource: %w", err)
@@ -274,7 +253,7 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 		}
 	}
 
-	var original runtime.Object
+	var original client.Object
 	originalName := types.NamespacedName{
 		Namespace: rt.Namespace,
 		Name:      patch.SourceName,
@@ -321,15 +300,9 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 	}
 
 	if current == nil {
-		obj, err := cleanObjectForCreate(desired)
-		if err != nil {
-			return controller.Result{
-				Error:  err,
-				Reason: ReasonFailed,
-			}
-		}
+		obj := cleanObjectForCreate(desired)
 
-		if err := setOwnerReferences(obj, []metav1.OwnerReference{
+		obj.SetOwnerReferences([]metav1.OwnerReference{
 			{
 				APIVersion:         rt.APIVersion,
 				Kind:               rt.Kind,
@@ -338,19 +311,9 @@ func (r *Reconciler) applyResource(ctx context.Context, rt *v1beta1.ResourceTemp
 				BlockOwnerDeletion: pointer.BoolPtr(true),
 				Controller:         pointer.BoolPtr(true),
 			},
-		}); err != nil {
-			return controller.Result{
-				Error:  err,
-				Reason: ReasonFailed,
-			}
-		}
+		})
 
-		if err := setObjectName(obj, currentName); err != nil {
-			return controller.Result{
-				Error:  err,
-				Reason: ReasonFailed,
-			}
-		}
+		setObjectName(obj, currentName)
 
 		gvk := obj.GetObjectKind().GroupVersionKind()
 
@@ -421,35 +384,22 @@ func getPatchGVK(patch *v1beta1.TriggerPatch) (schema.GroupVersionKind, error) {
 	return gv.WithKind(patch.Kind), nil
 }
 
-func getObjectName(obj runtime.Object) string {
+func getObjectName(obj client.Object) string {
 	apiVersion, kind := obj.GetObjectKind().GroupVersionKind().ToAPIVersionAndKind()
 	fullKind := fmt.Sprintf("%s/%s", apiVersion, kind)
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return fullKind
-	}
 
-	return fmt.Sprintf("%s %s", fullKind, accessor.GetName())
+	return fmt.Sprintf("%s %s", fullKind, obj.GetName())
 }
 
-func setObjectName(obj runtime.Object, key client.ObjectKey) error {
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return fmt.Errorf("failed to get accessor: %w", err)
-	}
-
-	accessor.SetNamespace(key.Namespace)
-	accessor.SetName(key.Name)
-
-	return nil
+func setObjectName(obj client.Object, key client.ObjectKey) {
+	obj.SetNamespace(key.Namespace)
+	obj.SetName(key.Name)
 }
 
-func cleanObjectForCreate(input runtime.Object) (runtime.Object, error) {
-	output := input.DeepCopyObject()
+func cleanObjectForCreate(input client.Object) client.Object {
+	output := input.DeepCopyObject().(client.Object)
 
-	if err := cleanMetadata(output); err != nil {
-		return nil, err
-	}
+	cleanMetadata(output)
 
 	// nolint: gocritic
 	switch obj := output.(type) {
@@ -457,23 +407,18 @@ func cleanObjectForCreate(input runtime.Object) (runtime.Object, error) {
 		cleanService(obj)
 	}
 
-	return output, nil
+	return output
 }
 
-func cleanMetadata(obj runtime.Object) error {
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return fmt.Errorf("failed to get accessor: %w", err)
-	}
+func cleanMetadata(obj client.Object) {
+	obj.SetCreationTimestamp(metav1.Time{})
+	obj.SetResourceVersion("")
+	obj.SetSelfLink("")
+	obj.SetUID("")
+	obj.SetGeneration(0)
+	obj.SetManagedFields(nil)
 
-	accessor.SetCreationTimestamp(metav1.Time{})
-	accessor.SetResourceVersion("")
-	accessor.SetSelfLink("")
-	accessor.SetUID("")
-	accessor.SetGeneration(0)
-	accessor.SetManagedFields(nil)
-
-	annotations := accessor.GetAnnotations()
+	annotations := obj.GetAnnotations()
 	if annotations != nil {
 		for _, key := range []string{
 			"deployment.kubernetes.io/revision",
@@ -482,10 +427,8 @@ func cleanMetadata(obj runtime.Object) error {
 			delete(annotations, key)
 		}
 
-		accessor.SetAnnotations(annotations)
+		obj.SetAnnotations(annotations)
 	}
-
-	return nil
 }
 
 func cleanService(obj *corev1.Service) {
@@ -494,17 +437,6 @@ func cleanService(obj *corev1.Service) {
 	for i := range obj.Spec.Ports {
 		obj.Spec.Ports[i].NodePort = 0
 	}
-}
-
-func setOwnerReferences(obj runtime.Object, refs []metav1.OwnerReference) error {
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return fmt.Errorf("failed to get accessor: %w", err)
-	}
-
-	accessor.SetOwnerReferences(refs)
-
-	return nil
 }
 
 type resourceActivity struct {

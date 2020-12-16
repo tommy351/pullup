@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/testutil"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("HTTPWebhook", func() {
@@ -48,7 +48,7 @@ var _ = Describe("HTTPWebhook", func() {
 
 	Context("configmap", func() {
 		var (
-			objects []runtime.Object
+			objects []client.Object
 			suffix  string
 		)
 
@@ -107,7 +107,7 @@ var _ = Describe("HTTPWebhook", func() {
 
 	Context("service", func() {
 		var (
-			objects []runtime.Object
+			objects []client.Object
 			suffix  string
 		)
 
@@ -137,7 +137,7 @@ var _ = Describe("HTTPWebhook", func() {
 	})
 
 	When("secretToken is given", func() {
-		var objects []runtime.Object
+		var objects []client.Object
 
 		BeforeEach(func() {
 			objects = loadObjects("testdata/http-webhook-secret.yml")

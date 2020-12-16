@@ -1,6 +1,8 @@
 package trigger
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/golden"
@@ -8,9 +10,8 @@ import (
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -29,7 +30,7 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		conf = NewReconcilerConfig(mgr, log.Log)
+		conf = NewReconcilerConfig(mgr)
 		reconciler, err = NewReconciler(conf, mgr)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(mgr.Initialize()).To(Succeed())
@@ -42,7 +43,7 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	JustBeforeEach(func() {
-		result, err = reconciler.Reconcile(reconcile.Request{
+		result, err = reconciler.Reconcile(context.TODO(), reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "bar",
 				Namespace: namespaceMap.GetRandom("foo"),
@@ -65,7 +66,7 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	When("patch success", func() {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			var err error

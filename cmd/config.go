@@ -59,6 +59,10 @@ func SetupCommand(cmd *cobra.Command) *cobra.Command {
 	_ = viper.BindPFlag("log.level", f.Lookup("log-level"))
 	viper.SetDefault("log.level", "info")
 
+	f.Bool("log-dev", false, "enable dev mode for logging")
+	_ = viper.BindPFlag("log.dev", f.Lookup("log-dev"))
+	viper.SetDefault("log.dev", false)
+
 	f.String("namespace", "", "kubernetes namespace")
 	_ = viper.BindPFlag("kubernetes.namespace", f.Lookup("namespace"))
 	viper.SetDefault("kubernetes.namespace", v1.NamespaceDefault)

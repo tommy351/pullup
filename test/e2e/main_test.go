@@ -55,20 +55,20 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func loadObjects(path string) []runtime.Object {
+func loadObjects(path string) []client.Object {
 	objects, err := k8s.LoadObjects(scheme, path)
 	Expect(err).NotTo(HaveOccurred())
 
 	return objects
 }
 
-func createObjects(objects []runtime.Object) {
+func createObjects(objects []client.Object) {
 	for _, obj := range objects {
 		Expect(k8sClient.Create(context.TODO(), obj)).To(Succeed())
 	}
 }
 
-func deleteObjects(objects []runtime.Object) {
+func deleteObjects(objects []client.Object) {
 	for _, obj := range objects {
 		Expect(client.IgnoreNotFound(k8sClient.Delete(context.TODO(), obj))).To(Succeed())
 	}
@@ -92,7 +92,7 @@ func testHTTPServer(name string) {
 	))
 }
 
-func waitUntilObjectDeleted(key types.NamespacedName, obj runtime.Object) {
+func waitUntilObjectDeleted(key types.NamespacedName, obj client.Object) {
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		err := k8sClient.Get(context.TODO(), key, obj)
 		if err != nil {
@@ -104,7 +104,7 @@ func waitUntilObjectDeleted(key types.NamespacedName, obj runtime.Object) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func getObject(key types.NamespacedName, obj runtime.Object) {
+func getObject(key types.NamespacedName, obj client.Object) {
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		err := k8sClient.Get(context.TODO(), key, obj)
 		if err != nil {

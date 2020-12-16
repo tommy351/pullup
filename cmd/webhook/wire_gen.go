@@ -29,26 +29,14 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	encoderConfig := log.NewEncoderConfig()
 	logConfig := cmd.NewLogConfig(config)
-	atomicLevel, err := log.NewZapLevel(logConfig)
+	levelEnabler, err := log.NewZapLevelEnabler(logConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	encoder, err := log.NewEncoder(encoderConfig, atomicLevel)
+	logger := log.NewLogger(logConfig, levelEnabler)
+	manager, err := NewControllerManager(restConfig, scheme, config, logger)
 	if err != nil {
-		return nil, nil, err
-	}
-	writeSyncer, cleanup, err := log.NewSink()
-	if err != nil {
-		return nil, nil, err
-	}
-	logger, cleanup2 := log.NewZapLogger(encoder, atomicLevel, writeSyncer)
-	logrLogger := log.NewLogger(logger)
-	manager, err := NewControllerManager(restConfig, scheme, config, logrLogger)
-	if err != nil {
-		cleanup2()
-		cleanup()
 		return nil, nil, err
 	}
 	webhookConfig := conf.Webhook
@@ -67,8 +55,6 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	}
 	handler, err := github.NewHandler(handlerConfig, manager)
 	if err != nil {
-		cleanup2()
-		cleanup()
 		return nil, nil, err
 	}
 	httpHandler := &http.Handler{
@@ -77,18 +63,14 @@ func InitializeManager(conf Config) (*Manager, func(), error) {
 	}
 	server := &webhook.Server{
 		Config:        webhookConfig,
-		Logger:        logrLogger,
+		Logger:        logger,
 		GithubHandler: handler,
 		HTTPHandler:   httpHandler,
 	}
 	mainManager, err := NewManager(manager, server)
 	if err != nil {
-		cleanup2()
-		cleanup()
 		return nil, nil, err
 	}
 	return mainManager, func() {
-		cleanup2()
-		cleanup()
 	}, nil
 }

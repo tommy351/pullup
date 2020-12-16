@@ -6,22 +6,19 @@
 package resourcetemplate
 
 import (
-	"github.com/go-logr/logr"
 	"github.com/tommy351/pullup/internal/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // Injectors from wire.go:
 
-func NewReconciler(mgr manager.Manager, logger logr.Logger) *Reconciler {
+func NewReconciler(mgr manager.Manager) *Reconciler {
 	client := controller.NewClient(mgr)
-	resourcetemplateLogger := NewLogger(logger)
 	scheme := controller.NewScheme(mgr)
 	eventRecorder := controller.NewEventRecorder(mgr)
 	reader := controller.NewAPIReader(mgr)
 	reconciler := &Reconciler{
 		Client:    client,
-		Logger:    resourcetemplateLogger,
 		Scheme:    scheme,
 		Recorder:  eventRecorder,
 		APIReader: reader,

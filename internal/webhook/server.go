@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-logr/logr"
@@ -48,7 +49,7 @@ type Server struct {
 	HTTPHandler   *httphook.Handler
 }
 
-func (s *Server) Start(stop <-chan struct{}) error {
+func (s *Server) Start(ctx context.Context) error {
 	router := mux.NewRouter()
 
 	router.Use(middleware.SetLogger(s.Logger))
@@ -91,11 +92,10 @@ func (s *Server) Start(stop <-chan struct{}) error {
 		})
 	}))
 
-	return httputil.RunServer(httputil.ServerOptions{
+	return httputil.RunServer(ctx, httputil.ServerOptions{
 		Name:    "webhook",
 		Address: s.Config.Address,
 		Handler: router,
-		Stop:    stop,
 		Logger:  s.Logger,
 	})
 }

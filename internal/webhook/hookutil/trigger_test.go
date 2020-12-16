@@ -18,8 +18,8 @@ import (
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("TriggerHandler", func() {
@@ -32,7 +32,7 @@ var _ = Describe("TriggerHandler", func() {
 		webhook      *v1beta1.HTTPWebhook
 	)
 
-	loadTestData := func(name string) []runtime.Object {
+	loadTestData := func(name string) []client.Object {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
@@ -48,7 +48,7 @@ var _ = Describe("TriggerHandler", func() {
 	}
 
 	testSuccess := func(name string) {
-		var objects []runtime.Object
+		var objects []client.Object
 
 		BeforeEach(func() {
 			objects = loadTestData(name)
@@ -90,7 +90,7 @@ var _ = Describe("TriggerHandler", func() {
 				Namespace: namespaceMap.GetRandom("test"),
 			},
 		}
-		Expect(testenv.CreateObjects([]runtime.Object{webhook})).To(Succeed())
+		Expect(testenv.CreateObjects([]client.Object{webhook})).To(Succeed())
 	})
 
 	JustBeforeEach(func() {
@@ -98,7 +98,7 @@ var _ = Describe("TriggerHandler", func() {
 	})
 
 	AfterEach(func() {
-		Expect(testenv.DeleteObjects([]runtime.Object{webhook})).To(Succeed())
+		Expect(testenv.DeleteObjects([]client.Object{webhook})).To(Succeed())
 		mgr.Stop()
 	})
 
@@ -351,7 +351,7 @@ var _ = Describe("TriggerHandler", func() {
 	})
 
 	When("schema is given", func() {
-		var objects []runtime.Object
+		var objects []client.Object
 
 		BeforeEach(func() {
 			objects = loadTestData("schema")
@@ -409,7 +409,7 @@ var _ = Describe("TriggerHandler", func() {
 	})
 
 	When("schema is invalid", func() {
-		var objects []runtime.Object
+		var objects []client.Object
 
 		BeforeEach(func() {
 			objects = loadTestData("schema-invalid")
@@ -458,7 +458,7 @@ var _ = Describe("TriggerHandler", func() {
 	})
 
 	When("action is invalid", func() {
-		var objects []runtime.Object
+		var objects []client.Object
 
 		BeforeEach(func() {
 			objects = loadTestData("resource-not-exist")

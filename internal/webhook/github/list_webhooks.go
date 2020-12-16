@@ -6,7 +6,6 @@ import (
 
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -22,7 +21,7 @@ func (h *Handler) listWebhooks(ctx context.Context, name string) (*webhookList, 
 			nameField: name,
 		}),
 	}
-	targets := []runtime.Object{
+	targets := []client.ObjectList{
 		&list.V1Alpha1,
 		&list.V1Beta1,
 	}

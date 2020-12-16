@@ -11,6 +11,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func NewEmptyObject(scheme *runtime.Scheme, gvk schema.GroupVersionKind) (client.Object, error) {
+	obj, err := scheme.New(gvk)
+	if err != nil {
+		if !runtime.IsNotRegisteredError(err) {
+			return nil, fmt.Errorf("failed to create a new API object: %w", err)
+		}
+
+		un := new(unstructured.Unstructured)
+		un.SetGroupVersionKind(gvk)
+
+		return un, nil
+	}
+
+	obj.GetObjectKind().SetGroupVersionKind(gvk)
+
+	return obj.(client.Object), nil
+}
+
 func ToUnstructured(data interface{}) (*unstructured.Unstructured, error) {
 	buf, err := json.Marshal(data)
 	if err != nil {
@@ -26,8 +44,8 @@ func ToUnstructured(data interface{}) (*unstructured.Unstructured, error) {
 	return &un, nil
 }
 
-func ToObject(scheme *runtime.Scheme, data interface{}) (runtime.Object, error) {
-	if obj, ok := data.(runtime.Object); ok {
+func ToObject(scheme *runtime.Scheme, data interface{}) (client.Object, error) {
+	if obj, ok := data.(client.Object); ok {
 		return obj, nil
 	}
 
@@ -37,7 +55,7 @@ func ToObject(scheme *runtime.Scheme, data interface{}) (runtime.Object, error) 
 	}
 
 	gvk := un.GetObjectKind().GroupVersionKind()
-	typed, err := scheme.New(gvk)
+	typed, err := NewEmptyObject(scheme, gvk)
 	if err != nil {
 		if runtime.IsNotRegisteredError(err) {
 			return un, nil
@@ -60,11 +78,11 @@ func ToObject(scheme *runtime.Scheme, data interface{}) (runtime.Object, error) 
 	return typed, nil
 }
 
-func MapObjects(input []runtime.Object, fn func(runtime.Object) error) ([]runtime.Object, error) {
-	output := make([]runtime.Object, len(input))
+func MapObjects(input []client.Object, fn func(client.Object) error) ([]client.Object, error) {
+	output := make([]client.Object, len(input))
 
 	for i, obj := range input {
-		newObj := obj.DeepCopyObject()
+		newObj := obj.DeepCopyObject().(client.Object)
 
 		if err := fn(newObj); err != nil {
 			return nil, err
@@ -76,16 +94,10 @@ func MapObjects(input []runtime.Object, fn func(runtime.Object) error) ([]runtim
 	return output, nil
 }
 
-func GetObject(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
-	obj, err := scheme.New(gvk)
+func GetObject(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, gvk schema.GroupVersionKind, key client.ObjectKey) (client.Object, error) {
+	obj, err := NewEmptyObject(scheme, gvk)
 	if err != nil {
-		if !runtime.IsNotRegisteredError(err) {
-			return nil, fmt.Errorf("failed to create a new API object: %w", err)
-		}
-
-		un := new(unstructured.Unstructured)
-		un.SetGroupVersionKind(gvk)
-		obj = un
+		return nil, err
 	}
 
 	// Use APIReader to disable the cache

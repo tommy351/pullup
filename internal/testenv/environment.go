@@ -6,7 +6,6 @@ import (
 	"github.com/tommy351/pullup/internal/k8s"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -62,11 +61,8 @@ func (e *Environment) GetScheme() *runtime.Scheme {
 }
 
 func (e *Environment) NewManager() (*Manager, error) {
-	broadcaster := record.NewBroadcasterForTests(0)
-
 	m, err := manager.New(e.config, manager.Options{
-		Scheme:           e.scheme,
-		EventBroadcaster: broadcaster,
+		Scheme: e.scheme,
 		// Disable metrics server
 		MetricsBindAddress: "0",
 	})
@@ -75,11 +71,10 @@ func (e *Environment) NewManager() (*Manager, error) {
 	}
 
 	return &Manager{
-		Manager:          m,
-		EventBroadcaster: broadcaster,
+		Manager: m,
 	}, nil
 }
 
-func (e *Environment) InstallCRDs(options envtest.CRDInstallOptions) ([]runtime.Object, error) {
+func (e *Environment) InstallCRDs(options envtest.CRDInstallOptions) ([]client.Object, error) {
 	return envtest.InstallCRDs(e.config, options)
 }

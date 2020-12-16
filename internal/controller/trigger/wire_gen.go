@@ -6,20 +6,17 @@
 package trigger
 
 import (
-	"github.com/go-logr/logr"
 	"github.com/tommy351/pullup/internal/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // Injectors from wire.go:
 
-func NewReconcilerConfig(mgr manager.Manager, logger logr.Logger) ReconcilerConfig {
+func NewReconcilerConfig(mgr manager.Manager) ReconcilerConfig {
 	client := controller.NewClient(mgr)
-	triggerLogger := NewLogger(logger)
 	eventRecorder := controller.NewEventRecorder(mgr)
 	reconcilerConfig := ReconcilerConfig{
 		Client:   client,
-		Logger:   triggerLogger,
 		Recorder: eventRecorder,
 	}
 	return reconcilerConfig

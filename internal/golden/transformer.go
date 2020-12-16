@@ -6,18 +6,17 @@ import (
 
 	"github.com/tommy351/pullup/internal/k8s"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ObjectTransformer struct{}
 
 func (o ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 	switch input := input.(type) {
-	case runtime.Object:
-		output := input.DeepCopyObject()
+	case client.Object:
+		output := input.DeepCopyObject().(client.Object)
 
 		if err := o.setObject(output); err != nil {
 			return nil, err
@@ -25,11 +24,11 @@ func (o ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 
 		return output, nil
 
-	case []runtime.Object:
-		output := make([]runtime.Object, len(input))
+	case []client.Object:
+		output := make([]client.Object, len(input))
 
 		for i, obj := range input {
-			output[i] = obj.DeepCopyObject()
+			output[i] = obj.DeepCopyObject().(client.Object)
 		}
 
 		return k8s.MapObjects(output, o.setObject)
@@ -39,25 +38,20 @@ func (o ObjectTransformer) Transform(input interface{}) (interface{}, error) {
 	}
 }
 
-func (o ObjectTransformer) setObject(obj runtime.Object) error {
+func (o ObjectTransformer) setObject(obj client.Object) error {
 	if rt, ok := obj.(*v1beta1.ResourceTemplate); ok {
 		if err := o.setResourceTemplate(rt); err != nil {
 			return err
 		}
 	}
 
-	metaObj, err := meta.Accessor(obj)
-	if err != nil {
-		return nil
-	}
+	obj.SetCreationTimestamp(metav1.Time{})
+	obj.SetUID("")
+	obj.SetResourceVersion("")
+	obj.SetGeneration(0)
+	obj.SetManagedFields(nil)
 
-	metaObj.SetCreationTimestamp(metav1.Time{})
-	metaObj.SetUID("")
-	metaObj.SetResourceVersion("")
-	metaObj.SetGeneration(0)
-	metaObj.SetManagedFields(nil)
-
-	refs := metaObj.GetOwnerReferences()
+	refs := obj.GetOwnerReferences()
 	newRefs := make([]metav1.OwnerReference, len(refs))
 
 	for i, ref := range refs {
@@ -65,7 +59,7 @@ func (o ObjectTransformer) setObject(obj runtime.Object) error {
 		newRefs[i].UID = ""
 	}
 
-	metaObj.SetOwnerReferences(newRefs)
+	obj.SetOwnerReferences(newRefs)
 
 	return nil
 }

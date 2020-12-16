@@ -5,11 +5,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	"github.com/tommy351/pullup/internal/fakegithub"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Webhook", func() {
-	var objects []runtime.Object
+	var objects []client.Object
 
 	webhookName := "http-server"
 

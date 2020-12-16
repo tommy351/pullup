@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/tommy351/pullup/internal/fakegithub"
 	"github.com/tommy351/pullup/internal/testutil"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func sendGitHubRequest(event string, data interface{}) {
@@ -36,7 +36,7 @@ func sendGitHubRequest(event string, data interface{}) {
 }
 
 var _ = Describe("GitHubWebhook", func() {
-	var objects []runtime.Object
+	var objects []client.Object
 
 	When("event = push", func() {
 		webhookName := "conf-push"

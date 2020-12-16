@@ -4,26 +4,22 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tommy351/pullup/internal/k8s"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
+func setOwnerReferences(ctx context.Context, obj client.Object) error {
 	client := GetClient()
 	scheme := GetScheme()
-	metaObj, err := meta.Accessor(obj)
-	if err != nil {
-		return nil
-	}
-
-	refs := metaObj.GetOwnerReferences()
+	refs := obj.GetOwnerReferences()
 	newRefs := make([]metav1.OwnerReference, len(refs))
 
 	for i, ref := range refs {
@@ -36,13 +32,13 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 			}
 
 			gvk := gv.WithKind(ref.Kind)
-			refObj, err := scheme.New(gvk)
+			refObj, err := k8s.NewEmptyObject(scheme, gvk)
 			if err != nil {
 				return fmt.Errorf("failed to create the scheme: %w", err)
 			}
 
 			key := types.NamespacedName{
-				Namespace: metaObj.GetNamespace(),
+				Namespace: obj.GetNamespace(),
 				Name:      ref.Name,
 			}
 
@@ -59,29 +55,24 @@ func setOwnerReferences(ctx context.Context, obj runtime.Object) error {
 		}
 	}
 
-	metaObj.SetOwnerReferences(newRefs)
+	obj.SetOwnerReferences(newRefs)
 
 	return nil
 }
 
-func waitForObject(ctx context.Context, obj runtime.Object) error {
-	client := GetClient()
-	metaObj, err := meta.Accessor(obj)
-	if err != nil {
-		return fmt.Errorf("failed to get the accessor: %w", err)
-	}
-
+func waitForObject(ctx context.Context, obj client.Object) error {
+	c := GetClient()
 	key := types.NamespacedName{
-		Namespace: metaObj.GetNamespace(),
-		Name:      metaObj.GetName(),
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
 	}
 
 	return retry.OnError(retry.DefaultRetry, errors.IsNotFound, func() error {
-		return client.Get(ctx, key, obj.DeepCopyObject())
+		return c.Get(ctx, key, obj.DeepCopyObject().(client.Object))
 	})
 }
 
-func createAndWaitObject(ctx context.Context, obj runtime.Object) error {
+func createAndWaitObject(ctx context.Context, obj client.Object) error {
 	if err := GetClient().Create(ctx, obj); err != nil {
 		if errors.IsAlreadyExists(err) {
 			return nil
@@ -94,7 +85,7 @@ func createAndWaitObject(ctx context.Context, obj runtime.Object) error {
 }
 
 func createNamespace(ctx context.Context, namespace string) error {
-	objects := []runtime.Object{
+	objects := []client.Object{
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: namespace,
@@ -118,7 +109,7 @@ func createNamespace(ctx context.Context, namespace string) error {
 	return nil
 }
 
-func CreateObjects(objects []runtime.Object) error {
+func CreateObjects(objects []client.Object) error {
 	ctx := context.Background()
 
 	for _, obj := range objects {
@@ -145,7 +136,7 @@ func CreateObjects(objects []runtime.Object) error {
 	return nil
 }
 
-func DeleteObjects(objects []runtime.Object) error {
+func DeleteObjects(objects []client.Object) error {
 	ctx := context.Background()
 	client := GetClient()
 

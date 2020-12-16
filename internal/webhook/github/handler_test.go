@@ -22,7 +22,6 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -49,7 +48,7 @@ var _ = Describe("Handler", func() {
 		return req.WithContext(ctx)
 	}
 
-	loadTestData := func(name string) []runtime.Object {
+	loadTestData := func(name string) []client.Object {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
@@ -76,7 +75,7 @@ var _ = Describe("Handler", func() {
 	}
 
 	testSuccess := func(name string) {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData(name)
@@ -206,7 +205,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			When("action = closed", func() {
-				var data []runtime.Object
+				var data []client.Object
 
 				getResourceSetList := func(namespace string, webhookName string, prNumber int) []v1alpha1.ResourceSet {
 					list := new(v1alpha1.ResourceSetList)
@@ -569,7 +568,7 @@ var _ = Describe("Handler", func() {
 			})
 
 			When("action = closed", func() {
-				var data []runtime.Object
+				var data []client.Object
 
 				setPullRequestEvent(fakegithub.NewPullRequestEvent(fakegithub.SetPullRequestEventAction("closed")))
 

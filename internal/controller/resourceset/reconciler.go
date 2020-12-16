@@ -36,15 +36,8 @@ const (
 // ReconcilerSet provides a reconciler.
 // nolint: gochecknoglobals
 var ReconcilerSet = wire.NewSet(
-	NewLogger,
 	wire.Struct(new(Reconciler), "*"),
 )
-
-type Logger logr.Logger
-
-func NewLogger(logger logr.Logger) Logger {
-	return logger.WithName("controller").WithName("resourceset")
-}
 
 type NotManagedByPullupError struct {
 	Resource *unstructured.Unstructured
@@ -56,13 +49,11 @@ func (n NotManagedByPullupError) Error() string {
 
 type Reconciler struct {
 	Client   client.Client
-	Logger   Logger
 	Recorder record.EventRecorder
 }
 
-func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	set := new(v1alpha1.ResourceSet)
-	ctx := context.Background()
 
 	if err := r.Client.Get(ctx, req.NamespacedName, set); err != nil {
 		if errors.IsNotFound(err) {
@@ -74,8 +65,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 
 	set.SetGroupVersionKind(v1alpha1.GroupVersion.WithKind("ResourceSet"))
 
-	logger := r.Logger.WithValues("resourceSet", set)
-	ctx = logr.NewContext(ctx, logger)
+	logger := logr.FromContextOrDiscard(ctx)
 
 	for _, res := range set.Spec.Resources {
 		res := res

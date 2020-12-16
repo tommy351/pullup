@@ -23,13 +23,8 @@ type recorderWriter struct {
 	scheme  *runtime.Scheme
 }
 
-func (r *recorderWriter) append(changeType string, obj runtime.Object) {
+func (r *recorderWriter) append(changeType string, obj client.Object) {
 	gvk, err := apiutil.GVKForObject(obj, r.scheme)
-	if err != nil {
-		return
-	}
-
-	o, err := meta.Accessor(obj)
 	if err != nil {
 		return
 	}
@@ -37,14 +32,14 @@ func (r *recorderWriter) append(changeType string, obj runtime.Object) {
 	r.changes = append(r.changes, Change{
 		GroupVersionKind: gvk,
 		NamespacedName: types.NamespacedName{
-			Namespace: o.GetNamespace(),
-			Name:      o.GetName(),
+			Namespace: obj.GetNamespace(),
+			Name:      obj.GetName(),
 		},
 		Type: changeType,
 	})
 }
 
-func (r *recorderWriter) Create(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+func (r *recorderWriter) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	if err := r.writer.Create(ctx, obj, opts...); err != nil {
 		return fmt.Errorf("create failed: %w", err)
 	}
@@ -54,7 +49,7 @@ func (r *recorderWriter) Create(ctx context.Context, obj runtime.Object, opts ..
 	return nil
 }
 
-func (r *recorderWriter) Delete(ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
+func (r *recorderWriter) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	if err := r.writer.Delete(ctx, obj, opts...); err != nil {
 		return fmt.Errorf("delete failed: %w", err)
 	}
@@ -64,7 +59,7 @@ func (r *recorderWriter) Delete(ctx context.Context, obj runtime.Object, opts ..
 	return nil
 }
 
-func (r *recorderWriter) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+func (r *recorderWriter) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	if err := r.writer.Update(ctx, obj, opts...); err != nil {
 		return fmt.Errorf("update failed: %w", err)
 	}
@@ -74,7 +69,7 @@ func (r *recorderWriter) Update(ctx context.Context, obj runtime.Object, opts ..
 	return nil
 }
 
-func (r *recorderWriter) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (r *recorderWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	if err := r.writer.Patch(ctx, obj, patch, opts...); err != nil {
 		return fmt.Errorf("patch failed: %w", err)
 	}
@@ -84,7 +79,7 @@ func (r *recorderWriter) Patch(ctx context.Context, obj runtime.Object, patch cl
 	return nil
 }
 
-func (r *recorderWriter) DeleteAllOf(ctx context.Context, obj runtime.Object, opts ...client.DeleteAllOfOption) error {
+func (r *recorderWriter) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
 	if err := r.writer.DeleteAllOf(ctx, obj, opts...); err != nil {
 		return fmt.Errorf("delete all failed: %w", err)
 	}
@@ -110,7 +105,7 @@ func (r *recorderStatusClient) Status() client.StatusWriter {
 	return r
 }
 
-func (r *recorderStatusClient) append(changeType string, obj runtime.Object) {
+func (r *recorderStatusClient) append(changeType string, obj client.Object) {
 	gvk, err := apiutil.GVKForObject(obj, r.scheme)
 	if err != nil {
 		return
@@ -131,7 +126,7 @@ func (r *recorderStatusClient) append(changeType string, obj runtime.Object) {
 	})
 }
 
-func (r *recorderStatusClient) Update(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+func (r *recorderStatusClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	if err := r.writer.Update(ctx, obj, opts...); err != nil {
 		return fmt.Errorf("update failed: %w", err)
 	}
@@ -141,7 +136,7 @@ func (r *recorderStatusClient) Update(ctx context.Context, obj runtime.Object, o
 	return nil
 }
 
-func (r *recorderStatusClient) Patch(ctx context.Context, obj runtime.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (r *recorderStatusClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	if err := r.writer.Patch(ctx, obj, patch, opts...); err != nil {
 		return fmt.Errorf("patch failed: %w", err)
 	}

@@ -1,6 +1,7 @@
 package resourceset
 
 import (
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -10,9 +11,8 @@ import (
 	"github.com/tommy351/pullup/internal/random"
 	"github.com/tommy351/pullup/internal/testenv"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -25,7 +25,7 @@ var _ = Describe("Reconciler", func() {
 		namespaceMap *random.NamespaceMap
 	)
 
-	loadTestData := func(name string) []runtime.Object {
+	loadTestData := func(name string) []client.Object {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
@@ -37,7 +37,7 @@ var _ = Describe("Reconciler", func() {
 	}
 
 	testSuccess := func(name string) {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData(name)
@@ -81,7 +81,7 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewReconciler(mgr, log.Log)
+		reconciler = NewReconciler(mgr)
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()
@@ -92,7 +92,7 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	JustBeforeEach(func() {
-		result, err = reconciler.Reconcile(reconcile.Request{
+		result, err = reconciler.Reconcile(context.TODO(), reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "test-46",
 				Namespace: namespaceMap.GetRandom("test"),
@@ -150,7 +150,7 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	When("resource is not controlled", func() {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData("resource-not-controlled")

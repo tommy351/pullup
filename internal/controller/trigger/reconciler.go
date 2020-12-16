@@ -11,7 +11,6 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,7 +31,6 @@ const triggerRefField = "spec.triggerRef"
 // ReconcilerConfigSet provides a ReconcilerConfig.
 // nolint: gochecknoglobals
 var ReconcilerConfigSet = wire.NewSet(
-	NewLogger,
 	wire.Struct(new(ReconcilerConfig), "*"),
 )
 
@@ -43,15 +41,8 @@ var ReconcilerSet = wire.NewSet(
 	NewReconciler,
 )
 
-type Logger logr.Logger
-
-func NewLogger(logger logr.Logger) Logger {
-	return logger.WithName("controller").WithName("trigger")
-}
-
 type ReconcilerConfig struct {
 	Client   client.Client
-	Logger   Logger
 	Recorder record.EventRecorder
 }
 
@@ -60,7 +51,7 @@ type Reconciler struct {
 }
 
 func NewReconciler(conf ReconcilerConfig, mgr manager.Manager) (*Reconciler, error) {
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1beta1.ResourceTemplate{}, triggerRefField, func(obj runtime.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1beta1.ResourceTemplate{}, triggerRefField, func(obj client.Object) []string {
 		var result []string
 
 		if ref := obj.(*v1beta1.ResourceTemplate).Spec.TriggerRef; ref != nil {
@@ -78,8 +69,7 @@ func NewReconciler(conf ReconcilerConfig, mgr manager.Manager) (*Reconciler, err
 	}, nil
 }
 
-func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	ctx := context.Background()
+func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	trigger := new(v1beta1.Trigger)
 
 	if err := r.Client.Get(ctx, req.NamespacedName, trigger); err != nil {
@@ -90,9 +80,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		return reconcile.Result{}, fmt.Errorf("failed to get Trigger: %w", err)
 	}
 
-	logger := r.Logger.WithValues("trigger", trigger)
-	ctx = logr.NewContext(ctx, logger)
-
+	logger := logr.FromContextOrDiscard(ctx)
 	list := new(v1beta1.ResourceTemplateList)
 	ref := &v1beta1.ObjectReference{
 		APIVersion: trigger.APIVersion,

@@ -27,28 +27,19 @@ const (
 	ReasonPatchFailed = "PatchFailed"
 )
 
-// ReconcilerSet provides a AlphaReconciler.
+// ReconcilerSet provides a Reconciler.
 // nolint: gochecknoglobals
 var ReconcilerSet = wire.NewSet(
-	NewLogger,
 	wire.Struct(new(Reconciler), "*"),
 )
 
-type Logger logr.Logger
-
-func NewLogger(logger logr.Logger) Logger {
-	return logger.WithName("controller").WithName("webhook")
-}
-
 type Reconciler struct {
 	Client   client.Client
-	Logger   Logger
 	Recorder record.EventRecorder
 }
 
-func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	hook := new(v1alpha1.Webhook)
-	ctx := context.Background()
 
 	if err := r.Client.Get(ctx, req.NamespacedName, hook); err != nil {
 		if errors.IsNotFound(err) {
@@ -58,9 +49,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		return reconcile.Result{}, fmt.Errorf("failed to get webhook: %w", err)
 	}
 
-	logger := r.Logger.WithValues("webhook", hook)
-	ctx = logr.NewContext(ctx, logger)
-
+	logger := logr.FromContextOrDiscard(ctx)
 	list := new(v1alpha1.ResourceSetList)
 	err := r.Client.List(ctx, list, client.InNamespace(hook.Namespace), client.MatchingLabels(map[string]string{
 		k8s.LabelWebhookName: hook.Name,

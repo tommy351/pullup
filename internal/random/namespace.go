@@ -5,10 +5,9 @@ import (
 	"strings"
 
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	corev1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Namespace() string {
@@ -62,24 +61,14 @@ func (r *NamespaceMap) setNamespace(obj corev1.Object, newNamespace string) {
 	}
 }
 
-func (r *NamespaceMap) SetObject(input runtime.Object) error {
-	obj, err := meta.Accessor(input)
-	if err != nil {
-		return fmt.Errorf("failed to get accessor: %w", err)
-	}
-
-	r.setNamespace(obj, r.GetRandom(obj.GetNamespace()))
+func (r *NamespaceMap) SetObject(input client.Object) error {
+	r.setNamespace(input, r.GetRandom(input.GetNamespace()))
 
 	return nil
 }
 
-func (r *NamespaceMap) RestoreObject(input runtime.Object) error {
-	obj, err := meta.Accessor(input)
-	if err != nil {
-		return fmt.Errorf("failed to get accessor: %w", err)
-	}
-
-	r.setNamespace(obj, r.GetOriginal(obj.GetNamespace()))
+func (r *NamespaceMap) RestoreObject(input client.Object) error {
+	r.setNamespace(input, r.GetOriginal(input.GetNamespace()))
 
 	return nil
 }

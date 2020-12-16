@@ -45,18 +45,13 @@ var TriggerHandlerSet = wire.NewSet(
 	wire.Struct(new(TriggerHandler), "*"),
 )
 
-type TriggerSource interface {
-	runtime.Object
-	metav1.Object
-}
-
 type RenderedTrigger struct {
 	ResourceTemplate *v1beta1.ResourceTemplate
 	Trigger          *v1beta1.Trigger
 }
 
 type TriggerOptions struct {
-	Source        TriggerSource
+	Source        client.Object
 	Triggers      []v1beta1.EventSourceTrigger
 	DefaultAction string
 	Action        string

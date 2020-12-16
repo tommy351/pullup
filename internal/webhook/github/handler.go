@@ -12,7 +12,6 @@ import (
 	"github.com/tommy351/pullup/internal/webhook/hookutil"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1alpha1"
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -57,7 +56,7 @@ type Handler struct {
 
 func NewHandler(conf HandlerConfig, mgr manager.Manager) (*Handler, error) {
 	indexer := mgr.GetFieldIndexer()
-	err := indexer.IndexField(context.TODO(), &v1alpha1.Webhook{}, nameField, func(obj runtime.Object) []string {
+	err := indexer.IndexField(context.TODO(), &v1alpha1.Webhook{}, nameField, func(obj client.Object) []string {
 		var result []string
 
 		for _, repo := range obj.(*v1alpha1.Webhook).Spec.Repositories {
@@ -72,7 +71,7 @@ func NewHandler(conf HandlerConfig, mgr manager.Manager) (*Handler, error) {
 		return nil, fmt.Errorf("index failed: %w", err)
 	}
 
-	err = indexer.IndexField(context.TODO(), &v1beta1.GitHubWebhook{}, nameField, func(obj runtime.Object) []string {
+	err = indexer.IndexField(context.TODO(), &v1beta1.GitHubWebhook{}, nameField, func(obj client.Object) []string {
 		var result []string
 
 		for _, repo := range obj.(*v1beta1.GitHubWebhook).Spec.Repositories {

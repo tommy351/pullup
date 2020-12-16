@@ -28,71 +28,45 @@ func InitializeManager(conf cmd.Config) (*Manager, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	encoderConfig := log.NewEncoderConfig()
 	logConfig := cmd.NewLogConfig(conf)
-	atomicLevel, err := log.NewZapLevel(logConfig)
+	levelEnabler, err := log.NewZapLevelEnabler(logConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	encoder, err := log.NewEncoder(encoderConfig, atomicLevel)
+	logger := log.NewLogger(logConfig, levelEnabler)
+	manager, err := NewControllerManager(restConfig, scheme, conf, logger)
 	if err != nil {
-		return nil, nil, err
-	}
-	writeSyncer, cleanup, err := log.NewSink()
-	if err != nil {
-		return nil, nil, err
-	}
-	logger, cleanup2 := log.NewZapLogger(encoder, atomicLevel, writeSyncer)
-	logrLogger := log.NewLogger(logger)
-	manager, err := NewControllerManager(restConfig, scheme, conf, logrLogger)
-	if err != nil {
-		cleanup2()
-		cleanup()
 		return nil, nil, err
 	}
 	client := controller.NewClient(manager)
-	resourcesetLogger := resourceset.NewLogger(logrLogger)
 	eventRecorder := controller.NewEventRecorder(manager)
 	reconciler := &resourceset.Reconciler{
 		Client:   client,
-		Logger:   resourcesetLogger,
 		Recorder: eventRecorder,
 	}
-	webhookLogger := webhook.NewLogger(logrLogger)
 	webhookReconciler := &webhook.Reconciler{
 		Client:   client,
-		Logger:   webhookLogger,
 		Recorder: eventRecorder,
 	}
-	resourcetemplateLogger := resourcetemplate.NewLogger(logrLogger)
 	reader := controller.NewAPIReader(manager)
 	resourcetemplateReconciler := &resourcetemplate.Reconciler{
 		Client:    client,
-		Logger:    resourcetemplateLogger,
 		Scheme:    scheme,
 		Recorder:  eventRecorder,
 		APIReader: reader,
 	}
-	triggerLogger := trigger.NewLogger(logrLogger)
 	reconcilerConfig := trigger.ReconcilerConfig{
 		Client:   client,
-		Logger:   triggerLogger,
 		Recorder: eventRecorder,
 	}
 	triggerReconciler, err := trigger.NewReconciler(reconcilerConfig, manager)
 	if err != nil {
-		cleanup2()
-		cleanup()
 		return nil, nil, err
 	}
 	mainManager, err := NewManager(manager, reconciler, webhookReconciler, resourcetemplateReconciler, triggerReconciler)
 	if err != nil {
-		cleanup2()
-		cleanup()
 		return nil, nil, err
 	}
 	return mainManager, func() {
-		cleanup2()
-		cleanup()
 	}, nil
 }

@@ -22,8 +22,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -47,7 +47,7 @@ var _ = Describe("Handler", func() {
 		return req.WithContext(ctx)
 	}
 
-	loadTestData := func(name string) []runtime.Object {
+	loadTestData := func(name string) []client.Object {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
@@ -74,7 +74,7 @@ var _ = Describe("Handler", func() {
 	}
 
 	testSuccess := func(name string) {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData(name)
@@ -347,7 +347,7 @@ var _ = Describe("Handler", func() {
 	})
 
 	When("schema is given", func() {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData("schema")
@@ -435,7 +435,7 @@ var _ = Describe("Handler", func() {
 	})
 
 	When("schema is invalid", func() {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData("schema-invalid")
@@ -464,7 +464,7 @@ var _ = Describe("Handler", func() {
 	})
 
 	When("secretToken is given", func() {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			req = newRequest(&Body{

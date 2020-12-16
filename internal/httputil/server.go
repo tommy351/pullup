@@ -21,10 +21,9 @@ type ServerOptions struct {
 	Handler         http.Handler
 	ShutdownTimeout time.Duration
 	Logger          logr.Logger
-	Stop            <-chan struct{}
 }
 
-func RunServer(options ServerOptions) error {
+func RunServer(ctx context.Context, options ServerOptions) error {
 	server := http.Server{
 		Addr:    options.Address,
 		Handler: options.Handler,
@@ -41,7 +40,7 @@ func RunServer(options ServerOptions) error {
 	idleConnsClosed := make(chan struct{})
 
 	go func() {
-		<-options.Stop
+		<-ctx.Done()
 
 		options.Logger.Info(fmt.Sprintf("Shutting down %s server", options.Name))
 

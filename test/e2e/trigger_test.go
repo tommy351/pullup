@@ -10,13 +10,12 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Trigger", func() {
-	var objects []runtime.Object
+	var objects []client.Object
 	triggerName := "conf-ab"
 
 	BeforeEach(func() {

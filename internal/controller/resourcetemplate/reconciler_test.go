@@ -13,10 +13,9 @@ import (
 	"github.com/tommy351/pullup/pkg/apis/pullup/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -29,7 +28,7 @@ var _ = Describe("Reconciler", func() {
 		namespaceMap *random.NamespaceMap
 	)
 
-	loadTestData := func(name string) []runtime.Object {
+	loadTestData := func(name string) []client.Object {
 		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
 		Expect(err).NotTo(HaveOccurred())
 
@@ -41,7 +40,7 @@ var _ = Describe("Reconciler", func() {
 	}
 
 	testSuccess := func(name string) {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData(name)
@@ -61,7 +60,7 @@ var _ = Describe("Reconciler", func() {
 	}
 
 	testError := func(name string, requeue bool) {
-		var data []runtime.Object
+		var data []client.Object
 
 		BeforeEach(func() {
 			data = loadTestData(name)
@@ -105,7 +104,7 @@ var _ = Describe("Reconciler", func() {
 		mgr, err = testenv.NewManager()
 		Expect(err).NotTo(HaveOccurred())
 
-		reconciler = NewReconciler(mgr, log.Log)
+		reconciler = NewReconciler(mgr)
 		Expect(mgr.Initialize()).To(Succeed())
 
 		namespaceMap = random.NewNamespaceMap()
@@ -116,7 +115,7 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	JustBeforeEach(func() {
-		result, err = reconciler.Reconcile(reconcile.Request{
+		result, err = reconciler.Reconcile(context.TODO(), reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "foo-rt",
 				Namespace: namespaceMap.GetRandom("test"),
