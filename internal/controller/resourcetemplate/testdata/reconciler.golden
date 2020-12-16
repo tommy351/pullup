@@ -660,30 +660,7 @@
     lastUpdateTime: null
 '''
 "Reconciler when resource is unchanged should match the golden file" = '''
-- apiVersion: pullup.dev/v1beta1
-  kind: ResourceTemplate
-  metadata:
-    creationTimestamp: null
-    name: foo-rt
-    namespace: test
-    selfLink: /apis/pullup.dev/v1beta1/namespaces/test/resourcetemplates/foo-rt
-  spec:
-    data: null
-    patches:
-    - apiVersion: v1
-      kind: Pod
-      merge:
-        spec:
-          containers:
-          - image: nginx:alpine
-            name: nginx
-  status:
-    active:
-    - apiVersion: v1
-      kind: Pod
-      name: foo-rt
-      namespace: test
-    lastUpdateTime: null
+[]
 '''
 "Reconciler when targetName is given should match the golden file" = '''
 - apiVersion: v1

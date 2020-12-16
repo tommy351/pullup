@@ -103,23 +103,31 @@ func (r *Reconciler) handleResourceTemplate(ctx context.Context, rt *v1beta1.Res
 	}
 
 	activity := getResourceActivity(rt, patches)
+	updatedCount := 0
 
 	for _, patch := range patches {
 		patch := patch
+		applyResult := r.applyResource(ctx, rt, &patch)
 
-		if result, err := r.handleResult(ctx, rt, r.applyResource(ctx, rt, &patch)); err != nil {
+		if result, err := r.handleResult(ctx, rt, applyResult); err != nil {
 			return result, err
+		}
+
+		if applyResult.Reason != ReasonUnchanged {
+			updatedCount++
 		}
 	}
 
-	r.deleteInactiveResources(ctx, rt, activity.Inactive)
+	deletedCount := r.deleteInactiveResources(ctx, rt, activity.Inactive)
 
-	if err := r.updateStatus(ctx, rt, activity.Active); err != nil {
-		return r.handleResult(ctx, rt, controller.Result{
-			Error:   err,
-			Reason:  ReasonFailed,
-			Requeue: true,
-		})
+	if updatedCount+deletedCount > 0 {
+		if err := r.updateStatus(ctx, rt, activity.Active); err != nil {
+			return r.handleResult(ctx, rt, controller.Result{
+				Error:   err,
+				Reason:  ReasonFailed,
+				Requeue: true,
+			})
+		}
 	}
 
 	return reconcile.Result{}, nil
@@ -137,7 +145,9 @@ func (r *Reconciler) updateStatus(ctx context.Context, rt *v1beta1.ResourceTempl
 	return nil
 }
 
-func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.ResourceTemplate, refs []v1beta1.ObjectReference) {
+func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.ResourceTemplate, refs []v1beta1.ObjectReference) int {
+	deletedCount := 0
+
 	for _, ref := range refs {
 		obj := new(unstructured.Unstructured)
 		obj.SetAPIVersion(ref.APIVersion)
@@ -146,6 +156,7 @@ func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.Re
 		obj.SetName(ref.Name)
 
 		if err := r.Client.Delete(ctx, obj); err == nil {
+			deletedCount++
 			_, _ = r.handleResult(ctx, rt, controller.Result{
 				Message: fmt.Sprintf("Deleted resource: %s", getObjectName(obj)),
 				Reason:  ReasonDeleted,
@@ -157,6 +168,8 @@ func (r *Reconciler) deleteInactiveResources(ctx context.Context, rt *v1beta1.Re
 			})
 		}
 	}
+
+	return deletedCount
 }
 
 func (r *Reconciler) getObject(ctx context.Context, gvk schema.GroupVersionKind, key client.ObjectKey) (runtime.Object, error) {
