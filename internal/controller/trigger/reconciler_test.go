@@ -104,13 +104,13 @@ var _ = Describe("Reconciler", func() {
 			Expect(mgr.WaitForEvent(testenv.EventData{
 				Type:    corev1.EventTypeNormal,
 				Reason:  ReasonPatched,
-				Message: `Patched resource template "bar-46"`,
+				Message: `Patched resource template: bar-46`,
 			})).To(BeTrue())
 
 			Expect(mgr.WaitForEvent(testenv.EventData{
 				Type:    corev1.EventTypeNormal,
 				Reason:  ReasonPatched,
-				Message: `Patched resource template "bar-64"`,
+				Message: `Patched resource template: bar-64`,
 			})).To(BeTrue())
 		})
 	})

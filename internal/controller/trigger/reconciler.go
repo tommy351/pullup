@@ -145,7 +145,7 @@ func (r *Reconciler) patchResource(ctx context.Context, trigger *v1beta1.Trigger
 	}
 
 	return controller.Result{
-		Message: fmt.Sprintf("Patched resource template %q", rt.Name),
+		Message: fmt.Sprintf("Patched resource template: %s", rt.Name),
 		Reason:  ReasonPatched,
 	}
 }
