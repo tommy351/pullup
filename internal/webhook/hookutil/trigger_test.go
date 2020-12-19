@@ -108,7 +108,7 @@ var _ = Describe("TriggerHandler", func() {
 				Expect(mgr.WaitForEvent(testenv.EventData{
 					Type:    corev1.EventTypeNormal,
 					Reason:  ReasonTriggered,
-					Message: fmt.Sprintf("Triggered: %s/trigger-a", namespaceMap.GetRandom("test")),
+					Message: fmt.Sprintf("Triggered: %s %s/trigger-a", options.Action, namespaceMap.GetRandom("test")),
 				})).To(BeTrue())
 			})
 		}
@@ -321,13 +321,13 @@ var _ = Describe("TriggerHandler", func() {
 			Expect(mgr.WaitForEvent(testenv.EventData{
 				Type:    corev1.EventTypeNormal,
 				Reason:  ReasonTriggered,
-				Message: fmt.Sprintf("Triggered: %s/trigger-a", namespaceMap.GetRandom("test")),
+				Message: fmt.Sprintf("Triggered: apply %s/trigger-a", namespaceMap.GetRandom("test")),
 			})).To(BeTrue())
 
 			Expect(mgr.WaitForEvent(testenv.EventData{
 				Type:    corev1.EventTypeNormal,
 				Reason:  ReasonTriggered,
-				Message: fmt.Sprintf("Triggered: %s/trigger-b", namespaceMap.GetRandom("test")),
+				Message: fmt.Sprintf("Triggered: apply %s/trigger-b", namespaceMap.GetRandom("test")),
 			})).To(BeTrue())
 		})
 	})

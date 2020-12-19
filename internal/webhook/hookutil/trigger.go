@@ -259,7 +259,7 @@ func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTri
 
 	result.RecordEvent(t.Recorder, trigger.Trigger)
 
-	t.recordSourceEvent(options.Source, &result, trigger.ResourceTemplate.Spec.TriggerRef)
+	t.recordSourceEvent(options.Source, action, &result, trigger.ResourceTemplate.Spec.TriggerRef)
 
 	if err := result.Error; err != nil {
 		logger.Error(err, result.GetMessage())
@@ -272,17 +272,17 @@ func (t *TriggerHandler) handleTrigger(ctx context.Context, trigger *RenderedTri
 	return nil
 }
 
-func (t *TriggerHandler) recordSourceEvent(object runtime.Object, input *controller.Result, triggerRef *v1beta1.ObjectReference) {
+func (t *TriggerHandler) recordSourceEvent(object runtime.Object, action string, input *controller.Result, triggerRef *v1beta1.ObjectReference) {
 	var r controller.Result
 
 	if err := input.Error; err != nil {
 		r = controller.Result{
-			Error:  fmt.Errorf("trigger failed: %w", err),
+			Error:  fmt.Errorf("trigger %s failed: %w", action, err),
 			Reason: ReasonTriggerFailed,
 		}
 	} else {
 		r = controller.Result{
-			Message: fmt.Sprintf("Triggered: %s", triggerRef.NamespacedName()),
+			Message: fmt.Sprintf("Triggered: %s %s", action, triggerRef.NamespacedName()),
 			Reason:  ReasonTriggered,
 		}
 	}
