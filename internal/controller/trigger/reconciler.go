@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/google/wire"
@@ -97,6 +98,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 
 	for _, rt := range list.Items {
 		rt := rt
+
+		if reflect.DeepEqual(trigger.Spec.Patches, rt.Spec.Patches) {
+			logger.Info("Skipped because patches are not changed")
+
+			continue
+		}
+
 		result := r.patchResource(ctx, trigger, &rt)
 
 		result.RecordEvent(r.Recorder, trigger)

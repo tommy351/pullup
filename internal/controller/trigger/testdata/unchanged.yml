@@ -1,0 +1,37 @@
+---
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: bar
+  namespace: foo
+spec:
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: bar
+      merge:
+        spec:
+          containers:
+            - name: nginx
+              image: nginx:alpine
+---
+apiVersion: pullup.dev/v1beta1
+kind: ResourceTemplate
+metadata:
+  name: bar-46
+  namespace: foo
+spec:
+  triggerRef:
+    apiVersion: pullup.dev/v1beta1
+    kind: Trigger
+    namespace: foo
+    name: bar
+  patches:
+    - apiVersion: v1
+      kind: Pod
+      sourceName: bar
+      merge:
+        spec:
+          containers:
+            - name: nginx
+              image: nginx:alpine

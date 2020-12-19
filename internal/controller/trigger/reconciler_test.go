@@ -2,6 +2,7 @@ package trigger
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,6 +25,42 @@ var _ = Describe("Reconciler", func() {
 		namespaceMap *random.NamespaceMap
 		conf         ReconcilerConfig
 	)
+
+	getChanges := func() []testenv.Change {
+		return testenv.GetChanges(reconciler.Client)
+	}
+
+	loadTestData := func(name string) []client.Object {
+		data, err := k8s.LoadObjects(testenv.GetScheme(), fmt.Sprintf("testdata/%s.yml", name))
+		Expect(err).NotTo(HaveOccurred())
+
+		data, err = k8s.MapObjects(data, namespaceMap.SetObject)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(testenv.CreateObjects(data)).To(Succeed())
+
+		return data
+	}
+
+	testSuccess := func() {
+		It("should not requeue", func() {
+			Expect(result).To(Equal(reconcile.Result{}))
+		})
+
+		It("should not return the error", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	}
+
+	testGolden := func() {
+		It("should match the golden file", func() {
+			objects, err := testenv.GetChangedObjects(getChanges())
+			Expect(err).NotTo(HaveOccurred())
+
+			objects, err = k8s.MapObjects(objects, namespaceMap.RestoreObject)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(objects).To(golden.MatchObject())
+		})
+	}
 
 	BeforeEach(func() {
 		var err error
@@ -52,16 +89,10 @@ var _ = Describe("Reconciler", func() {
 	})
 
 	When("trigger does not exist", func() {
-		It("should not requeue", func() {
-			Expect(result).To(Equal(reconcile.Result{}))
-		})
-
-		It("should not return the error", func() {
-			Expect(err).NotTo(HaveOccurred())
-		})
+		testSuccess()
 
 		It("should not change anything", func() {
-			Expect(testenv.GetChanges(reconciler.Client)).To(BeEmpty())
+			Expect(getChanges()).To(BeEmpty())
 		})
 	})
 
@@ -69,36 +100,15 @@ var _ = Describe("Reconciler", func() {
 		var data []client.Object
 
 		BeforeEach(func() {
-			var err error
-			data, err = k8s.LoadObjects(testenv.GetScheme(), "testdata/success.yml")
-			Expect(err).NotTo(HaveOccurred())
-
-			data, err = k8s.MapObjects(data, namespaceMap.SetObject)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(testenv.CreateObjects(data)).To(Succeed())
+			data = loadTestData("success")
 		})
 
 		AfterEach(func() {
 			Expect(testenv.DeleteObjects(data)).To(Succeed())
 		})
 
-		It("should not requeue", func() {
-			Expect(result).To(Equal(reconcile.Result{}))
-		})
-
-		It("should not return the error", func() {
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should match the golden file", func() {
-			changes := testenv.GetChanges(reconciler.Client)
-			objects, err := testenv.GetChangedObjects(changes)
-			Expect(err).NotTo(HaveOccurred())
-
-			objects, err = k8s.MapObjects(objects, namespaceMap.RestoreObject)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(objects).To(golden.MatchObject())
-		})
+		testSuccess()
+		testGolden()
 
 		It("should record patched events", func() {
 			Expect(mgr.WaitForEvent(testenv.EventData{
@@ -112,6 +122,24 @@ var _ = Describe("Reconciler", func() {
 				Reason:  ReasonPatched,
 				Message: `Patched resource template: bar-64`,
 			})).To(BeTrue())
+		})
+	})
+
+	When("patches are not changed", func() {
+		var data []client.Object
+
+		BeforeEach(func() {
+			data = loadTestData("unchanged")
+		})
+
+		AfterEach(func() {
+			Expect(testenv.DeleteObjects(data)).To(Succeed())
+		})
+
+		testSuccess()
+
+		It("should not update resources", func() {
+			Expect(getChanges()).To(BeEmpty())
 		})
 	})
 })
