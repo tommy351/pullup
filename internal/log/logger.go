@@ -37,10 +37,21 @@ func NewZapLevelEnabler(conf Config) (zapcore.LevelEnabler, error) {
 }
 
 func NewLogger(conf Config, level zapcore.LevelEnabler) logr.Logger {
-	logger := zap.New(
+	options := []zap.Opts{
 		zap.UseDevMode(conf.Dev),
 		zap.Level(level),
-	)
+	}
+
+	if conf.Dev {
+		options = append(options, zap.ConsoleEncoder())
+	} else {
+		options = append(options, zap.JSONEncoder(func(z *zapcore.EncoderConfig) {
+			z.EncodeTime = zapcore.ISO8601TimeEncoder
+			z.TimeKey = "time"
+		}))
+	}
+
+	logger := zap.New(options...)
 
 	log.SetLogger(logger)
 
