@@ -1,16 +1,19 @@
-# Troubleshooting
+---
+id: troubleshooting
+title: Troubleshooting
+---
 
 ## Check if the webhook is triggered by pull requests
 
 Try list events using `kubectl describe`.
 
-```sh
+```bash
 kubectl describe webhook <webhook-name>
 ```
 
 Or see if corresponding resource sets are created.
 
-```sh
+```bash
 kubectl get resourceset
 ```
 
@@ -18,6 +21,6 @@ kubectl get resourceset
 
 List events using `kubectl describe`.
 
-```sh
+```bash
 kubectl describe resourceset <resourceset-name>
 ```

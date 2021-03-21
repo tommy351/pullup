@@ -1,60 +1,71 @@
-'use strict';
+"use strict";
 
-const organizationName = 'tommy351';
-const projectName = 'pullup';
+const organizationName = "tommy351";
+const projectName = "pullup";
 const githubUrl = `https://github.com/${organizationName}/${projectName}`;
+const currentVersion = "1.0";
 
 module.exports = {
-  title: 'Pullup',
-  tagline: 'The tagline of my site',
-  url: 'https://pullup.dev',
-  baseUrl: '/',
-  onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
+  title: "Pullup",
+  tagline: "The tagline of my site",
+  url: "https://pullup.dev",
+  baseUrl: "/",
+  onBrokenLinks: "throw",
+  onBrokenMarkdownLinks: "warn",
+  favicon: "img/favicon.ico",
   organizationName,
   projectName,
   themeConfig: {
     navbar: {
-      title: 'Pullup',
+      title: "Pullup",
       logo: {
-        alt: 'Pullup Logo',
-        src: 'img/logo.svg',
+        alt: "Pullup Logo",
+        src: "img/logo.svg",
       },
       items: [
         {
-          to: 'docs/',
-          activeBasePath: 'docs',
-          label: 'Docs',
-          position: 'left',
+          to: `docs/${currentVersion}`,
+          activeBasePath: "docs",
+          label: "Docs",
+          position: "left",
         },
-        {to: 'blog', label: 'Blog', position: 'left'},
+        {
+          type: "docsVersionDropdown",
+          position: "right",
+          dropdownActiveClassDisabled: true,
+        },
         {
           href: githubUrl,
-          label: 'GitHub',
-          position: 'right',
+          label: "GitHub",
+          position: "right",
         },
       ],
     },
     footer: {
-      style: 'dark',
+      style: "dark",
       copyright: `Copyright © ${new Date().getFullYear()} Tommy Chen. Built with Docusaurus.`,
     },
   },
   presets: [
     [
-      '@docusaurus/preset-classic',
+      "@docusaurus/preset-classic",
       {
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: githubUrl + '/edit/master/website/',
+          editUrl: githubUrl + "/edit/master/website/",
+          lastVersion: "current",
+          versions: {
+            current: {
+              label: currentVersion,
+              path: currentVersion,
+            },
+          },
         },
         blog: {
           showReadingTime: true,
-          editUrl: githubUrl + '/edit/master/website/blog/',
+          editUrl: githubUrl + "/edit/master/website/blog/",
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve("./src/css/custom.css"),
         },
       },
     ],
