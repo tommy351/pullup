@@ -14,7 +14,7 @@ kubectl apply -f https://github.com/tommy351/pullup/releases/latest/download/pul
 kubectl apply -f https://github.com/tommy351/pullup/releases/download/v0.3.3/pullup-deployment.yml
 ```
 
-The YAML file is generated with [kustomize](https://github.com/kubernetes-sigs/kustomize). You can see source files in [deployment](deployment) folder. It contains:
+The YAML file is generated with [kustomize](https://github.com/kubernetes-sigs/kustomize). You can see source files in [deployment](https://github.com/tommy351/pullup/tree/v0.3.6/deployment) folder. It contains:
 
 - Pullup custom resource definitions (CRD).
 - A Service account.

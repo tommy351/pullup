@@ -24,10 +24,10 @@ module.exports = {
       },
       items: [
         {
-          to: `docs/${currentVersion}`,
-          activeBasePath: "docs",
+          type: "doc",
           label: "Docs",
           position: "left",
+          docId: "installation",
         },
         {
           type: "docsVersionDropdown",
