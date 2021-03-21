@@ -20,7 +20,7 @@ go run sigs.k8s.io/controller-tools/cmd/controller-gen \
   paths="${PROJECT_ROOT}/cmd/...;${PROJECT_ROOT}/internal/..." \
   output:rbac:artifacts:config="${PROJECT_ROOT}/deployment/base/rbac"
 
-go get github.com/google/wire/cmd/wire
+go get github.com/google/wire/cmd/wire@v0.4.0
 
 echo "Generate Go files"
 go generate ./...
