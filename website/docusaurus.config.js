@@ -65,9 +65,10 @@ module.exports = {
           editUrl: githubUrl + "/edit/master/website/blog/",
         },
         theme: {
-          customCss: require.resolve("./src/css/custom.css"),
+          customCss: require.resolve("./src/css/custom.scss"),
         },
       },
     ],
   ],
+  plugins: ["docusaurus-plugin-sass"],
 };

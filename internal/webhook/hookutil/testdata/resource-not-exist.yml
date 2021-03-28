@@ -8,4 +8,4 @@ spec:
   patches:
     - apiVersion: v1
       kind: Pod
-      sourc eName: pod-a
+      sourceName: pod-a

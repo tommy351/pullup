@@ -4,6 +4,8 @@ title: Installation
 slug: /
 ---
 
+## Quick Install
+
 Install Pullup CRDs and components in `pullup` namespace.
 
 ```bash
@@ -11,7 +13,7 @@ Install Pullup CRDs and components in `pullup` namespace.
 kubectl apply -f https://github.com/tommy351/pullup/releases/latest/download/pullup-deployment.yml
 
 # Install a specific version
-kubectl apply -f https://github.com/tommy351/pullup/releases/download/v0.3.3/pullup-deployment.yml
+kubectl apply -f https://github.com/tommy351/pullup/releases/download/v0.3.6/pullup-deployment.yml
 ```
 
 The YAML file is generated with [kustomize](https://github.com/kubernetes-sigs/kustomize). You can see source files in [deployment](https://github.com/tommy351/pullup/tree/v0.3.6/deployment) folder. It contains:

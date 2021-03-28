@@ -1,0 +1,252 @@
+---
+id: getting-started
+title: Getting Started
+---
+
+import CodeBlock from "@theme/CodeBlock";
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+In this guide, you will learn how to create a trigger and a webhook. All YAML files used in this guide can be found in [the repository](https://github.com/tommy351/pullup/tree/master/examples/getting-started).
+
+## Example Application
+
+We use [kuard](https://github.com/kubernetes-up-and-running/kuard) as an example application. The YAML below contains a `Deployment` and a `Service`.
+
+import kuard from "!!raw-loader!../../examples/getting-started/kuard.yml";
+
+<CodeBlock className="yaml" metastring={`title="kuard.yml"`}>
+  {kuard}
+</CodeBlock>
+
+## Create a Trigger
+
+The `Trigger` below defines:
+
+- `resourceName` - Template of the name of `ResourceTemplate`.
+- `patches` - Resources to create. In this example, when the trigger is executed, a copy of the kuard deployment and service will be created.
+- `schema` - JSON schema of input data.
+
+import trigger from "!!raw-loader!../../examples/getting-started/trigger.yml";
+
+<CodeBlock className="yaml" metastring={`title="trigger.yml"`}>
+  {trigger}
+</CodeBlock>
+
+## Create a HTTPWebhook
+
+Webhooks are event sources for triggers. In this guide, we will create a `HTTPWebhook`, which can be triggered by HTTP JSON API.
+
+import webhook from "!!raw-loader!../../examples/getting-started/webhook.yml";
+
+<CodeBlock className="yaml" metastring={`title="webhook.yml"`}>
+  {webhook}
+</CodeBlock>
+
+## Trigger the Webhook
+
+First, port forward the `pullup-webhook` service.
+
+```bash
+kubectl port-forward service/pullup-webhook -n pullup 8080:80
+```
+
+Then, send the HTTP request to `pullup-webhook` service. The JSON payload includes:
+
+- `namespace` - Namespace of `HTTPWebhook`.
+- `name` - Name of `HTTPWebhook`.
+- `action` - Webhook action. The value must be one of `create`, `update`, `apply`, `delete`. We use `apply` in this example, which means the controller will create resources if not exist, and update them if already exist.
+- `data` - Input data, which is used for rendering templates in the trigger.
+
+```bash
+curl -X POST http://localhost:8080/webhooks/http \
+  -H 'Content-Type: application/json' \
+  --data-binary @- << EOF
+{
+  "namespace": "default",
+  "name": "kuard",
+  "action": "apply",
+  "data": {
+    "suffix": "test",
+    "version": "green"
+  }
+}
+EOF
+```
+
+This will create a new `ResourceTemplate` named `kuard-test`. The name is generated from `resourceName` of the `Trigger`.
+
+```bash
+kubectl get resourcetemplate
+# NAME         TRIGGER   LAST UPDATE   AGE
+# kuard-test   kuard     3s            3s
+```
+
+The newly created `ResourceTemplate` will trigger Pullup controller, which will copy the original kuard app and mutate copied resources. Below are the differences between original and copied resources. Some fields are trimmed for better readability.
+
+<Tabs
+  defaultValue="copied"
+  values={[
+    { label: "Original", value: "original" },
+    { label: "Copied", value: "copied" },
+  ]}
+>
+  <TabItem value="original">
+
+```yaml {4,10,14,17,23,30}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuard
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kuard
+  template:
+    metadata:
+      labels:
+        app: kuard
+    spec:
+      containers:
+        - image: gcr.io/kuar-demo/kuard-amd64:blue
+          name: kuard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuard
+  namespace: default
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: kuard
+  type: ClusterIP
+```
+
+  </TabItem>
+  <TabItem value="copied">
+
+```yaml {4,10,14,17,23,30}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuard-test
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kuard-test
+  template:
+    metadata:
+      labels:
+        app: kuard-test
+    spec:
+      containers:
+        - image: gcr.io/kuar-demo/kuard-amd64:green
+          name: kuard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuard-test
+  namespace: default
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: kuard-test
+  type: ClusterIP
+```
+
+  </TabItem>
+</Tabs>
+
+## Update Resources
+
+The copied resources can be updated by triggering the webhook again. For example, if the `version` is changed from `green` to `purple`.
+
+```bash {10}
+curl -X POST http://localhost:8080/webhooks/http \
+  -H 'Content-Type: application/json' \
+  --data-binary @- << EOF
+{
+  "namespace": "default",
+  "name": "kuard",
+  "action": "apply",
+  "data": {
+    "suffix": "test",
+    "version": "purple"
+  }
+}
+EOF
+```
+
+The images of `kuard-test` deployment will be also updated from `green` to `purple`.
+
+```bash
+kubectl get deployment kuard-test -o wide
+# NAME         READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                                SELECTOR
+# kuard-test   1/1     1            1           5h6m   kuard        gcr.io/kuar-demo/kuard-amd64:purple   app=kuard-test
+```
+
+Sometimes changes of input data may cause changes of resource name. For example, if the `suffix` is changed from `test` to `test2`.
+
+```bash {9}
+curl -X POST http://localhost:8080/webhooks/http \
+  -H 'Content-Type: application/json' \
+  --data-binary @- << EOF
+{
+  "namespace": "default",
+  "name": "kuard",
+  "action": "apply",
+  "data": {
+    "suffix": "test2",
+    "version": "green"
+  }
+}
+EOF
+```
+
+Instead of updating `kuard-test`, Pullup controller will create a new resource `kuard-test2`.
+
+```bash
+kubectl get deployment -o wide
+# NAME          READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES                               SELECTOR
+# kuard         1/1     1            1           5h55m   kuard        gcr.io/kuar-demo/kuard-amd64:blue    app=kuard
+# kuard-test    1/1     1            1           5h27m   kuard        gcr.io/kuar-demo/kuard-amd64:green   app=kuard-test
+# kuard-test2   1/1     1            1           6s      kuard        gcr.io/kuar-demo/kuard-amd64:green   app=kuard-test2
+```
+
+It is important to keep the input data consistent in order to prevent redundant resources from being created.
+
+## Delete Resources
+
+Finally, change the `action` to `delete` to delete resources.
+
+```bash {7}
+curl -X POST http://localhost:8080/webhooks/http \
+  -H 'Content-Type: application/json' \
+  --data-binary @- << EOF
+{
+  "namespace": "default",
+  "name": "kuard",
+  "action": "delete",
+  "data": {
+    "suffix": "test",
+    "version": "purple"
+  }
+}
+EOF
+```
+
+## What's Next?
+
+- Learn more details about [Trigger](trigger.md).
+- Besides [HTTPWebhook](http-webhook.md) mentioned in this guide, we also support [GitHubWebhook](github-webhook.md).
+- If you encounter any problems, try to find answers in [troubleshooting](troubleshooting.md) or [file an issue](https://github.com/tommy351/pullup/issues/new).
