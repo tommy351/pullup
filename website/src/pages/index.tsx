@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FunctionComponent, ReactNode } from "react";
 import clsx from "clsx";
 import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
@@ -40,7 +40,11 @@ const features = [
   },
 ];
 
-function Feature({ imageUrl, title, description }) {
+const Feature: FunctionComponent<{
+  imageUrl: string;
+  title: ReactNode;
+  description: ReactNode;
+}> = ({ imageUrl, title, description }) => {
   const imgUrl = useBaseUrl(imageUrl);
   return (
     <div className={clsx("col col--4", styles.feature)}>
@@ -53,9 +57,9 @@ function Feature({ imageUrl, title, description }) {
       <p>{description}</p>
     </div>
   );
-}
+};
 
-function Home() {
+const Home: FunctionComponent = () => {
   const context = useDocusaurusContext();
   const docConfig = usePluginData("docusaurus-plugin-content-docs");
   const { siteConfig = {} } = context;
@@ -103,6 +107,6 @@ function Home() {
       </main>
     </Layout>
   );
-}
+};
 
 export default Home;
