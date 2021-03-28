@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  node: circleci/node@4.2.0
+
 commands:
   go_get:
     steps:
@@ -15,6 +18,9 @@ executors:
   golang:
     docker:
       - image: circleci/golang:1.15
+  node:
+    docker:
+      - image: circleci/node:14
 
 jobs:
   lint:
@@ -27,6 +33,14 @@ jobs:
           command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.33.0
       - run: ./bin/golangci-lint run
       - run: ./hack/verify-codegen.sh
+  lint_website:
+    executor: node
+    working_directory: ~/project/website
+    steps:
+      - checkout:
+          path: ~/project
+      - node/install-packages
+      - run: npm run lint
   test_go:
     executor: golang
     steps:
@@ -92,6 +106,10 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - lint_website:
+          filters:
+            tags:
+              only: /.*/
       - test_go:
           filters:
             tags:
@@ -103,6 +121,7 @@ workflows:
       - release:
           requires:
             - lint
+            - lint_website
             - test_go
             - test_e2e
           filters:
