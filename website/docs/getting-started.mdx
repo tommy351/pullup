@@ -4,10 +4,8 @@ title: Getting Started
 ---
 
 import CodeBlock from "@theme/CodeBlock";
-import Tabs from "@theme/Tabs";
-import TabItem from "@theme/TabItem";
 
-In this guide, you will learn how to create a trigger and a webhook. All YAML files used in this guide can be found in [the repository](https://github.com/tommy351/pullup/tree/master/examples/getting-started).
+In this guide, you will learn how to create a trigger and a webhook. All YAML files used in this guide can be found in [examples/getting-started](https://github.com/tommy351/pullup/tree/master/examples/getting-started) folder.
 
 ## Example Application
 
@@ -84,88 +82,46 @@ kubectl get resourcetemplate
 
 The newly created `ResourceTemplate` will trigger Pullup controller, which will copy the original kuard app and mutate copied resources. Below are the differences between original and copied resources. Some fields are trimmed for better readability.
 
-<Tabs
-  defaultValue="copied"
-  values={[
-    { label: "Original", value: "original" },
-    { label: "Copied", value: "copied" },
-  ]}
->
-  <TabItem value="original">
-
-```yaml {4,10,14,17,23,30}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kuard
-  namespace: default
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kuard
-  template:
-    metadata:
-      labels:
-        app: kuard
-    spec:
-      containers:
-        - image: gcr.io/kuar-demo/kuard-amd64:blue
-          name: kuard
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kuard
-  namespace: default
-spec:
-  ports:
-    - port: 80
-      targetPort: 8080
-  selector:
-    app: kuard
-  type: ClusterIP
+```diff
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
+-  name: kuard
++  name: kuard-test
+   namespace: default
+ spec:
+   replicas: 1
+   selector:
+     matchLabels:
+-      app: kuard
++      app: kuard-test
+   template:
+     metadata:
+       labels:
+-        app: kuard
++        app: kuard-test
+     spec:
+       containers:
+-        - image: gcr.io/kuar-demo/kuard-amd64:blue
+-          name: kuard
++        - image: gcr.io/kuar-demo/kuard-amd64:green
++          name: kuard-test
+ ---
+ apiVersion: v1
+ kind: Service
+ metadata:
+-  name: kuard
++  name: kuard-test
+   namespace: default
+ spec:
+   ports:
+     - port: 80
+       targetPort: 8080
+   selector:
+-    app: kuard
++    app: kuard-test
+   type: ClusterIP
 ```
-
-  </TabItem>
-  <TabItem value="copied">
-
-```yaml {4,10,14,17,23,30}
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kuard-test
-  namespace: default
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kuard-test
-  template:
-    metadata:
-      labels:
-        app: kuard-test
-    spec:
-      containers:
-        - image: gcr.io/kuar-demo/kuard-amd64:green
-          name: kuard
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kuard-test
-  namespace: default
-spec:
-  ports:
-    - port: 80
-      targetPort: 8080
-  selector:
-    app: kuard-test
-  type: ClusterIP
-```
-
-  </TabItem>
-</Tabs>
 
 ## Update Resources
 
@@ -247,6 +203,6 @@ EOF
 
 ## What's Next?
 
-- Learn more details about [Trigger](trigger.md).
-- Besides [HTTPWebhook](http-webhook.md) mentioned in this guide, we also support [GitHubWebhook](github-webhook.md).
+- Learn more details about [Trigger](trigger.mdx).
+- Besides [HTTPWebhook](http-webhook.md), Pullup also supports [GitHubWebhook](github-webhook.md).
 - If you encounter any problems, try to find answers in [troubleshooting](troubleshooting.md) or [file an issue](https://github.com/tommy351/pullup/issues/new).

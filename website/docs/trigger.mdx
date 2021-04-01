@@ -1,0 +1,230 @@
+---
+id: trigger
+title: Trigger
+---
+
+import Badge from "@site/src/components/Badge";
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
+`Trigger` is the template of `ResourceTemplate`. When a `Trigger` is executed, Pullup webhook will create, update or delete `ResourceTemplate` according to `Trigger` and the input event.
+
+## Model
+
+### `spec.resourceName`
+
+<p>
+  <Badge color="danger">Required</Badge>
+</p>
+
+The template of name of `ResourceTemplate`. The value must be a valid [Go template string].
+
+Available variables:
+
+- `trigger` - Current `Trigger` resource.
+- `event` - Input event.
+
+Example:
+
+```go
+"{{ .trigger.metadata.name }}-{{ .event.suffix }}"
+// my-trigger-foo
+```
+
+### `spec.patches`
+
+<p>
+  <Badge color="danger">Required</Badge>
+</p>
+
+The template of resources to create in your Kubernetes cluster. The value is an array which contains the following fields.
+
+- `apiVersion` <Badge color="danger">Required</Badge> - API version of resources to create. (e.g. `v1`, `apps/v1`, etc.)
+- `kind` <Badge color="danger">Required</Badge> - Kind of resources to create. (e.g. `Pod`, `Deployment`, `Service`, etc.)
+- `sourceName` - The name of resources to copy when creating new resources. If this value is not specified, resources will be created directly.
+- `targetName` - The template of name of created resources. By default, the value will be the same as the name of `ResourceTemplate`. If the `spec.patches` array contains multiple resources with the same `apiVersion` and `kind`, you must configure this field to avoid conflicts.
+- `merge` - Mutate created resources with [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).
+- `jsonPatch` - Mutate created resources with [JSON Patch](http://jsonpatch.com/).
+
+You can use [Go template string] in all of the fields above. The following are the available variables.
+
+- `trigger` - Current `Trigger` resource.
+- `event` - Input event.
+- `resource` - Current `ResourceTemplate` resource.
+
+See the [Examples](#examples) section below for examples.
+
+### `spec.schema`
+
+The [JSON schema](https://json-schema.org/) for input events. Pullup uses draft 7 version currently. You can learn more about JSON schema in [the official book](https://json-schema.org/understanding-json-schema/).
+
+## Examples
+
+### Create Resources from Scratch
+
+This is the most basic usage of the `Trigger` resource.
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: example
+spec:
+  resourceName: "{{ .trigger.metadata.name }}"
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      merge:
+        data:
+          timezone: UTC
+```
+
+When the trigger above is executed, a `ConfigMap` will be created as below.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example
+data:
+  timezone: UTC
+```
+
+### Copy and Mutate Resources
+
+When the `sourceName` is specified in `spec.patches`. Pullup controller will copy existing resources and rename it as `targetName` or `spec.resourceName`. If `merge` or `jsonPatch` is specified, the copied resources will be mutated.
+
+<Tabs
+  defaultValue='trigger'
+  values={[
+    { label: "Trigger", value: "trigger" },
+    { label: "Deployment", value: "deployment" },
+  ]}>
+
+  <TabItem value="trigger">
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: example
+spec:
+  resourceName: "{{ .trigger.metadata.name }}-{{ .event.suffix }}"
+  patches:
+    - apiVersion: apps/v1
+      kind: Deployment
+      sourceName: kuard
+      merge:
+        spec:
+          selector:
+            matchLabels:
+              app: "{{ .resource.metadata.name }}"
+          template:
+            metadata:
+              labels:
+                app: "{{ .resource.metadata.name }}"
+            spec:
+              containers:
+                - name: kuard
+                  image: "gcr.io/kuar-demo/kuard-amd64:{{ .event.version }}"
+```
+
+  </TabItem>
+  <TabItem value="deployment">
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kuard
+  template:
+    metadata:
+      labels:
+        app: kuard
+    spec:
+      containers:
+        - name: kuard
+          image: gcr.io/kuar-demo/kuard-amd64:blue
+```
+
+  </TabItem>
+</Tabs>
+
+When the trigger above is executed, a `Deployment` will be created as below.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+        - name: kuard
+          image: gcr.io/kuar-demo/kuard-amd64:green
+```
+
+### Validate Input Data
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: example
+spec:
+  resourceName: "{{ .trigger.metadata.name }}"
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      merge:
+        data:
+          timezone: UTC
+  schema:
+    type: object
+    properties:
+      suffix:
+        type: string
+      version:
+        type: string
+```
+
+### Customize Resource Name
+
+By default, the name of created resources will be the same as the name of `ResourceTemplate`, which is fine usually. However, if `spec.patches` contains multiple resources with the same `apiVersion` and `kind`, you must specify `targetName` for these resources to avoid conflicts.
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: example
+spec:
+  resourceName: "{{ .trigger.metadata.name }}"
+  patches:
+    - apiVersion: v1
+      kind: ConfigMap
+      targetName: "{{ .resource.metadata.name }}-utc"
+      merge:
+        data:
+          timezone: UTC
+    - apiVersion: v1
+      kind: ConfigMap
+      targetName: "{{ .resource.metadata.name }}-tpe"
+      merge:
+        data:
+          timezone: Asia/Taipei
+```
+
+[go template string]: https://golang.org/pkg/text/template/

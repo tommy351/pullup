@@ -8,7 +8,7 @@ import CodeBlock from "@theme/CodeBlock";
 
 ## Quick Install
 
-The easiest way to install Pullup CRDS and components is to use the pre-generated YAML files.
+Install Pullup CRDs and components with the pre-generated YAML files.
 
 ```bash
 # Install the latest version
@@ -18,7 +18,7 @@ kubectl apply -f https://github.com/tommy351/pullup/releases/latest/download/pul
 kubectl apply -f https://github.com/tommy351/pullup/releases/download/v1.0.0/pullup-deployment.yml
 ```
 
-The YAML file is generated with [kustomize](https://github.com/kubernetes-sigs/kustomize). You can see source files in [deployment](https://github.com/tommy351/pullup/tree/master/deployment) folder. It contains:
+The YAML file is generated with [kustomize](https://github.com/kubernetes-sigs/kustomize). You can see the source files in [deployment](https://github.com/tommy351/pullup/tree/master/deployment) folder, which contains:
 
 - A namespace `pullup` which contains the following resources.
 - Pullup custom resource definitions (CRD).
