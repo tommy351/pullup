@@ -1,0 +1,134 @@
+---
+id: github-webhook
+title: GitHubWebhook
+---
+
+import { RequiredBadge } from "@site/src/components/Badge";
+
+`GitHubWebhook` defines a webhook which can be triggered by [GitHub webhook events](https://docs.github.com/en/developers/webhooks-and-events/about-webhooks). This is useful for integrating Pullup into your GitHub repositories.
+
+## Model
+
+### `spec.triggers`
+
+<p>
+  <RequiredBadge />
+</p>
+
+See [`HTTPWebhook`](http-webhook.mdx#spectriggers) for more details.
+
+### `spec.action`
+
+See [`HTTPWebhook`](http-webhook.mdx#specaction) for more details.
+
+### `spec.repositories`
+
+<p>
+  <RequiredBadge />
+</p>
+
+The repositories to handle. This value is an array of objects which contains the following fields.
+
+- `name` <RequiredBadge /> - Full name of a repository. (e.g. `tommy351/pullup`)
+- [`push`](#push)
+- [`pullRequest`](#pullrequest)
+
+You have to specify one of `push` or `pullRequest` field to activate the webhook.
+
+#### Event Filter
+
+Event filter is an object containing the following fields.
+
+- `include` - List of conditions to include.
+- `exclude` - List of conditions to exclude.
+
+You can use a string or a regular expression in these fields.
+
+```yaml
+- master
+- /.*/
+```
+
+#### `push`
+
+Handle [push](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads#push) events.
+
+| Key        | Type                         | Description                |
+| ---------- | ---------------------------- | -------------------------- |
+| `branches` | [EventFilter](#event-filter) | Filter events by branches. |
+| `tags`     | [EventFilter](#event-filter) | Filter events by tags.     |
+
+#### `pullRequest`
+
+Handle [pull_request](https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads#pull_request) events.
+
+| Key        | Type                         | Description                                                                                                                                                                                                                                                                                                          |
+| ---------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `branches` | [EventFilter](#event-filter) | Filter events by pull request base branches.                                                                                                                                                                                                                                                                         |
+| `tags`     | [EventFilter](#event-filter) | Filter events by pull request labels.                                                                                                                                                                                                                                                                                |
+| `types`    | `[]string`                   | Pull request events to handle. Available values are `assigned`, `unassigned`, `labeled`, `unlabeled`, `opened`, `edited`, `closed`, `reopened`, `synchronize`, `ready_for_review`, `locked`, `unlocked`, `review_requested`, `review_request_removed`. Default to `["opened", "synchronize", "reopened", "closed"]`. |
+
+## Setup
+
+### Creating Webhooks on GitHub
+
+See [GitHub docs](https://docs.github.com/en/developers/webhooks-and-events/creating-webhooks) for more details.
+
+- **Payload URL**: `http://your-site.com/webhooks/github`
+- **Content Type**: Choose `application/json`
+- **Secret**: See [Securing Webhooks](#securing-webhooks) below.
+
+### Securing Webhooks
+
+It is recommended to set a secret on your webhook in order to make sure the payload is sent from GitHub. Set `GITHUB_SECRET` environment variable on the `pullup-webhook` deployment to enable this feature.
+
+```yaml
+env:
+  - name: GITHUB_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: github-secret
+        name: pullup
+```
+
+## Examples
+
+Only `GitHubWebhook` specific examples are provided below. See [`HTTPWebhook`](http-webhook.mdx#examples) for more examples.
+
+### Basic
+
+The following webhook only handles push events. Change `push` to `pullRequest` to handle pull request events instead. Noted that you can use both of them at the same time.
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: GitHubWebhook
+metadata:
+  name: example
+spec:
+  repositories:
+    - name: foo/bar
+      push: {}
+  triggers:
+    - name: foobar
+```
+
+### Filter by Branch
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: GitHubWebhook
+metadata:
+  name: example
+spec:
+  repositories:
+    - name: foo/bar
+      push:
+        branches:
+          include:
+            - master
+            - /release-.+/
+          exclude:
+            - canary
+  triggers:
+    - name: foobar
+```

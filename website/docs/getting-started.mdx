@@ -56,6 +56,8 @@ Then, send the HTTP request to `pullup-webhook` service. The JSON payload includ
 - `action` - Webhook action. The value must be one of `create`, `update`, `apply`, `delete`. We use `apply` in this example, which means the controller will create resources if not exist, and update them if already exist.
 - `data` - Input data, which is used for rendering templates in the trigger.
 
+See [`HTTPWebhook`](http-webhook.mdx#request) for more info.
+
 ```bash
 curl -X POST http://localhost:8080/webhooks/http \
   -H 'Content-Type: application/json' \
@@ -204,5 +206,5 @@ EOF
 ## What's Next?
 
 - Learn more details about [Trigger](trigger.mdx).
-- Besides [HTTPWebhook](http-webhook.md), Pullup also supports [GitHubWebhook](github-webhook.md).
+- Besides [HTTPWebhook](http-webhook.mdx), Pullup also supports [GitHubWebhook](github-webhook.mdx).
 - If you encounter any problems, try to find answers in [troubleshooting](troubleshooting.md) or [file an issue](https://github.com/tommy351/pullup/issues/new).

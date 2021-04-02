@@ -3,7 +3,7 @@ id: trigger
 title: Trigger
 ---
 
-import Badge from "@site/src/components/Badge";
+import { RequiredBadge } from "@site/src/components/Badge";
 import Tabs from "@theme/Tabs";
 import TabItem from "@theme/TabItem";
 
@@ -14,15 +14,17 @@ import TabItem from "@theme/TabItem";
 ### `spec.resourceName`
 
 <p>
-  <Badge color="danger">Required</Badge>
+  <RequiredBadge />
 </p>
 
 The template of name of `ResourceTemplate`. The value must be a valid [Go template string].
 
 Available variables:
 
-- `trigger` - Current `Trigger` resource.
-- `event` - Input event.
+| Key       | Type                     | Description                 |
+| --------- | ------------------------ | --------------------------- |
+| `trigger` | [`Trigger`](trigger.mdx) | Current `Trigger` resource. |
+| `event`   | `unknown`                | Input event.                |
 
 Example:
 
@@ -34,23 +36,27 @@ Example:
 ### `spec.patches`
 
 <p>
-  <Badge color="danger">Required</Badge>
+  <RequiredBadge />
 </p>
 
-The template of resources to create in your Kubernetes cluster. The value is an array which contains the following fields.
+The template of resources to create in your Kubernetes cluster. The value is an array of objects which contains the following fields.
 
-- `apiVersion` <Badge color="danger">Required</Badge> - API version of resources to create. (e.g. `v1`, `apps/v1`, etc.)
-- `kind` <Badge color="danger">Required</Badge> - Kind of resources to create. (e.g. `Pod`, `Deployment`, `Service`, etc.)
-- `sourceName` - The name of resources to copy when creating new resources. If this value is not specified, resources will be created directly.
-- `targetName` - The template of name of created resources. By default, the value will be the same as the name of `ResourceTemplate`. If the `spec.patches` array contains multiple resources with the same `apiVersion` and `kind`, you must configure this field to avoid conflicts.
-- `merge` - Mutate created resources with [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).
-- `jsonPatch` - Mutate created resources with [JSON Patch](http://jsonpatch.com/).
+| Key                            | Type     | Description                                                                                                                                                                                                                                                           |
+| ------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiVersion` <RequiredBadge /> | `string` | API version of resources to create. (e.g. `v1`, `apps/v1`)                                                                                                                                                                                                            |
+| `kind` <RequiredBadge />       | `string` | Kind of resources to create. (e.g. `Pod`, `Deployment`, `Service`)                                                                                                                                                                                                    |
+| `sourceName`                   | `string` | The name of resources to copy when creating new resources. If this value is not specified, resources will be created directly.                                                                                                                                        |
+| `targetName`                   | `string` | The template of name of created resources. By default, the value will be the same as the name of `ResourceTemplate`. If the `spec.patches` array contains multiple resources with the same `apiVersion` and `kind`, you must configure this field to avoid conflicts. |
+| `merge`                        | `object` | Mutate created resources with [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).                                                                                             |
+| `jsonPatch`                    | `array`  | Mutate created resources with [JSON Patch](http://jsonpatch.com/).                                                                                                                                                                                                    |
 
 You can use [Go template string] in all of the fields above. The following are the available variables.
 
-- `trigger` - Current `Trigger` resource.
-- `event` - Input event.
-- `resource` - Current `ResourceTemplate` resource.
+| Key        | Type                                        | Description                          |
+| ---------- | ------------------------------------------- | ------------------------------------ |
+| `trigger`  | [`Trigger`](trigger.mdx)                    | Current `Trigger` resource.          |
+| `event`    | `unknown`                                   | Input event.                         |
+| `resource` | [`ResourceTemplate`](resource-template.mdx) | Current `ResourceTemplate` resource. |
 
 See the [Examples](#examples) section below for examples.
 

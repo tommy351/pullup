@@ -1,0 +1,29 @@
+---
+id: resource-template
+title: ResourceTemplate
+---
+
+`ResourceTemplate` is a internal resources for Pullup controller. This resource should be updated by webhooks only.
+
+## Model
+
+### `spec.triggerRef`
+
+The reference of the `Trigger` resource.
+
+Example:
+
+```yaml
+triggerRef:
+  apiVersion: pullup.dev/v1beta1
+  kind: Trigger
+  name: example
+```
+
+### `spec.patches`
+
+See [Trigger](trigger.mdx#specpatches) for more details.
+
+### `spec.data`
+
+Input data for rendering templates.

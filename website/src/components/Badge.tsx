@@ -7,4 +7,8 @@ const Badge: FunctionComponent<{ color?: string }> = ({
   return <span className={`badge badge--${color}`}>{children}</span>;
 };
 
+export const RequiredBadge: FunctionComponent = () => (
+  <Badge color="danger">Required</Badge>
+);
+
 export default Badge;

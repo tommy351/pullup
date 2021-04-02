@@ -1,0 +1,204 @@
+---
+id: http-webhook
+title: HTTPWebhook
+---
+
+import { RequiredBadge } from "@site/src/components/Badge";
+
+`HTTPWebhook` defines a webhook which can be triggered by HTTP JSON API.
+
+## Model
+
+### `spec.triggers`
+
+<p>
+  <RequiredBadge />
+</p>
+
+`Trigger` to execute when the webhook is triggered. The value is an array of objects containing the following fields.
+
+| Key                      | Type      | Description                                                                               |
+| ------------------------ | --------- | ----------------------------------------------------------------------------------------- |
+| `name` <RequiredBadge /> | `string`  | Name of `Trigger`.                                                                        |
+| `namespace`              | `string`  | Namespace of `Trigger`. By default, this value will be the same as the webhook namespace. |
+| `transform`              | `unknown` | Transform input events before executing `Trigger`.                                        |
+
+You can use [Go template string] in the `transform` field. The following are the available variables.
+
+| Key       | Type                     | Description                 |
+| --------- | ------------------------ | --------------------------- |
+| `trigger` | [`Trigger`](trigger.mdx) | Current `Trigger` resource. |
+| `event`   | `unknown`                | Input event.                |
+
+### `spec.action`
+
+The action to execute. It must be one of the following values.
+
+- `create` - Create resources if not exist yet.
+- `update` - Update resources if already exist.
+- `apply` - Mix of `create` and `update`. Create resources if not exist or update otherwise.
+- `delete` - Delete resources.
+
+You can use [Go template string] in this value. The following are the available variables.
+
+| Key      | Type      | Description                                    |
+| -------- | --------- | ---------------------------------------------- |
+| `event`  | `unknown` | Input event.                                   |
+| `action` | `string`  | Default action defined by the webhook handler. |
+
+### `spec.schema`
+
+The [JSON schema](https://json-schema.org/) for input events. See [Trigger](trigger.mdx#specschema) for more info.
+
+### `spec.secretToken`
+
+The secret token to use in webhook requests. `Pullup-Webhook-Secret` header is required for webhook requests if a secret token is specified.
+
+Example:
+
+```yaml
+secretToken:
+  secretKeyRef:
+    name: example
+    key: secret
+```
+
+## API
+
+### Request
+
+```
+POST /webhooks/http
+```
+
+**Headers**
+
+| Key                     | Description                                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| `Content-Type`          | Must be `application/json`.                                   |
+| `Pullup-Webhook-Secret` | This header is required when `spec.secretToken` is specified. |
+
+**Body**
+
+| Key                           | Type      | Description                                                                                           |
+| ----------------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| `name` <RequiredBadge />      | `string`  | Name of `HTTPWebhook`.                                                                                |
+| `namespace` <RequiredBadge /> | `string`  | Namespace of `HTTPWebhook`.                                                                           |
+| `action` <RequiredBadge />    | `string`  | The action to execute. This value will be used as `action` variable in `spec.action` template string. |
+| `data`                        | `unknown` | Input data. If `spec.schema` is specified, the value will be validated before executing triggers.     |
+
+### Response
+
+Response body is a JSON. When requests are successful, the `error` array will be omitted from the response body.
+
+```json
+{
+  "errors": [
+    {
+      "type": "",
+      "description": "",
+      "field": ""
+    }
+  ]
+}
+```
+
+**200 OK**
+
+- Triggers are executed successfully.
+
+**400 Bad Request**
+
+- `HTTPWebhook` not found.
+- Request body is invalid.
+- `data` does not match `spec.schema`.
+
+**403 Forbidden**
+
+- `spec.secretToken` is specified, but the secret or its key does not exist.
+- `Pullup-Webhook-Secret` does not match `spec.secretToken`.
+
+## Examples
+
+### Basic
+
+This is the most basic usage of the `HTTPWebhook` resource. When the following webhook is triggered, the triggers specified in `spec.triggers` will be executed.
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: example
+spec:
+  triggers:
+    - name: example
+```
+
+### Specify Action in Webhook
+
+When `spec.action` is specified, its value will override `action` sent in the request body. You can access the `action` in request body via the `{{ .action }}` variable.
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: example
+spec:
+  action: "{{ if .event.deleted }}delete{{ else }}{{ .action }}{{ end }}"
+  triggers:
+    - name: example
+```
+
+### Validate Input Data
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: example
+spec:
+  triggers:
+    - name: example
+  schema:
+    type: object
+    properties:
+      suffix:
+        type: string
+      version:
+        type: string
+```
+
+### Secret Token
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: example
+spec:
+  triggers:
+    - name: example
+  secretToken:
+    secretKeyRef:
+      name: example
+      key: secret
+```
+
+### Transform Input Data
+
+Transform input data before executing triggers. The following example will swap `abc` and `xyz` keys in input data.
+
+```yaml
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: example
+spec:
+  triggers:
+    - name: example
+      transform:
+        abc: "{{ .event.xyz }}"
+        xyz: "{{ .event.abc }}"
+```
+
+[go template string]: https://golang.org/pkg/text/template/
