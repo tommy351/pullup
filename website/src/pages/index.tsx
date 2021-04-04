@@ -5,47 +5,57 @@ import Link from "@docusaurus/Link";
 import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import { usePluginData } from "@docusaurus/useGlobalData";
 import useBaseUrl from "@docusaurus/useBaseUrl";
-import styles from "./styles.module.css";
+import styles from "./styles.module.scss";
 
-const features = [
+interface FeatureProps {
+  title: string;
+  imageUrl: string;
+  description: ReactNode;
+}
+
+const features: FeatureProps[] = [
   {
-    title: "Easy to Use",
-    imageUrl: "img/undraw_docusaurus_mountain.svg",
+    title: "Trigger by Webhooks",
+    imageUrl: "img/undraw_data_processing_yrrv.svg",
+    description: (
+      <>Create, Update or delete Kubernetes resources by HTTP webhooks.</>
+    ),
+  },
+  {
+    title: "Copy Resources",
+    imageUrl: "img/undraw_Documents_re_isxv.svg",
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Copy existing Kubernetes resources and mutate them with{" "}
+        <a
+          href="https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Strategic Merge Patch
+        </a>{" "}
+        or{" "}
+        <a href="http://jsonpatch.com/" target="_blank" rel="noreferrer">
+          JSON Patch
+        </a>
+        .
       </>
     ),
   },
   {
-    title: "Focus on What Matters",
-    imageUrl: "img/undraw_docusaurus_tree.svg",
-    description: (
-      <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
-      </>
-    ),
-  },
-  {
-    title: "Powered by React",
-    imageUrl: "img/undraw_docusaurus_react.svg",
-    description: (
-      <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
-      </>
-    ),
+    title: "GitHub Integration",
+    imageUrl: "img/undraw_version_control_9bpv.svg",
+    description: <>GitHub push and pull request events are also supported.</>,
   },
 ];
 
-const Feature: FunctionComponent<{
-  imageUrl: string;
-  title: ReactNode;
-  description: ReactNode;
-}> = ({ imageUrl, title, description }) => {
+const Feature: FunctionComponent<FeatureProps> = ({
+  imageUrl,
+  title,
+  description,
+}) => {
   const imgUrl = useBaseUrl(imageUrl);
+
   return (
     <div className={clsx("col col--4", styles.feature)}>
       {imgUrl && (
@@ -71,18 +81,15 @@ const Home: FunctionComponent = () => {
   );
 
   return (
-    <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />"
-    >
-      <header className={clsx("hero hero--primary", styles.heroBanner)}>
+    <Layout>
+      <header className={clsx("hero", styles.heroBanner)}>
         <div className="container">
           <h1 className="hero__title">{siteConfig.title}</h1>
           <p className="hero__subtitle">{siteConfig.tagline}</p>
           <div className={styles.buttons}>
             <Link
               className={clsx(
-                "button button--outline button--secondary button--lg",
+                "button button--outline button--primary button--lg",
                 styles.getStarted
               )}
               to={entryDoc.path}

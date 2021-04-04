@@ -7,7 +7,7 @@ const currentVersion = "1.0";
 
 module.exports = {
   title: "Pullup",
-  tagline: "The tagline of my site",
+  tagline: "Update Kubernetes resources by webhooks.",
   url: "https://pullup.dev",
   baseUrl: "/",
   onBrokenLinks: "throw",
