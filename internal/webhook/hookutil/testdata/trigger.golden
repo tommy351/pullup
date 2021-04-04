@@ -23,6 +23,7 @@
     patches:
     - apiVersion: v1
       kind: Pod
+      sourceName: pod-a
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger
@@ -138,6 +139,7 @@
     patches:
     - apiVersion: v1
       kind: Pod
+      sourceName: pod-a
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger
@@ -188,6 +190,7 @@
     patches:
     - apiVersion: v1
       kind: Pod
+      sourceName: pod-a
     triggerRef:
       apiVersion: pullup.dev/v1beta1
       kind: Trigger

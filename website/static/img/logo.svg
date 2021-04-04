@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="512px" height="512px" viewBox="0 0 512 512" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient gradientUnits="objectBoundingBox" cx="50%" cy="12.305227%" fx="50%" fy="12.305227%" r="93.44564%" gradientTransform="translate(0.5,0.12305227),scale(0.50000006,1),rotate(90.00008),scale(1,1.0579296),translate(-0.5,-0.12305227)" id="gradient_1">
+      <stop offset="0%" stop-color="#A5B4FC" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </radialGradient>
+    <rect width="512" height="512" id="artboard_1" />
+    <clipPath id="clip_1">
+      <use xlink:href="#artboard_1" clip-rule="evenodd" />
+    </clipPath>
+  </defs>
+  <g id="Artboard" clip-path="url(#clip_1)">
+    <g id="Group" transform="translate(53 55.5)">
+      <path d="M0 1.52588e-05C0 112.114 90.8862 203 203 203C315.114 203 406 112.114 406 1.52588e-05L338.333 1.52588e-05C338.333 74.7425 277.742 135.333 203 135.333C128.257 135.333 67.6667 74.7425 67.6667 0L-2.84217e-14 1.52588e-05L0 1.52588e-05Z" transform="translate(0 99.5)" id="Ellipse-Difference-Difference" fill="url(#gradient_1)" fill-rule="evenodd" stroke="none" />
+      <path d="M0 0L0 401" transform="translate(33 0)" id="Line" fill="none" fill-rule="evenodd" stroke="#6366F1" stroke-width="70" stroke-linecap="round" />
+      <path d="M1 0L1 271" transform="translate(372 0)" id="Line-2" fill="none" fill-rule="evenodd" stroke="#6366F1" stroke-width="70" stroke-linecap="round" />
+    </g>
+  </g>
+</svg>

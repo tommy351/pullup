@@ -1,4 +1,7 @@
-# Architecture
+---
+id: architecture
+title: Architecture
+---
 
 Pullup consists of two components: webhook and controller.
 

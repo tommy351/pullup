@@ -1,0 +1,7 @@
+apiVersion: pullup.dev/v1beta1
+kind: HTTPWebhook
+metadata:
+  name: kuard
+spec:
+  triggers:
+    - name: kuard

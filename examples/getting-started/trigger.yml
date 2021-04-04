@@ -1,0 +1,37 @@
+apiVersion: pullup.dev/v1beta1
+kind: Trigger
+metadata:
+  name: kuard
+spec:
+  resourceName: "{{ .trigger.metadata.name }}-{{ .event.suffix }}"
+  patches:
+    - apiVersion: apps/v1
+      kind: Deployment
+      sourceName: kuard
+      merge:
+        spec:
+          selector:
+            matchLabels:
+              app: "{{ .resource.metadata.name }}"
+          template:
+            metadata:
+              labels:
+                app: "{{ .resource.metadata.name }}"
+            spec:
+              containers:
+                - name: kuard
+                  image: "gcr.io/kuar-demo/kuard-amd64:{{ .event.version }}"
+    - apiVersion: v1
+      kind: Service
+      sourceName: kuard
+      merge:
+        spec:
+          selector:
+            app: "{{ .resource.metadata.name }}"
+  schema:
+    type: object
+    properties:
+      suffix:
+        type: string
+      version:
+        type: string

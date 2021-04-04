@@ -1,0 +1,48 @@
+---
+id: installation
+title: Installation
+slug: /
+---
+
+import CodeBlock from "@theme/CodeBlock";
+
+## Quick Install
+
+Install Pullup CRDs and components with the pre-generated YAML files.
+
+```bash
+# Install the latest version
+kubectl apply -f https://github.com/tommy351/pullup/releases/latest/download/pullup-deployment.yml
+
+# Install a specific version
+kubectl apply -f https://github.com/tommy351/pullup/releases/download/v1.0.0/pullup-deployment.yml
+```
+
+The YAML file is generated with [kustomize](https://github.com/kubernetes-sigs/kustomize). You can see the source files in [deployment](https://github.com/tommy351/pullup/tree/master/deployment) folder, which contains:
+
+- A namespace `pullup` which contains the following resources.
+- Pullup custom resource definitions (CRD).
+- A Service account `pullup`.
+- RBAC for accessing Pullup CRD, writing events and the leader election.
+- Deployments of the controller and the webhook.
+- A service which exposes the webhook server.
+
+## RBAC
+
+After Pullup is installed, you have to grant access of the resources which will be used in triggers.
+
+The following example includes `Deployment` and `Service`. See [here](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) for more details about RBAC.
+
+import rbac from "!!raw-loader!../../examples/getting-started/rbac.yml";
+
+<CodeBlock className="yaml" metastring={`title="rbac.yml"`}>
+  {rbac}
+</CodeBlock>
+
+## Uninstall
+
+To uninstall Pullup from your cluster, delete the `pullup` namespace.
+
+```bash
+kubectl delete ns pullup
+```

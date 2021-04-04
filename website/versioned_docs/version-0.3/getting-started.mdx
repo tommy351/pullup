@@ -1,4 +1,9 @@
-# Getting Started
+---
+id: getting-started
+title: Getting Started
+---
+
+import CodeBlock from "@theme/CodeBlock";
 
 ## Creating a Webhook
 
@@ -100,7 +105,8 @@ When a pull request is opened or updated, Pullup will search the existing resour
 <tbody>
   <tr>
     <td>
-      <pre>apiVersion: apps/v1
+<CodeBlock className='language-yaml'>{`
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: example
@@ -116,31 +122,36 @@ spec:
     spec:
       containers:
         - name: foo
-          image: tommy351/foo</pre>
+          image: tommy351/foo
+`.trim()}</CodeBlock>
     </td>
     <td>
-      <pre>apiVersion: apps/v1
+<CodeBlock className='language-yaml' metastring='{4,9,13,17}'>{`
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: <strong>example-123</strong>
+  name: example-123
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: <strong>example-123</strong>
+      app: example-123
   template:
     metadata:
       labels:
-        app: <strong>example-123</strong>
+        app: example-123
     spec:
       containers:
         - name: foo
-          image: <strong>tommy351/foo:dc970c24bbd20df017be64e110511d416eeddb36</strong></pre>
+          image: tommy351/foo:dc970c24bbd20df017be64e110511d416eeddb36
+`.trim()}</CodeBlock>
     </td>
+
   </tr>
   <tr>
     <td>
-      <pre>apiVersion: v1
+<CodeBlock className='language-yaml'>{`
+apiVersion: v1
 kind: Service
 metadata:
   name: example
@@ -148,18 +159,21 @@ spec:
   selector:
     app: example
   ports:
-    - port: 80</pre>
+    - port: 80
+`.trim()}</CodeBlock>
     </td>
     <td>
-      <pre>apiVersion: v1
+<CodeBlock className='language-yaml' metastring='{4,7}'>{`
+apiVersion: v1
 kind: Service
 metadata:
-  name: <strong>example-123</strong>
+  name: example-123
 spec:
   selector:
-    app: <strong>example-123</strong>
+    app: example-123
   ports:
-    - port: 80</pre>
+    - port: 80
+`.trim()}</CodeBlock>
     </td>
   </tr>
 </tbody>
@@ -167,7 +181,7 @@ spec:
 
 ## Registering on GitHub
 
-After creating the webhook on your Kubernetes cluster. You can register it on your GitHub  repository or organization.
+After creating the webhook on your Kubernetes cluster. You can register it on your GitHub repository or organization.
 
 - **Payload URL**: `http://your-site.com/webhooks/github`
 - **Content Type**: `application/json`

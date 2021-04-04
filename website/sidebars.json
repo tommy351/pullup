@@ -1,0 +1,12 @@
+{
+  "docs": {
+    "Overview": ["installation", "architecture", "getting-started"],
+    "Resources": [
+      "trigger",
+      "http-webhook",
+      "github-webhook",
+      "resource-template"
+    ],
+    "Guides": ["troubleshooting"]
+  }
+}
