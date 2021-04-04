@@ -45,6 +45,10 @@ module.exports = {
       style: "dark",
       copyright: `Copyright © ${new Date().getFullYear()} Tommy Chen. Built with Docusaurus.`,
     },
+    gtag: {
+      trackingID: "G-BH4SDZ77Q0",
+      anonymizeIP: true,
+    },
   },
   presets: [
     [
