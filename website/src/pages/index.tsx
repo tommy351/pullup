@@ -81,7 +81,7 @@ const Home: FunctionComponent = () => {
   );
 
   return (
-    <Layout>
+    <Layout title="Update Kubernetes resources by webhooks">
       <header className={clsx("hero", styles.heroBanner)}>
         <div className="container">
           <h1 className="hero__title">{siteConfig.title}</h1>
