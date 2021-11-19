@@ -98,6 +98,8 @@ jobs:
       - run:
           name: Release
           command: curl -sL https://git.io/goreleaser | bash -s -- --release-notes <(git-chglog $CIRCLE_TAG)
+          environment:
+            VERSION: v0.149.0
 
 workflows:
   version: 2
