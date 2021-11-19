@@ -19,6 +19,9 @@ metadata:
   namespace: test
 spec:
   clusterIP: 10.0.0.10
+  clusterIPs:
+    - 10.0.0.11
+    - 10.0.0.12
   ports:
     - nodePort: 32100
       port: 80

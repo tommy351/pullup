@@ -30,7 +30,7 @@ echo "About to download a couple of binaries. This might take a while..."
 mkdir -p "$dest_dir"
 
 k8s_version=1.19.2
-curl $quiet -L "https://go.kubebuilder.io/test-tools/${k8s_version}/${goos}/${goarch}" | tar --strip-components=2 -xz -C "$dest_dir" kubebuilder/bin
+curl $quiet -L "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${k8s_version}-${goos}-${goarch}.tar.gz" | tar --strip-components=2 -xz -C "$dest_dir" kubebuilder/bin
 
 kind_version=v0.9.0
 curl $quiet -L "https://github.com/kubernetes-sigs/kind/releases/download/${kind_version}/kind-${goos}-${goarch}" --output "$kind_dest"

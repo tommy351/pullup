@@ -178,6 +178,7 @@ func (r *Reconciler) applyResource(ctx context.Context, set *v1alpha1.ResourceSe
 			reducers = append(
 				reducers,
 				reducer.DeleteNested([]string{"spec", "clusterIP"}),
+				reducer.DeleteNested([]string{"spec", "clusterIPs"}),
 				reducer.ReduceNested([]string{"spec", "ports"}, reducer.MapReduceValue(deleteKeys([]string{"nodePort"}))),
 			)
 		}
