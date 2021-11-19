@@ -424,6 +424,7 @@ func cleanMetadata(obj client.Object) {
 
 func cleanService(obj *corev1.Service) {
 	obj.Spec.ClusterIP = ""
+	obj.Spec.ClusterIPs = nil
 
 	for i := range obj.Spec.Ports {
 		obj.Spec.Ports[i].NodePort = 0
