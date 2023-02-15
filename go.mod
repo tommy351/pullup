@@ -8,7 +8,7 @@ require (
 	github.com/evanphx/json-patch v4.9.0+incompatible
 	github.com/go-logr/logr v0.3.0
 	github.com/go-logr/zapr v0.3.0 // indirect
-	github.com/google/go-cmp v0.5.3
+	github.com/google/go-cmp v0.5.5
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.2
 	github.com/google/wire v0.4.0
@@ -19,7 +19,7 @@ require (
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
 	github.com/pelletier/go-toml v1.8.1 // indirect
-	github.com/prometheus/client_golang v1.8.0 // indirect
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v2 v2.2.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
